@@ -551,3 +551,5 @@ GLOBAL_LIST_EMPTY(teleportlocs)
 			found = TRUE
 		if(found)
 			SSdroning.play_rain(get_area(boarder.client), boarder.client)
+
+/area/start

@@ -95,3 +95,6 @@
 
 /obj/structure/curtain/black
 	color = "#414143"
+
+/obj/structure/curtain/beige
+	color = "#bda194"

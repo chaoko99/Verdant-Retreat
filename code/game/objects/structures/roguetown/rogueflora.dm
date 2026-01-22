@@ -455,7 +455,7 @@
 	return climbable || !density
 
 /obj/structure/flora/roguegrass/bush/wall/CheckExit(atom/movable/O, turf/target)
-	if(istype(O) && (O.pass_flags & PASSGRILLE))
+	if(istype(O) && (O.pass_flags & PASSGRILLE)|| get_turf(mover) == get_turf(src))
 		return 1
 	return 0
 
