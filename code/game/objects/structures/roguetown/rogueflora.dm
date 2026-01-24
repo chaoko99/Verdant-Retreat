@@ -12,7 +12,7 @@
 	max_integrity = 200
 	blade_dulling = DULLING_CUT
 	pixel_x = -16
-	layer = 4.81
+	layer = SPACEVINE_MOB_LAYER
 	attacked_sound = 'sound/misc/woodhit.ogg'
 	destroy_sound = 'sound/misc/woodhit.ogg'
 	debris = list(/obj/item/grown/log/tree/stick = 2)
@@ -234,6 +234,7 @@
 	icon_state = "grass1"
 	attacked_sound = "plantcross"
 	destroy_sound = "plantcross"
+	layer = BELOW_OBJ_LAYER
 	max_integrity = 2
 	blade_dulling = DULLING_CUT
 	debris = list(/obj/item/natural/fibers = 1)
@@ -262,7 +263,7 @@
 	icon_state = "reeds"
 	opacity = 1
 	max_integrity = 10
-	layer = 4.1
+	layer = ABOVE_MOB_LAYER
 	blade_dulling = DULLING_CUT
 
 /obj/structure/flora/roguegrass/water/update_icon()
@@ -455,7 +456,7 @@
 	return climbable || !density
 
 /obj/structure/flora/roguegrass/bush/wall/CheckExit(atom/movable/O, turf/target)
-	if(istype(O) && (O.pass_flags & PASSGRILLE)|| get_turf(mover) == get_turf(src))
+	if(istype(O) && (O.pass_flags & PASSGRILLE)|| get_turf(O) == get_turf(src))
 		return 1
 	return 0
 
@@ -482,7 +483,7 @@
 	max_integrity = 120
 	blade_dulling = DULLING_CUT
 	pixel_x = -16
-	layer = 4.81
+	layer = SPACEVINE_MOB_LAYER
 	attacked_sound = 'sound/misc/woodhit.ogg'
 	destroy_sound = 'sound/misc/woodhit.ogg'
 	static_debris = list( /obj/item/grown/log/tree/small = 1)

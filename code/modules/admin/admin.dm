@@ -632,30 +632,6 @@
 	log_admin("[key_name(usr)] spawned [amount] x [chosen] at [AREACOORD(usr)]")
 	SSblackbox.record_feedback("tally", "admin_verb", 1, "Spawn Atom") //If you are copy-pasting this, ensure the 2nd parameter is unique to the new proc!
 
-/datum/admins/proc/podspawn_atom(object as text)
-	set category = "Debug"
-	set desc = ""
-	set name = "Podspawn"
-
-	if(!check_rights(R_SPAWN))
-		return
-
-	var/chosen = pick_closest_path(object)
-	if(!chosen)
-		return
-	var/turf/T = get_turf(usr)
-
-	if(ispath(chosen, /turf))
-		T.ChangeTurf(chosen)
-	else
-		var/obj/structure/closet/supplypod/centcompod/pod = new()
-		var/atom/A = new chosen(pod)
-		A.flags_1 |= ADMIN_SPAWNED_1
-		new /obj/effect/DPtarget(T, pod)
-
-	log_admin("[key_name(usr)] pod-spawned [chosen] at [AREACOORD(usr)]")
-	SSblackbox.record_feedback("tally", "admin_verb", 1, "Podspawn Atom") //If you are copy-pasting this, ensure the 2nd parameter is unique to the new proc!
-
 /datum/admins/proc/spawn_cargo(object as text)
 	set category = "Debug"
 	set desc = ""

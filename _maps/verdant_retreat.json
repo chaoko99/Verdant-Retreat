@@ -1,0 +1,15 @@
+{
+    "map_name": "Verdant Retreat",
+    "map_path": "map_files/verdant_retreat",
+    "map_file": "verdant_retreat.dmm",
+	"traits": [{"Name": "Verdant Retreat", "Up": true}, {"Up": true, "Down": true}, {"Up": true, "Down": true}, {"Up": true, "Down": true}, {"Down": true}],
+	"minetype": null,
+	"space_empty_levels": 0,
+	"space_ruin_levels": 0,
+	"shuttles": {
+	    "cargo": "cargo_rogue",
+	    "ferry": "ferry_base",
+	    "whiteship": "whiteship_box",
+	    "emergency": "emergency_rogue"
+    }
+}

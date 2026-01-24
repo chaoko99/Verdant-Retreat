@@ -236,7 +236,7 @@
 /mob/living/simple_animal/hostile/retaliate/rogue/orc/ranged/Initialize()
 	. = ..()
 
-/mob/living/simple_animal/hostile/retaliate/orc/death(gibbed)
+/mob/living/simple_animal/hostile/retaliate/rogue/orc/death(gibbed)
 	..()
 	update_icon()
 

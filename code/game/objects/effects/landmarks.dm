@@ -273,10 +273,6 @@ INITIALIZE_IMMEDIATE(/obj/effect/landmark)
 	name = "Shophand"
 	icon_state = "arrow"
 
-/obj/effect/landmark/start/grabber
-	name = "Grabber"
-	icon_state = "arrow"
-
 
 /obj/effect/landmark/start/innkeep
 	name = "Innkeep"
@@ -432,9 +428,6 @@ INITIALIZE_IMMEDIATE(/obj/effect/landmark)
 	name = "Vagabond"
 	icon_state = "arrow"
 
-/obj/effect/landmark/start/sapprentice
-	name = "Smithy Apprentice"
-	icon_state = "arrow"
 
 //goblin
 
@@ -456,23 +449,6 @@ INITIALIZE_IMMEDIATE(/obj/effect/landmark)
 
 //Antagonist spawns
 
-/obj/effect/landmark/start/wizard
-	name = "wizard"
-	icon = 'icons/effects/landmarks_static.dmi'
-	icon_state = "wiznerd_spawn"
-
-/obj/effect/landmark/start/wizard/Initialize()
-	. = ..()
-	GLOB.wizardstart += loc
-
-/obj/effect/landmark/start/nukeop
-	name = "nukeop"
-	icon = 'icons/effects/landmarks_static.dmi'
-	icon_state = "snukeop_spawn"
-
-/obj/effect/landmark/start/nukeop/Initialize()
-	. = ..()
-	GLOB.nukeop_start += loc
 
 /obj/effect/landmark/start/bandit
 	name = "bandit"
@@ -506,10 +482,6 @@ INITIALIZE_IMMEDIATE(/obj/effect/landmark)
 	delete_after_roundstart = FALSE
 	jobspawn_override = list("Wretch")
 
-/obj/effect/landmark/start/nukeop_leader
-	name = "nukeop leader"
-	icon = 'icons/effects/landmarks_static.dmi'
-	icon_state = "snukeop_leader_spawn"
 
 /obj/effect/landmark/start/nukeop_leader/Initialize()
 	. = ..()
@@ -534,101 +506,12 @@ INITIALIZE_IMMEDIATE(/obj/effect/landmark/start/new_player)
 	SSjob.latejoin_trackers += loc
 	return INITIALIZE_HINT_QDEL
 
-//space carps, magicarps, lone ops, slaughter demons, possibly revenants spawn here
-/obj/effect/landmark/carpspawn
-	name = "carpspawn"
-	icon_state = "carp_spawn"
 
 //observer start
 /obj/effect/landmark/observer_start
 	name = "Observer-Start"
 	icon_state = "x"
 
-//objects with the stationloving component (nuke disk) respawn here.
-//also blobs that have their spawn forcemoved (running out of time when picking their spawn spot), santa and respawning devils
-/obj/effect/landmark/blobstart
-	name = "blobstart"
-	icon_state = "blob_start"
-
-/obj/effect/landmark/blobstart/Initialize(mapload)
-	..()
-	GLOB.blobstart += loc
-	return INITIALIZE_HINT_QDEL
-
-//spawns sec equipment lockers depending on the number of sec officers
-/obj/effect/landmark/secequipment
-	name = "secequipment"
-	icon_state = "secequipment"
-
-/obj/effect/landmark/secequipment/Initialize(mapload)
-	..()
-	GLOB.secequipment += loc
-	return INITIALIZE_HINT_QDEL
-
-//players that get put in admin jail show up here
-/obj/effect/landmark/prisonwarp
-	name = "prisonwarp"
-	icon_state = "prisonwarp"
-
-/obj/effect/landmark/prisonwarp/Initialize(mapload)
-	..()
-	GLOB.prisonwarp += loc
-	return INITIALIZE_HINT_QDEL
-
-/obj/effect/landmark/ert_spawn
-	name = "Emergencyresponseteam"
-	icon_state = "ert_spawn"
-
-/obj/effect/landmark/ert_spawn/Initialize(mapload)
-	..()
-	GLOB.emergencyresponseteamspawn += loc
-	return INITIALIZE_HINT_QDEL
-
-//ninja energy nets teleport victims here
-/obj/effect/landmark/holding_facility
-	name = "Holding Facility"
-	icon_state = "holding_facility"
-
-/obj/effect/landmark/holding_facility/Initialize(mapload)
-	..()
-	GLOB.holdingfacility += loc
-	return INITIALIZE_HINT_QDEL
-
-/obj/effect/landmark/thunderdome/observe
-	name = "tdomeobserve"
-	icon_state = "tdome_observer"
-
-/obj/effect/landmark/thunderdome/observe/Initialize(mapload)
-	..()
-	GLOB.tdomeobserve += loc
-	return INITIALIZE_HINT_QDEL
-
-/obj/effect/landmark/thunderdome/one
-	name = "tdome1"
-	icon_state = "tdome_t1"
-
-/obj/effect/landmark/thunderdome/one/Initialize(mapload)
-	..()
-	GLOB.tdome1	+= loc
-	return INITIALIZE_HINT_QDEL
-
-/obj/effect/landmark/thunderdome/two
-	name = "tdome2"
-	icon_state = "tdome_t2"
-
-/obj/effect/landmark/thunderdome/two/Initialize(mapload)
-	..()
-	GLOB.tdome2 += loc
-	return INITIALIZE_HINT_QDEL
-
-/obj/effect/landmark/thunderdome/admin
-	name = "tdomeadmin"
-	icon_state = "tdome_admin"
-
-/obj/effect/landmark/thunderdome/admin/Initialize(mapload)
-	..()
-	GLOB.tdomeadmin += loc
-	return INITIALIZE_HINT_QDEL
 
 //generic event spawns
 /obj/effect/landmark/event_spawn

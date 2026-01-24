@@ -24,16 +24,3 @@
 				new item(L)
 		user.visible_message(span_warning("[user] sorts through [src]."), span_warning("You sort through [src]."))
 		qdel(src)
-/obj/effect/decal/remains/plasma
-	icon_state = "remainsplasma"
-
-/obj/effect/decal/remains/xeno
-	desc = ""
-	icon_state = "remainsxeno"
-
-/obj/effect/decal/remains/xeno/larva
-	icon_state = "remainslarva"
-
-/obj/effect/decal/cleanable/robot_debris/old
-	name = "dusty robot debris"
-	desc = ""
