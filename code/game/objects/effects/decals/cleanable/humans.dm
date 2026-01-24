@@ -12,8 +12,8 @@
 
 /obj/effect/decal/cleanable/coom/Initialize(mapload)
 	. = ..()
-	pixel_x = rand(-8, 8)
-	pixel_y = rand(-8, 8)
+	pixel_x = rand(-16, 16)
+	pixel_y = rand(-16, 16)
 
 /obj/effect/decal/cleanable/blood
 	name = "blood"

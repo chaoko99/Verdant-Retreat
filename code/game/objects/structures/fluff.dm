@@ -261,6 +261,13 @@
 	icon_state = "border"
 	passcrawl = FALSE
 
+/obj/structure/fluff/railing/raisedtrim
+	name = "raised molding"
+	desc = "It was once said that the gods used these to separate high and low; now they only give the illusion of depth, since Psydonia has the real thing."
+	icon = 'icons/turf/roguefloor.dmi'
+	icon_state = "borderfall"
+	dir = NORTH
+
 /obj/structure/fluff/railing/fence
 	name = "palisade"
 	desc = "A rudimentary barrier that might keep the monsters at bay."
