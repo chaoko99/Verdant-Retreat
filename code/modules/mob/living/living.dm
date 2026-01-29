@@ -20,6 +20,8 @@
 /mob/living/Destroy()
 	if(qt_range)
 		QDEL_NULL(qt_range)
+	if(ai_root)
+		SSai.Unregister(src)
 	surgeries = null
 	if(LAZYLEN(status_effects))
 		for(var/s in status_effects)

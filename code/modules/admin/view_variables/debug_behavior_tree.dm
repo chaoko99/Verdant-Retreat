@@ -185,20 +185,25 @@ GLOBAL_LIST_EMPTY(aiblk_hash_lookup)
 	node_data["type"] = "[N.type]"
 	node_data["state"] = N.node_state
 	node_data["children"] = list()
-	node_data["name"] = node_data["type"] // Default name
+	
+	// Default dynamic name
+	var/txt = "[N.type]"
+	var/last_slash = findlasttext(txt, "/")
+	if(last_slash)
+		txt = copytext(txt, last_slash + 1)
+	node_data["name"] = txt
 
 	if(istype(N, /datum/behavior_tree/node/action))
 		var/datum/behavior_tree/node/action/A = N
 		if(A.my_action)
 			node_data["name"] = "[A.my_action.type]"
 			// Clean up name for display
-			var/last_slash = findlasttext(node_data["name"], "/")
-			if(last_slash)
-				node_data["name"] = copytext(node_data["name"], last_slash + 1)
+			var/last_slash_act = findlasttext(node_data["name"], "/")
+			if(last_slash_act)
+				node_data["name"] = copytext(node_data["name"], last_slash_act + 1)
 
 	else if(istype(N, /datum/behavior_tree/node/selector))
 		var/datum/behavior_tree/node/selector/S = N
-		node_data["name"] = "Selector"
 		if(S.my_nodes)
 			for(var/datum/behavior_tree/node/child in S.my_nodes)
 				var/child_data = get_node_data(child)
@@ -207,7 +212,6 @@ GLOBAL_LIST_EMPTY(aiblk_hash_lookup)
 
 	else if(istype(N, /datum/behavior_tree/node/sequence))
 		var/datum/behavior_tree/node/sequence/S = N
-		node_data["name"] = "Sequence"
 		if(S.my_nodes)
 			for(var/datum/behavior_tree/node/child in S.my_nodes)
 				var/child_data = get_node_data(child)
@@ -216,7 +220,6 @@ GLOBAL_LIST_EMPTY(aiblk_hash_lookup)
 
 	else if(istype(N, /datum/behavior_tree/node/decorator))
 		var/datum/behavior_tree/node/decorator/D = N
-		node_data["name"] = "Decorator"
 		if(D.child)
 			var/child_data = get_node_data(D.child)
 			if(child_data)
@@ -224,7 +227,6 @@ GLOBAL_LIST_EMPTY(aiblk_hash_lookup)
 
 	else if(istype(N, /datum/behavior_tree/node/parallel))
 		var/datum/behavior_tree/node/parallel/P = N
-		node_data["name"] = "Parallel"
 		if(P.my_nodes)
 			for(var/datum/behavior_tree/node/child in P.my_nodes)
 				var/child_data = get_node_data(child)

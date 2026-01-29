@@ -6,27 +6,27 @@
 // TARGETING
 // ------------------------------------------------------------------------------
 
-/bt_action/carbon_find_target
+/bt_action/carbon_pick_best_target
 	var/search_range = 7
 
-/bt_action/carbon_find_target/evaluate(mob/living/carbon/human/user, mob/living/target, list/blackboard)
+/bt_action/carbon_pick_best_target/evaluate(mob/living/carbon/human/user, mob/living/target, list/blackboard)
 	if(!ishuman(user)) return NODE_FAILURE
 
-	// Check if current target is still valid
-	if(target && user.should_target(target) && get_dist(user, target) <= search_range)
-		return NODE_SUCCESS
+	var/list/candidates = blackboard[AIBLK_POSSIBLE_TARGETS]
+	if(!candidates) return NODE_FAILURE
 
-	// Find new target
 	var/mob/living/new_target = null
 	var/closest_dist = search_range + 1
-	var/list/targets = get_nearby_entities(user, search_range)
 
-	for(var/mob/living/L in targets)
+	for(var/mob/living/L in candidates)
+		if(L == user || L.stat == DEAD) continue
 		if(!user.should_target(L) || los_blocked(user, L, TRUE))
 			continue
 		if(user.faction_check_mob(L)) continue
-		var/ai_squad/my_squad = user.ai_root.blackboard[AIBLK_SQUAD_DATUM] ? user.ai_root.blackboard[AIBLK_SQUAD_DATUM] : null
-		var/ai_squad/their_squad = L.ai_root?.blackboard[AIBLK_SQUAD_DATUM] ? L.ai_root.blackboard[AIBLK_SQUAD_DATUM] : null
+		
+		// Squad logic
+		var/ai_squad/my_squad = blackboard[AIBLK_SQUAD_DATUM]
+		var/ai_squad/their_squad = L.ai_root?.blackboard[AIBLK_SQUAD_DATUM]
 		if(my_squad && their_squad && my_squad == their_squad) continue
 
 		var/dist = get_dist(user, L)
@@ -34,10 +34,8 @@
 			new_target = L
 			closest_dist = dist
 
-	if(new_target)
-		if(user.ai_root)
-			user.ai_root.target = new_target
-			user.add_aggressor(new_target)
+	if(new_target && user.ai_root)
+		user.ai_root.target = new_target
 		user.retaliate(new_target)
 		return NODE_SUCCESS
 
@@ -283,7 +281,6 @@
 	if(flee_turf && user.set_ai_path_to(flee_turf)) return NODE_RUNNING
 	return NODE_FAILURE
 
-/bt_action/carbon_check_aggressors/evaluate(mob/living/carbon/human/user, mob/living/target, list/blackboard)
 
 /bt_action/carbon_pursue_last_known/evaluate(mob/living/carbon/human/user, mob/living/target, list/blackboard)
 	if(!ishuman(user) || !user.ai_root) return NODE_FAILURE
@@ -308,8 +305,4 @@
 		if(user.set_ai_path_to(T)) return NODE_RUNNING
 	return NODE_RUNNING
 
-/bt_action/carbon_target_in_range
-	var/range = 1
-/bt_action/carbon_target_in_range/evaluate(mob/living/carbon/human/user, mob/living/target, list/blackboard)
-	if(target && get_dist(user, target) <= range) return NODE_SUCCESS
-	return NODE_FAILURE
+

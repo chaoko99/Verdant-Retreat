@@ -36,7 +36,7 @@
 // AGGRESSOR MANAGER SERVICE
 // Cleans up the aggressor list periodically
 /datum/behavior_tree/node/decorator/service/aggressor_manager
-	interval = 3 SECONDS
+	interval = 2 SECONDS
 
 /datum/behavior_tree/node/decorator/service/aggressor_manager/service_tick(mob/living/npc, list/blackboard)
 	var/list/aggressors = blackboard[AIBLK_AGGRESSORS]
@@ -59,7 +59,7 @@
 	observed_signal = COMSIG_AI_ATTACKED
 
 // ------------------------------------------------------------------------------
-// ATOMIC ACTIONS - TARGETING
+// TARGETING
 // ------------------------------------------------------------------------------
 
 /bt_action/pick_best_target
@@ -176,7 +176,7 @@
 	return NODE_FAILURE
 
 // ------------------------------------------------------------------------------
-// ATOMIC ACTIONS - MOVEMENT
+// MOVEMENT
 // ------------------------------------------------------------------------------
 
 /bt_action/set_movement_target
@@ -201,7 +201,7 @@
 	return NODE_SUCCESS
 
 // ------------------------------------------------------------------------------
-// ATOMIC ACTIONS - COMBAT
+// COMBAT
 // ------------------------------------------------------------------------------
 
 /bt_action/face_target
@@ -247,7 +247,7 @@
 	return NODE_SUCCESS
 
 // ------------------------------------------------------------------------------
-// ATOMIC ACTIONS - UTILITY
+// UTILITY ACTIONS
 // ------------------------------------------------------------------------------
 
 /bt_action/move_to_destination
@@ -261,7 +261,8 @@
 			return NODE_RUNNING
 		return NODE_FAILURE
 
-	if(get_dist(user, destination) <= 1 || user.loc == destination.loc)
+	var/distcheck = isturf(destination) ? 0 : 1
+	if(get_dist(user, destination) <= distcheck || get_turf(user) == get_turf(destination))
 		user.set_ai_path_to(null)
 		return NODE_SUCCESS
 
@@ -364,16 +365,9 @@
 				break
 	return NODE_RUNNING
 
-/bt_action/simple_animal_check_aggressors
-	parent_type = /bt_action/switch_to_aggressor
 
-/bt_action/find_target
-	parent_type = /bt_action/pick_best_target
 
-/bt_action/find_target/evaluate(mob/living/user, mob/living/target, list/blackboard)
-	var/list/targets = get_nearby_entities(user, 7)
-	blackboard[AIBLK_POSSIBLE_TARGETS] = targets
-	return ..()
+
 
 /bt_action/target_in_range
 	var/range = 1
@@ -392,34 +386,9 @@
 			return NODE_RUNNING
 	return NODE_FAILURE
 
-/bt_action/attack_melee/evaluate(mob/living/user, mob/living/target, list/blackboard)
-	if(!target) return NODE_FAILURE
-	if(world.time >= user.ai_root.next_attack_tick)
-		var/mob/living/simple_animal/hostile/H = user
-		if(istype(H)) H.AttackingTarget()
-		user.ai_root.next_attack_tick = world.time + (user.ai_root.next_attack_delay || 10)
-		return NODE_SUCCESS
-	return NODE_RUNNING
 
-/bt_action/attack_ranged/evaluate(mob/living/user, mob/living/target, list/blackboard)
-	if(!target) return NODE_FAILURE
-	
-	var/mob/living/simple_animal/hostile/H = user
-	if(!istype(H)) return NODE_FAILURE
-	
-	if(H.ranged_cooldown > world.time)
-		return NODE_FAILURE
 
-	H.visible_message(span_danger("<b>[H]</b> [H.ranged_message] at [target]!"))
-	if(H.rapid > 1)
-		var/datum/callback/cb = CALLBACK(H, TYPE_PROC_REF(/mob/living/simple_animal/hostile, Shoot), target)
-		for(var/i in 1 to H.rapid)
-			addtimer(cb, (i - 1)*H.rapid_fire_delay)
-	else
-		H.Shoot(target)
 
-	H.ranged_cooldown = world.time + H.ranged_cooldown_time
-	return NODE_SUCCESS
 
 /bt_action/dreamfiend_blink
 	var/blink_range = 5

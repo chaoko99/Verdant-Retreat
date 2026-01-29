@@ -58,14 +58,25 @@ PROCESSING_SUBSYSTEM_DEF(ai)
 		GLOB.npc_list |= M
 
 /datum/controller/subsystem/processing/ai/proc/Unregister(mob/living/M)
-	if(M)
+	if(!M) return
+	
+	else if(!M.ai_root) 
+		active_mobs -= M
+		sleeping_mobs -= M
+		GLOB.npc_list -= M
+		return
+	else
 		#ifdef AI_SQUADS
 		if(M.ai_root.blackboard && M.ai_root.blackboard[AIBLK_SQUAD_DATUM])
 			var/ai_squad/squad = M.ai_root.blackboard[AIBLK_SQUAD_DATUM]
 			squad.RemoveMember(M)
 		#endif
-		active_mobs.Remove(M)
-		sleeping_mobs.Remove(M)
+		
+		if(M.ai_root.move_destination)
+			M.set_ai_path_to(null)
+
+		active_mobs -= M
+		sleeping_mobs -= M
 		GLOB.npc_list -= M
 		QDEL_NULL(M.ai_root)
 

@@ -89,7 +89,6 @@
 /datum/behavior_tree/node/selector/hostile_humanoid_logic
 	my_nodes = list(
 		/datum/behavior_tree/node/decorator/observer/pain_crit/flee_response, // React to pain
-		/datum/behavior_tree/node/decorator/observer/self_preservation/flee_response, // React to low health
 		/datum/behavior_tree/node/sequence/humanoid_combat,
 		/datum/behavior_tree/node/sequence/humanoid_idle
 	)
@@ -120,7 +119,7 @@
 
 // Wrap find_target in retry decorator
 /datum/behavior_tree/node/decorator/retry/find_target_wrapped
-	child = /datum/behavior_tree/node/action/pick_best_target
+	child = /datum/behavior_tree/node/action/carbon_pick_best_target
 	cooldown = 2 SECONDS
 	max_failures = 1
 
@@ -174,7 +173,6 @@
 /datum/behavior_tree/node/selector/goblin_logic
 	my_nodes = list(
 		/datum/behavior_tree/node/decorator/observer/pain_crit/flee_response,
-		/datum/behavior_tree/node/decorator/observer/self_preservation/flee_response,
 		/datum/behavior_tree/node/sequence/goblin_combat,
 		/datum/behavior_tree/node/sequence/humanoid_idle
 	)
@@ -298,7 +296,7 @@
 
 /datum/behavior_tree/node/sequence/humanoid_attack_sequence
 	my_nodes = list(
-		/datum/behavior_tree/node/action/carbon_target_in_range,
+		/datum/behavior_tree/node/action/target_in_range,
 		/datum/behavior_tree/node/action/carbon_equip_weapon,
 		/datum/behavior_tree/node/action/carbon_attack_melee
 	)
@@ -313,10 +311,16 @@
 // ------------------------------------------------------------------------------
 
 /datum/behavior_tree/node/action/carbon_has_target
+
 	my_action = /bt_action/carbon_has_target
 
-/datum/behavior_tree/node/action/carbon_find_target
-	my_action = /bt_action/carbon_find_target
+
+
+/datum/behavior_tree/node/action/carbon_pick_best_target
+
+	my_action = /bt_action/carbon_pick_best_target
+
+
 
 /datum/behavior_tree/node/action/carbon_move_to_target
 	my_action = /bt_action/carbon_move_to_target
@@ -327,14 +331,7 @@
 /datum/behavior_tree/node/action/carbon_attack_melee
 	my_action = /bt_action/carbon_attack_melee
 
-/datum/behavior_tree/node/action/carbon_target_in_range
-	my_action = /bt_action/carbon_target_in_range
 
-/datum/behavior_tree/node/action/carbon_target_in_range/New()
-	. = ..()
-	var/bt_action/target_in_range/action = my_action
-	if(istype(action))
-		action.range = 1
 
 /datum/behavior_tree/node/action/carbon_equip_weapon
 	my_action = /bt_action/carbon_equip_weapon
@@ -366,8 +363,7 @@
 /datum/behavior_tree/node/action/goblin_disarm
 	my_action = /bt_action/goblin_disarm
 
-/datum/behavior_tree/node/action/carbon_check_aggressors
-	my_action = /bt_action/carbon_check_aggressors
+
 
 /datum/behavior_tree/node/action/carbon_pursue_last_known
 	my_action = /bt_action/carbon_pursue_last_known
