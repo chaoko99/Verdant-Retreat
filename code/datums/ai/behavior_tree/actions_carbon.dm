@@ -88,16 +88,20 @@
 /bt_action/knockdown_target/evaluate(mob/living/carbon/human/user, mob/living/target, list/blackboard)
 	var/mob/living/victim = target ? target : user.ai_root.blackboard[AIBLK_MONSTER_BAIT]
 	if(!victim) return NODE_FAILURE
-	
+
 	if(victim.IsKnockdown() || victim.IsParalyzed() || victim.IsUnconscious() || victim.IsSleeping())
 		return NODE_SUCCESS
-		
+
 	if(get_dist(user, victim) > 1) return NODE_FAILURE // Must be close
-	
+
+	if(world.time < user.ai_root.next_attack_tick)
+		return NODE_FAILURE
+
 	// Target legs
 	user.zone_selected = pick(BODY_ZONE_L_LEG, BODY_ZONE_R_LEG)
 	npc_click_on(user, victim)
-	return NODE_RUNNING
+	user.ai_root.next_attack_tick = world.time + (user.ai_root.next_attack_delay || 10)
+	return NODE_SUCCESS
 
 /bt_action/grapple_target
 /bt_action/grapple_target/evaluate(mob/living/carbon/human/user, mob/living/target, list/blackboard)
@@ -107,83 +111,97 @@
 	// Check if already grabbing
 	var/obj/item/grabbing/G = user.get_active_held_item()
 	if(istype(G) && G.grabbed == victim) return NODE_SUCCESS
-	
+
+	if(world.time < user.ai_root.next_attack_tick)
+		return NODE_FAILURE
+
 	// Initiate grab
 	user.zone_selected = BODY_ZONE_CHEST
 	user.select_intent_and_attack(INTENT_GRAB, victim)
-	return NODE_RUNNING
+	user.ai_root.next_attack_tick = world.time + (user.ai_root.next_attack_delay || 10)
+	return NODE_SUCCESS
 
 /bt_action/upgrade_grapple
 /bt_action/upgrade_grapple/evaluate(mob/living/carbon/human/user, mob/living/target, list/blackboard)
 	var/obj/item/grabbing/G = user.get_active_held_item()
 	if(!istype(G)) return NODE_FAILURE
-	
+
 	if(G.grab_state >= GRAB_AGGRESSIVE) return NODE_SUCCESS
-	
+
+	if(world.time < user.ai_root.next_attack_tick)
+		return NODE_FAILURE
+
 	user.use_grab_intent(G, /datum/intent/grab/upgrade, G.grabbed)
-	return NODE_RUNNING
+	user.ai_root.next_attack_tick = world.time + (user.ai_root.next_attack_delay || 10)
+	return NODE_SUCCESS
 
 /bt_action/pin_target
 /bt_action/pin_target/evaluate(mob/living/carbon/human/user, mob/living/target, list/blackboard)
 	var/mob/living/victim = target ? target : user.ai_root.blackboard[AIBLK_MONSTER_BAIT]
 	if(!victim) return NODE_FAILURE
-	
+
 	if(victim.IsParalyzed() || victim.restrained()) return NODE_SUCCESS
-	
+
 	var/obj/item/grabbing/G = user.get_active_held_item()
 	if(!istype(G) || G.grab_state < GRAB_AGGRESSIVE || G.grabbed != victim || get_turf(user) != get_turf(victim)) return NODE_FAILURE
-	
+
+	if(world.time < user.ai_root.next_attack_tick)
+		return NODE_FAILURE
+
 	// Pin/Tackle
 	user.use_grab_intent(G, /datum/intent/grab/shove, victim)
-	return NODE_RUNNING
+	user.ai_root.next_attack_tick = world.time + (user.ai_root.next_attack_delay || 10)
+	return NODE_SUCCESS
 
 /bt_action/cuff_target
 /bt_action/cuff_target/evaluate(mob/living/carbon/human/user, mob/living/target, list/blackboard)
 	var/mob/living/victim = target ? target : user.ai_root.blackboard[AIBLK_MONSTER_BAIT]
 	if(!victim) return NODE_FAILURE
-	
+
 	if(victim.restrained()) return NODE_SUCCESS
-	
+
+	if(user.doing) return NODE_RUNNING
+
 	var/obj/item/rope/R = user.find_item_in_inventory(/obj/item/rope)
 	if(!R)
 		R = new /obj/item/rope(user)
 		user.ensure_in_active_hand(R)
-		
+		return NODE_SUCCESS // Try again next tick with rope
+
 	if(user.get_active_held_item() == R)
 		R.try_cuff_arms(victim, user)
-		return NODE_RUNNING
-		
+		return NODE_SUCCESS // Attempted cuffing, check result next tick
+
 	return NODE_FAILURE
 
 /bt_action/strip_victim
 /bt_action/strip_victim/evaluate(mob/living/carbon/human/user, mob/living/target, list/blackboard)
 	var/mob/living/carbon/human/victim = target ? target : user.ai_root.blackboard[AIBLK_MONSTER_BAIT]
 	if(!ishuman(victim)) return NODE_FAILURE
-	
+
 	var/used_bitflag = GROIN
-	if(!user.getorganslot(ORGAN_SLOT_PENIS)) used_bitflag = MOUTH 
-	
+	if(!user.getorganslot(ORGAN_SLOT_PENIS)) used_bitflag = MOUTH
+
 	if(!victim.get_blocking_equipment(used_bitflag)) return NODE_SUCCESS // Exposed
-	
+
 	if(user.doing) return NODE_RUNNING
-	
+
 	// Strip logic
 	user.visible_message(span_warning("[user] tears at [victim]'s clothing!"))
 	if(do_mob(user, victim, 30))
 		for(var/obj/item/I in victim.get_blocking_equipment(used_bitflag))
 			victim.dropItemToGround(I, TRUE, TRUE)
-			return NODE_RUNNING
-			
-	return NODE_RUNNING
+
+	return NODE_SUCCESS // Check result next tick
 
 /bt_action/position_for_sex
 /bt_action/position_for_sex/evaluate(mob/living/carbon/human/user, mob/living/target, list/blackboard)
 	var/mob/living/victim = target ? target : user.ai_root.blackboard[AIBLK_MONSTER_BAIT]
 	if(!victim) return NODE_FAILURE
-	
+
 	var/turf/T = get_turf(victim)
 	if(get_turf(user) == T) return NODE_SUCCESS
-	
+
 	user.Move(T, get_dir(user, T))
 	return NODE_RUNNING
 
@@ -249,18 +267,26 @@
 	return NODE_FAILURE
 
 /bt_action/carbon_idle_wander/evaluate(mob/living/carbon/human/user, mob/living/target, list/blackboard)
-	if(prob(8) && user.wander && user.ai_root)
+	if(!user.wander || !prob(15))
+		return NODE_FAILURE
+
+	if(world.time >= user.ai_root.next_move_tick)
 		var/turf/T = get_step(user, pick(GLOB.cardinals))
-		if(!T) return NODE_FAILURE
-		else if(user.set_ai_path_to(T)) return NODE_RUNNING
-	return NODE_RUNNING
+		if(T && !T.density && user.set_ai_path_to(T))
+			return NODE_RUNNING
+	return NODE_FAILURE
 
 /bt_action/carbon_attack_melee/evaluate(mob/living/carbon/human/user, mob/living/target, list/blackboard)
-	if(user.Adjacent(target))
-		user.face_atom(target)
-		npc_click_on(user, target)
-		return NODE_SUCCESS
-	return NODE_FAILURE
+	if(!target) return NODE_FAILURE
+	if(!user.Adjacent(target)) return NODE_FAILURE
+
+	if(world.time < user.ai_root.next_attack_tick)
+		return NODE_FAILURE
+
+	user.face_atom(target)
+	npc_click_on(user, target)
+	user.ai_root.next_attack_tick = world.time + (user.ai_root.next_attack_delay || 10)
+	return NODE_SUCCESS
 
 /bt_action/carbon_equip_weapon/evaluate(mob/living/carbon/human/user, mob/living/target, list/blackboard)
 	var/obj/item/held = user.get_active_held_item()
@@ -299,10 +325,11 @@
 /bt_action/carbon_search_area/evaluate(mob/living/carbon/human/user, mob/living/target, list/blackboard)
 	if(!ishuman(user) || !user.ai_root) return NODE_FAILURE
 	if(user.ai_root.target) return NODE_SUCCESS
-	
-	if(prob(40))
+
+	if(prob(40) && world.time >= user.ai_root.next_move_tick)
 		var/turf/T = get_step(user, pick(GLOB.cardinals))
-		if(user.set_ai_path_to(T)) return NODE_RUNNING
-	return NODE_RUNNING
+		if(T && !T.density && user.set_ai_path_to(T))
+			return NODE_RUNNING
+	return NODE_FAILURE
 
 

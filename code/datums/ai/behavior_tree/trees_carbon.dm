@@ -30,6 +30,12 @@
 /datum/behavior_tree/node/action/position_for_sex
 	my_action = /bt_action/position_for_sex
 
+// Wrap position_for_sex in retry decorator
+/datum/behavior_tree/node/decorator/retry/position_for_sex_wrapped
+	child = /datum/behavior_tree/node/action/position_for_sex
+	cooldown = 2 SECONDS
+	max_failures = 3
+
 /datum/behavior_tree/node/action/start_sex
 	my_action = /bt_action/start_sex
 
@@ -60,7 +66,7 @@
 // Violate Logic
 /datum/behavior_tree/node/sequence/violate_logic
 	my_nodes = list(
-		/datum/behavior_tree/node/action/position_for_sex,
+		/datum/behavior_tree/node/decorator/retry/position_for_sex_wrapped,
 		/datum/behavior_tree/node/action/strip_victim,
 		/datum/behavior_tree/node/action/start_sex,
 		/datum/behavior_tree/node/action/continue_sex
@@ -222,8 +228,8 @@
 // Goblin Restrain Logic (Selector: Maintain -> Pin -> Tackle -> Upgrade -> Grab)
 /datum/behavior_tree/node/selector/goblin_restrain_sequence
 	my_nodes = list(
-		/datum/behavior_tree/node/action/goblin_maintain_pin_action,
-		/datum/behavior_tree/node/action/goblin_pin_target_action,
+		/datum/behavior_tree/node/decorator/retry/goblin_maintain_pin_wrapped,
+		/datum/behavior_tree/node/decorator/retry/goblin_pin_target_wrapped,
 		/datum/behavior_tree/node/action/goblin_tackle_target_action,
 		/datum/behavior_tree/node/action/goblin_upgrade_grab_action,
 		/datum/behavior_tree/node/action/goblin_grab_target_action
@@ -396,8 +402,20 @@
 /datum/behavior_tree/node/action/goblin_maintain_pin_action
 	my_action = /bt_action/goblin_maintain_pin
 
+// Wrap goblin_maintain_pin in retry decorator
+/datum/behavior_tree/node/decorator/retry/goblin_maintain_pin_wrapped
+	child = /datum/behavior_tree/node/action/goblin_maintain_pin_action
+	cooldown = 2 SECONDS
+	max_failures = 3
+
 /datum/behavior_tree/node/action/goblin_pin_target_action
 	my_action = /bt_action/goblin_pin_target
+
+// Wrap goblin_pin_target in retry decorator
+/datum/behavior_tree/node/decorator/retry/goblin_pin_target_wrapped
+	child = /datum/behavior_tree/node/action/goblin_pin_target_action
+	cooldown = 2 SECONDS
+	max_failures = 3
 
 /datum/behavior_tree/node/action/goblin_tackle_target_action
 	my_action = /bt_action/goblin_tackle_target

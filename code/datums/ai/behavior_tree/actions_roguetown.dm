@@ -257,8 +257,8 @@
 	var/atom/destination = user.ai_root.move_destination
 	if(!destination)
 		if(target && target != user)
-			user.set_ai_path_to(target)
-			return NODE_RUNNING
+			if(user.set_ai_path_to(target))
+				return NODE_RUNNING
 		return NODE_FAILURE
 
 	var/distcheck = isturf(destination) ? 0 : 1
@@ -356,6 +356,7 @@
 /bt_action/simple_animal_search_area/evaluate(mob/living/user, mob/living/target, list/blackboard)
 	if(!user.ai_root) return NODE_FAILURE
 	if(user.ai_root.target) return NODE_SUCCESS
+
 	if(prob(40) && world.time >= user.ai_root.next_move_tick)
 		var/list/dirs = GLOB.cardinals.Copy()
 		for(var/move_dir in dirs)
@@ -363,7 +364,7 @@
 			if(T && !T.density)
 				if(user.set_ai_path_to(T)) return NODE_RUNNING
 				break
-	return NODE_RUNNING
+	return NODE_FAILURE
 
 
 
@@ -376,10 +377,18 @@
 	return NODE_FAILURE
 
 /bt_action/move_to_target/evaluate(mob/living/user, mob/living/target, list/blackboard)
+	if(!target) return NODE_FAILURE
+	if(user.Adjacent(target)) return NODE_SUCCESS
 	if(user.set_ai_path_to(target)) return NODE_RUNNING
 	return NODE_FAILURE
 
 /bt_action/idle_wander/evaluate(mob/living/user, mob/living/target, list/blackboard)
+	var/mob/living/simple_animal/SA = user
+	if(!istype(SA)) return NODE_FAILURE
+
+	if(!SA.wander || !prob(15))
+		return NODE_FAILURE
+
 	if(world.time >= user.ai_root.next_move_tick)
 		var/turf/T = get_step(user, pick(GLOB.cardinals))
 		if(T && !T.density && user.set_ai_path_to(T))
@@ -484,8 +493,9 @@
 	if(!user.ai_root) return NODE_FAILURE
 	var/atom/dest = user.ai_root.blackboard[blackboard_key]
 	if(!dest || QDELETED(dest)) return NODE_FAILURE
-	user.set_ai_path_to(dest)
-	return NODE_SUCCESS
+	if(user.set_ai_path_to(dest))
+		return NODE_SUCCESS
+	return NODE_FAILURE
 
 /bt_action/check_friendly_fire/evaluate(mob/living/user, mob/living/target, list/blackboard)
 	var/mob/living/simple_animal/hostile/H = user
@@ -554,8 +564,9 @@
 		user.ai_root.blackboard -= AIBLK_FOLLOW_TARGET
 		return NODE_SUCCESS
 	if(get_dist(user, follow_target) <= 1) return NODE_SUCCESS
-	user.set_ai_path_to(follow_target)
-	return NODE_RUNNING
+	if(user.set_ai_path_to(follow_target))
+		return NODE_RUNNING
+	return NODE_FAILURE
 
 /bt_action/perform_emote
 	var/emote_id
@@ -691,8 +702,9 @@
 	if(!user.ai_root || !target || target.stat != DEAD) return NODE_FAILURE
 	if(target.ckey || target.mind) return NODE_FAILURE
 	if(get_dist(user, target) > 1)
-		user.set_ai_path_to(target)
-		return NODE_RUNNING
+		if(user.set_ai_path_to(target))
+			return NODE_RUNNING
+		return NODE_FAILURE
 	if(!user.ai_root.blackboard[AIBLK_EATING_BODY])
 		user.visible_message(span_danger("[user] starts to rip apart [target]!"))
 		user.ai_root.blackboard[AIBLK_EATING_BODY] = world.time
@@ -710,7 +722,7 @@
 		npc_click_on(user, target)
 		user.ai_root.next_attack_tick = world.time + (user.ai_root.next_attack_delay || 10)
 		return NODE_SUCCESS
-	return NODE_RUNNING
+	return NODE_FAILURE // On cooldown, let tree try other actions
 
 /bt_action/deadite_migrate
 	var/path_key = "deadite_migration_path"
@@ -725,8 +737,9 @@
 			if(idx > 0 && idx < length(path))
 				var/turf/next = path[idx+1]
 				blackboard[target_key] = next
-				user.set_ai_path_to(next)
-				return NODE_RUNNING
+				if(user.set_ai_path_to(next))
+					return NODE_RUNNING
+				return NODE_FAILURE
 			else if(idx == length(path))
 				blackboard -= path_key
 				blackboard -= target_key
@@ -734,12 +747,13 @@
 		else
 			user.ai_root.move_destination = current_target
 			if(user.set_ai_path_to(current_target)) return NODE_RUNNING
-			return NODE_RUNNING
+			return NODE_FAILURE
 	else
 		var/turf/first = path[1]
 		blackboard[target_key] = first
-		user.set_ai_path_to(first)
-		return NODE_RUNNING
+		if(user.set_ai_path_to(first))
+			return NODE_RUNNING
+		return NODE_FAILURE
 	return NODE_FAILURE
 
 /bt_action/colossus_stomp/evaluate(mob/living/user, mob/living/target, list/blackboard)
@@ -808,8 +822,9 @@
 /bt_action/chicken_find_nest/evaluate(mob/living/user, mob/living/target, list/blackboard)
 	var/obj/structure/fluff/nest/N = locate() in oview(user)
 	if(N)
-		user.set_ai_path_to(N)
-		return NODE_RUNNING
+		if(user.set_ai_path_to(N))
+			return NODE_RUNNING
+		return NODE_FAILURE
 	return NODE_FAILURE
 
 /bt_action/chicken_check_material/evaluate(mob/living/user, mob/living/target, list/blackboard)
@@ -837,10 +852,12 @@
 /bt_action/chicken_find_material/evaluate(mob/living/user, mob/living/target, list/blackboard)
 	var/obj/item/natural/fibers/F = locate() in oview(user)
 	if(F)
-		user.set_ai_path_to(F)
-		return NODE_RUNNING
+		if(user.set_ai_path_to(F))
+			return NODE_RUNNING
+		return NODE_FAILURE
 	var/obj/item/grown/log/tree/stick/S = locate() in oview(user)
 	if(S)
-		user.set_ai_path_to(S)
-		return NODE_RUNNING
+		if(user.set_ai_path_to(S))
+			return NODE_RUNNING
+		return NODE_FAILURE
 	return NODE_FAILURE
