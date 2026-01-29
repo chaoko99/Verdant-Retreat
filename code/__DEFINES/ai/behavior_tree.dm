@@ -50,7 +50,7 @@
 #define AI_CMD_STATE_ATTACK 1
 
 
-// Below are the AI blackboard block IDs. These are pre-hashed integers using DJB2 for O(1) lookup performance.
+// Below are the AI blackboard block IDs. These are pre-hashed integers using DJB2 for O(log N) lookup performance instead of O(N) (much faster).
 // Since the blackboard best operates by staying small and adding/removing keys as needed, some variables that are accessed every tick are defined on the behavior tree node itself, and are not stored in the blackboard.
 // For example, the next_think_delay variable is stored in the node itself, not the blackboard. Variables that do not need to be accessed as frequently are safe to store in the blackboard and can be added here.
 // To add a new key: use the hash_key() proc or calculate a define with DJB2: hash=5381; foreach char: hash=((hash<<5)+hash)+ascii; mask by &0xffffff to avoid loss of integer precision

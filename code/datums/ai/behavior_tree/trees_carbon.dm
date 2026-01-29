@@ -402,7 +402,6 @@
 /datum/behavior_tree/node/action/goblin_maintain_pin_action
 	my_action = /bt_action/goblin_maintain_pin
 
-// Wrap goblin_maintain_pin in retry decorator
 /datum/behavior_tree/node/decorator/retry/goblin_maintain_pin_wrapped
 	child = /datum/behavior_tree/node/action/goblin_maintain_pin_action
 	cooldown = 2 SECONDS
@@ -411,7 +410,6 @@
 /datum/behavior_tree/node/action/goblin_pin_target_action
 	my_action = /bt_action/goblin_pin_target
 
-// Wrap goblin_pin_target in retry decorator
 /datum/behavior_tree/node/decorator/retry/goblin_pin_target_wrapped
 	child = /datum/behavior_tree/node/action/goblin_pin_target_action
 	cooldown = 2 SECONDS
