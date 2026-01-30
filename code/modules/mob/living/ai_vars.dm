@@ -48,6 +48,10 @@
 	if(!ai_root)
 		return FALSE
 
+	// Null safety - can't path if we're not in the world
+	if(!src || !get_turf(src))
+		return FALSE
+
 	// NPCs should not move while knocked down
 	if(IsKnockdown())
 		return FALSE
@@ -64,7 +68,22 @@
 
 	// Don't repath if we are already going there and have a path
 	if(ai_root.move_destination == destination && length(ai_root.path))
-		return TRUE
+		// For moving targets (mobs), check if they've moved to a different turf
+		if(ismob(destination))
+			var/turf/path_end = ai_root.path[length(ai_root.path)]
+			var/turf/dest_turf = get_turf(destination)
+			// Null check - if destination is in null space now, clear path
+			if(!dest_turf)
+				ai_root.path = null
+				ai_root.move_destination = null
+				return FALSE
+			if(path_end == dest_turf)
+				// Target hasn't moved, path is still valid
+				return TRUE
+			// Target has moved, fall through to recalculate path
+		else
+			// Static destination, path is still valid
+			return TRUE
 
 	if(ai_root.target && (ai_root.move_destination == ai_root.target || ai_root.move_destination == get_turf(ai_root.target)))
 		if(get_dist(src, ai_root.target) <= 1)
@@ -79,13 +98,15 @@
 	if(ai_root.move_destination)
 		SSai.unclaim_turf(get_turf(ai_root.move_destination), src)
 
-	// For a 1 step path, just set it directly for performance, or null the destination if it's a dense object we're next to.
+	// For a 1 step path to static destinations, just set it directly for performance
+	// For mob/obj targets, only skip pathfinding if we're already adjacent
 	if(get_dist(src, destination) <= 1)
 		var/turf/T = get_turf(destination)
 		if(T && get_turf(src) != T)
 			var/target = ai_root.target
 			var/obj_target = ai_root.obj_target
 			if(!target && !obj_target)
+				// Static destination - create simple 1-step path
 				var/has_dense_object = FALSE
 				for(var/atom/A in T)
 					if(A.density)
@@ -98,23 +119,55 @@
 					SSai.claim_turf(T, src)
 					return TRUE
 			else
+				// Moving target - only skip pathfinding if already adjacent
 				if(target && Adjacent(ai_root.target) || obj_target && Adjacent(ai_root.obj_target))
 					ai_root.path = null
 					ai_root.move_destination = null
 					return FALSE
+				// Not adjacent but distance 1 (e.g., diagonal) - fall through to A_Star
 
+		// Can't reach destination
+		else
+			ai_root.path = null
+			ai_root.move_destination = null
+			return FALSE
+
+	var/turf/start_turf = get_turf(src)
+	var/turf/dest_turf = get_turf(destination)
+
+	// Null safety - if either turf is invalid, we can't path
+	if(!start_turf || !dest_turf)
 		ai_root.path = null
 		ai_root.move_destination = null
 		return FALSE
 
-	ai_root.path = A_Star(src, get_turf(src), get_turf(destination))
-	ai_root.move_destination = destination
+	// Check if we recently failed to path to this destination
+	if(ai_root.blackboard)
+		var/failed_path_dest = ai_root.blackboard[AIBLK_FAILED_PATH_DEST]
+		var/failed_path_time = ai_root.blackboard[AIBLK_FAILED_PATH_TIME]
+		if(failed_path_dest == destination && failed_path_time && world.time - failed_path_time < 2 SECONDS)
+			// We recently failed to path here, don't spam A_Star
+			return FALSE
 
-	// Claim the destination turf
-	if(ai_root.move_destination)
+	ai_root.path = A_Star(src, start_turf, dest_turf)
+
+	if(length(ai_root.path) > 0)
+		ai_root.move_destination = destination
+		// Claim the destination turf
 		SSai.claim_turf(get_turf(ai_root.move_destination), src)
-
-	return (length(ai_root.path) > 0)
+		// Clear failed path tracking since we succeeded
+		if(ai_root.blackboard)
+			ai_root.blackboard -= AIBLK_FAILED_PATH_DEST
+			ai_root.blackboard -= AIBLK_FAILED_PATH_TIME
+		return TRUE
+	else
+		// Path failed - remember this failure to prevent spam repathing
+		if(ai_root.blackboard)
+			ai_root.blackboard[AIBLK_FAILED_PATH_DEST] = destination
+			ai_root.blackboard[AIBLK_FAILED_PATH_TIME] = world.time
+		ai_root.move_destination = null
+		ai_root.path = null
+		return FALSE
 
 
 /mob/living/proc/add_aggressor(mob/living/aggressor)

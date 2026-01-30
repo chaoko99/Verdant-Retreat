@@ -715,15 +715,6 @@
 		return NODE_SUCCESS
 	return NODE_RUNNING
 
-/bt_action/static_melee_attack/evaluate(mob/living/user, mob/living/target, list/blackboard)
-	if(!target || get_dist(user, target) > 1) return NODE_FAILURE
-	if(world.time >= user.ai_root.next_attack_tick)
-		user.face_atom(target)
-		npc_click_on(user, target)
-		user.ai_root.next_attack_tick = world.time + (user.ai_root.next_attack_delay || 10)
-		return NODE_SUCCESS
-	return NODE_FAILURE // On cooldown, let tree try other actions
-
 /bt_action/deadite_migrate
 	var/path_key = "deadite_migration_path"
 	var/target_key = "deadite_migration_target"

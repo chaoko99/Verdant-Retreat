@@ -47,6 +47,7 @@
 // ------------------------------------------------------------------------------
 
 // Subdue Logic (Inverse Priority: Goal -> Prereqs)
+// Used for NPCs that LOOP this sequence (bandits, guards)
 /datum/behavior_tree/node/sequence/subdue_logic
 	my_nodes = list(
 		/datum/behavior_tree/node/action/ensure_blunt_weapon,
@@ -61,6 +62,19 @@
 		/datum/behavior_tree/node/action/grapple_target,   // Prereq: Grabbed
 		/datum/behavior_tree/node/action/knockdown_target, // Prereq: Downed
 		/datum/behavior_tree/node/action/carbon_move_to_target // Prereq: Adjacent
+	)
+
+// Solo Subdue Logic (Forward Progression: Start -> Goal)
+// Used for NPCs that run this sequence ONCE (solo goblins)
+/datum/behavior_tree/node/sequence/solo_subdue_logic
+	my_nodes = list(
+		/datum/behavior_tree/node/action/ensure_blunt_weapon,
+		/datum/behavior_tree/node/action/carbon_move_to_target,
+		/datum/behavior_tree/node/action/knockdown_target,
+		/datum/behavior_tree/node/action/grapple_target,
+		/datum/behavior_tree/node/action/upgrade_grapple,
+		/datum/behavior_tree/node/action/pin_target,
+		/datum/behavior_tree/node/action/cuff_target
 	)
 
 // Violate Logic
@@ -277,10 +291,11 @@
 	)
 
 // subdue sequence for solo goblins
+// Solo goblins use blunt weapon + leg targeting to knock down, then restrain
 /datum/behavior_tree/node/sequence/goblin_subdue_sequence
 	my_nodes = list(
 		/datum/behavior_tree/node/action/carbon_check_monster_bait,
-		/datum/behavior_tree/node/sequence/subdue_logic,
+		/datum/behavior_tree/node/sequence/solo_subdue_logic, // Use forward progression subdue
 		/datum/behavior_tree/node/action/goblin_disarm,
 		/datum/behavior_tree/node/action/goblin_drag_away,
 		/datum/behavior_tree/node/sequence/violate_logic,

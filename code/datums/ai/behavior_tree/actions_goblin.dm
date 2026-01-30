@@ -128,23 +128,23 @@
 /bt_action/goblin_upgrade_grab/evaluate(mob/living/carbon/human/user, mob/living/target, list/blackboard)
 	var/obj/item/grabbing/G = user.get_active_held_item()
 	if(!istype(G)) return NODE_FAILURE
-
+	
 	if(G.grab_state >= GRAB_AGGRESSIVE) return NODE_SUCCESS
-
+	
 	if(world.time < user.ai_root.next_attack_tick) return NODE_FAILURE
-
+	
 	// Check for squad bonus
 	var/grab_count = 0
 	var/mob/living/L = G.grabbed
 	if(istype(L))
 		for(var/obj/item/grabbing/grab in L.grabbedby)
 			if(grab && grab.grabbee && isgoblin(grab.grabbee)) grab_count++
-
+		
 	if(grab_count >= 2)
 		G.grab_state = GRAB_AGGRESSIVE
 		G.update_icon()
 		return NODE_SUCCESS
-
+	
 	user.use_grab_intent(G, /datum/intent/grab/upgrade, G.grabbed)
 	user.ai_root.next_attack_tick = world.time + (user.ai_root.next_attack_delay || 10)
 	return NODE_SUCCESS
@@ -153,12 +153,12 @@
 /bt_action/goblin_tackle_target/evaluate(mob/living/carbon/human/user, mob/living/target, list/blackboard)
 	var/obj/item/grabbing/G = user.get_active_held_item()
 	if(!istype(G) || G.grab_state < GRAB_AGGRESSIVE) return NODE_FAILURE
-
+	
 	var/mob/living/L = G.grabbed
 	if(L.IsKnockdown() || L.IsParalyzed()) return NODE_SUCCESS
-
+	
 	if(world.time < user.ai_root.next_attack_tick) return NODE_FAILURE
-
+	
 	user.use_grab_intent(G, /datum/intent/grab/shove, G.grabbed)
 	user.ai_root.next_attack_tick = world.time + (user.ai_root.next_attack_delay || 10)
 	return NODE_SUCCESS
@@ -167,34 +167,35 @@
 /bt_action/goblin_pin_target/evaluate(mob/living/carbon/human/user, mob/living/target, list/blackboard)
 	var/obj/item/grabbing/G = user.get_active_held_item()
 	if(!istype(G) || G.grab_state < GRAB_AGGRESSIVE) return NODE_FAILURE
-
+	
 	var/mob/living/victim = G.grabbed
 	if(!victim.IsKnockdown() && !victim.IsParalyzed()) return NODE_FAILURE
-
+	
 	if(victim.IsParalyzed() && user.ai_root.blackboard[AIBLK_IS_PINNING]) return NODE_SUCCESS
-
+	
 	// Must be on top
 	if(get_turf(user) != get_turf(victim))
+		// Position for sex inline logic
 		var/turf/T = get_turf(victim)
-		if(T)
+		if(get_turf(user) != T)
 			user.Move(T, get_dir(user, T))
 		return NODE_RUNNING
-
+		
 	if(world.time < user.ai_root.next_attack_tick) return NODE_FAILURE
-
+	
 	G.attack(victim, user)
 	user.ai_root.next_attack_tick = world.time + (user.ai_root.next_attack_delay || 10)
 
 	if(victim.IsParalyzed())
 		user.ai_root.blackboard[AIBLK_IS_PINNING] = TRUE
 		return NODE_SUCCESS
-
-	return NODE_SUCCESS // Check result next tick
+		
+	return NODE_RUNNING
 
 /bt_action/goblin_maintain_pin
 /bt_action/goblin_maintain_pin/evaluate(mob/living/carbon/human/user, mob/living/target, list/blackboard)
 	if(!user.ai_root.blackboard[AIBLK_IS_PINNING]) return NODE_FAILURE
-
+	
 	var/obj/item/grabbing/G = user.get_active_held_item()
 	if(!istype(G))
 		user.ai_root.blackboard[AIBLK_IS_PINNING] = FALSE
@@ -208,8 +209,9 @@
 	// Check if we're on top
 	if(get_turf(user) != get_turf(victim))
 		var/turf/T = get_turf(victim)
-		if(T)
-			user.Move(T, get_dir(user, T))
+		if(get_turf(user) != T)
+			if(!user.Move(T, get_dir(user, T)))
+				return NODE_FAILURE
 		return NODE_RUNNING // Still trying to maintain position
 
 	return NODE_SUCCESS
@@ -222,7 +224,7 @@
 /bt_action/goblin_strip_armor/evaluate(mob/living/carbon/human/user, mob/living/target, list/blackboard)
 	var/mob/living/carbon/human/victim = target
 	if(!victim || !victim.incapacitated()) return NODE_FAILURE
-
+	
 	var/obj/item/clothing/to_strip = null
 	var/list/slots = list(SLOT_HEAD, SLOT_ARMOR, SLOT_GLOVES, SLOT_SHOES)
 	for(var/slot in slots)
@@ -230,44 +232,46 @@
 		if(I && istype(I) && I.armor_class >= ARMOR_CLASS_LIGHT)
 			to_strip = I
 			break
-
+			
 	if(!to_strip) return NODE_SUCCESS // Done
-
+	
 	if(user.doing) return NODE_RUNNING
-
+	
 	user.visible_message(span_danger("[user] rips [to_strip] off [victim]!"))
 	if(do_mob(user, victim, 30))
 		if(to_strip && to_strip.loc == victim)
 			victim.dropItemToGround(to_strip)
 			to_strip.throw_at(get_ranged_target_turf(user, pick(GLOB.alldirs), 3), 3, 1)
 
-	return NODE_SUCCESS // Check result next tick
+	return NODE_SUCCESS
 
 /bt_action/goblin_disarm
 /bt_action/goblin_disarm/evaluate(mob/living/carbon/human/user, mob/living/target, list/blackboard)
 	var/mob/living/carbon/victim = user.ai_root.blackboard[AIBLK_MONSTER_BAIT]
 	if(!victim || !victim.incapacitated()) return NODE_FAILURE
-
+	
 	var/obj/item/to_strip = victim.get_active_held_item()
 	if(!to_strip) to_strip = victim.get_inactive_held_item()
 	if(!to_strip) to_strip = victim.get_item_by_slot(SLOT_BELT)
-
+	
 	if(!to_strip) return NODE_SUCCESS
-
+	
 	if(user.doing) return NODE_RUNNING
-
+	
 	user.visible_message(span_danger("[user] disarms [victim]!"))
 	if(do_mob(user, victim, 20))
 		if(to_strip && to_strip.loc == victim)
 			victim.dropItemToGround(to_strip)
 			to_strip.throw_at(get_ranged_target_turf(user, pick(GLOB.alldirs), 5), 5, 1)
 
-	return NODE_SUCCESS // Check result next tick
+	return NODE_SUCCESS
 
 /bt_action/goblin_attack_check/evaluate(mob/living/carbon/human/user, mob/living/target, list/blackboard)
+	if(!target) return NODE_FAILURE
+
 	if(!ishuman(target) && !user.faction_check_mob(target))
 		return NODE_SUCCESS
-	if(target && (target.restrained()))
+	if(target.restrained())
 		return NODE_FAILURE
 
 	var/list/ignored = user.ai_root.blackboard[AIBLK_IGNORED_TARGETS]
@@ -277,7 +281,7 @@
 	return NODE_SUCCESS
 
 // ------------------------------------------------------------------------------
-// ROLE CHECKS (KEPT AS PREDICATES)
+// ROLE CHECKS
 // ------------------------------------------------------------------------------
 
 /bt_action/goblin_has_squad_role/evaluate(mob/living/carbon/human/user, mob/living/target, list/blackboard)

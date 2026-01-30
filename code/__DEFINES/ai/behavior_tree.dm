@@ -198,6 +198,10 @@
 // Blackboard key for restrainer state
 #define AIBLK_RESTRAIN_STATE 8745623
 
+// Blackboard keys for failed pathfinding cooldown
+#define AIBLK_FAILED_PATH_DEST 3726948
+#define AIBLK_FAILED_PATH_TIME 4306083
+
 // ==============================================================================
 // STATEFUL BEHAVIOR TREE - SIGNAL SYSTEM
 // ==============================================================================

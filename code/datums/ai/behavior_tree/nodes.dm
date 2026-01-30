@@ -293,7 +293,8 @@
 /// with the thinking tree. Skips over nodes to jump back to the last running node and
 /// clears the running node if the node returns anything other than NODE_RUNNING.
 /datum/behavior_tree/node/parallel/root/evaluate(mob/living/npc, atom/target, list/blackboard)
-	INVOKE_ASYNC(move_node, PROC_REF(evaluate), npc, target, blackboard)
+	if(npc.ai_root.move_destination && length(npc.ai_root.path))
+		move_node.evaluate(npc, target, blackboard)
 
 	if(running_node)
 		var/result = running_node.evaluate(npc, target, blackboard)

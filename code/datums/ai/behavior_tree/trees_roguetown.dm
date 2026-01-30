@@ -112,6 +112,12 @@
 
 	my_action = /bt_action/check_hunger
 
+
+
+/datum/behavior_tree/node/action/eat_dead_body
+
+	my_action = /bt_action/eat_dead_body
+
 // ------------------------------------------------------------------------------
 // SERVICES & OBSERVERS
 // ------------------------------------------------------------------------------

@@ -262,8 +262,9 @@
 	return NODE_FAILURE
 
 /bt_action/carbon_move_to_target/evaluate(mob/living/carbon/human/user, mob/living/target, list/blackboard)
+	if(!target) return NODE_FAILURE
 	if(user.Adjacent(target)) return NODE_SUCCESS
-	if(user.ai_root.move_destination == get_turf(target) || user.set_ai_path_to(target)) return NODE_RUNNING
+	if(user.set_ai_path_to(target)) return NODE_RUNNING
 	return NODE_FAILURE
 
 /bt_action/carbon_idle_wander/evaluate(mob/living/carbon/human/user, mob/living/target, list/blackboard)
