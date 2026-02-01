@@ -134,13 +134,19 @@
 		H.GainPatience() // Reset patience logic
 		H.last_aggro_loss = 0
 		H.vision_range = H.aggro_vision_range
-		
+
+		// Add target to aggressors list if it's a living mob
+		if(isliving(best))
+			if(!blackboard[AIBLK_AGGRESSORS])
+				blackboard[AIBLK_AGGRESSORS] = list()
+			blackboard[AIBLK_AGGRESSORS] |= best
+
 		// Taunt Logic
 		if(H.emote_taunt.len && prob(H.taunt_chance))
 			H.emote("me", 1, "[pick(H.emote_taunt)] at [best].")
 			H.taunt_chance = max(H.taunt_chance-7,2)
 		H.emote("aggro")
-		
+
 		return NODE_SUCCESS
 		
 	return NODE_FAILURE
@@ -268,7 +274,6 @@
 
 	if(length(user.ai_root.path))
 		return NODE_RUNNING
-
 	if(user.set_ai_path_to(destination))
 		return NODE_RUNNING
 
@@ -328,6 +333,12 @@
 
 /bt_action/clear_target
 /bt_action/clear_target/evaluate(mob/living/user, mob/living/target, list/blackboard)
+	// Remove current target from aggressors before clearing
+	if(user.ai_root.target && blackboard[AIBLK_AGGRESSORS])
+		blackboard[AIBLK_AGGRESSORS] -= user.ai_root.target
+		if(!length(blackboard[AIBLK_AGGRESSORS]))
+			blackboard -= AIBLK_AGGRESSORS
+
 	user.ai_root.target = null
 	return NODE_SUCCESS
 
@@ -362,7 +373,9 @@
 		for(var/move_dir in dirs)
 			var/turf/T = get_step(user, move_dir)
 			if(T && !T.density)
-				if(user.set_ai_path_to(T)) return NODE_RUNNING
+				if(user.Move(T, get_dir(user, T)))
+					user.ai_root.next_move_tick = world.time + user.ai_root.next_move_delay
+					return NODE_SUCCESS
 				break
 	return NODE_FAILURE
 
@@ -378,7 +391,7 @@
 
 /bt_action/move_to_target/evaluate(mob/living/user, mob/living/target, list/blackboard)
 	if(!target) return NODE_FAILURE
-	if(user.Adjacent(target)) return NODE_SUCCESS
+	if(get_dist(user, target) <= 1 && user.Adjacent(target)) return NODE_SUCCESS
 	if(user.set_ai_path_to(target)) return NODE_RUNNING
 	return NODE_FAILURE
 
@@ -391,8 +404,10 @@
 
 	if(world.time >= user.ai_root.next_move_tick)
 		var/turf/T = get_step(user, pick(GLOB.cardinals))
-		if(T && !T.density && user.set_ai_path_to(T))
-			return NODE_RUNNING
+		if(T && !T.density)
+			if(user.Move(T, get_dir(user, T)))
+				user.ai_root.next_move_tick = world.time + user.ai_root.next_move_delay
+				return NODE_SUCCESS
 	return NODE_FAILURE
 
 
@@ -790,9 +805,9 @@
 	return NODE_FAILURE
 
 /bt_action/chicken_check_ready/evaluate(mob/living/user, mob/living/target, list/blackboard)
+	if(user.ai_root.target || (user.ai_root.blackboard[AIBLK_AGGRESSORS] && length(user.ai_root.blackboard[AIBLK_AGGRESSORS]))) return NODE_FAILURE
 	var/mob/living/simple_animal/hostile/retaliate/rogue/chicken/C = user
 	if(!istype(C)) return NODE_FAILURE
-	if(C.enemies.len) return NODE_FAILURE
 	if(C.production > 29) return NODE_SUCCESS
 	return NODE_FAILURE
 

@@ -207,12 +207,18 @@
 /datum/behavior_tree/node/selector/goblin_handle_combat
 	my_nodes = list(
 		/datum/behavior_tree/node/sequence/humanoid_flee_sequence,
-		/datum/behavior_tree/node/sequence/goblin_squad_tactics,
+		/datum/behavior_tree/node/decorator/observer/target_death/goblin_squad_wrapped,
 		/datum/behavior_tree/node/sequence/goblin_subdue_sequence, // Fallback for solo goblins
 		/datum/behavior_tree/node/action/goblin_attack_check{invert = TRUE},
-		/datum/behavior_tree/node/sequence/humanoid_attack_sequence,
+		/datum/behavior_tree/node/decorator/observer/target_death/goblin_attack_wrapped,
 		/datum/behavior_tree/node/action/carbon_move_to_target
 	)
+
+/datum/behavior_tree/node/decorator/observer/target_death/goblin_squad_wrapped
+	child = /datum/behavior_tree/node/sequence/goblin_squad_tactics
+
+/datum/behavior_tree/node/decorator/observer/target_death/goblin_attack_wrapped
+	child = /datum/behavior_tree/node/sequence/humanoid_attack_sequence
 
 // Squad tactics sequence
 /datum/behavior_tree/node/sequence/goblin_squad_tactics
@@ -292,14 +298,23 @@
 
 // subdue sequence for solo goblins
 // Solo goblins use blunt weapon + leg targeting to knock down, then restrain
+// Wrapped in observer to abort if conditions change during execution
 /datum/behavior_tree/node/sequence/goblin_subdue_sequence
 	my_nodes = list(
 		/datum/behavior_tree/node/action/carbon_check_monster_bait,
+		/datum/behavior_tree/node/decorator/observer/bait_validation/subdue_wrapped,
+		/datum/behavior_tree/node/action/goblin_post_violate
+	)
+
+/datum/behavior_tree/node/decorator/observer/bait_validation/subdue_wrapped
+	child = /datum/behavior_tree/node/sequence/goblin_subdue_steps
+
+/datum/behavior_tree/node/sequence/goblin_subdue_steps
+	my_nodes = list(
 		/datum/behavior_tree/node/sequence/solo_subdue_logic, // Use forward progression subdue
 		/datum/behavior_tree/node/action/goblin_disarm,
 		/datum/behavior_tree/node/action/goblin_drag_away,
-		/datum/behavior_tree/node/sequence/violate_logic,
-		/datum/behavior_tree/node/action/goblin_post_violate
+		/datum/behavior_tree/node/sequence/violate_logic
 	)
 
 /datum/behavior_tree/node/sequence/humanoid_flee_sequence

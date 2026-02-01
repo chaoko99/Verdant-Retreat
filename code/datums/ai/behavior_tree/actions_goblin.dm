@@ -258,10 +258,11 @@
 	
 	if(user.doing) return NODE_RUNNING
 	
-	user.visible_message(span_danger("[user] disarms [victim]!"))
-	if(do_mob(user, victim, 20))
+	user.visible_message(span_danger("[user] begins removing [to_strip] from [victim]!"))
+	if(do_mob(user, victim, 50))
 		if(to_strip && to_strip.loc == victim)
 			victim.dropItemToGround(to_strip)
+			user.visible_message(span_danger("[user] tosses \the [to_strip] away!"))
 			to_strip.throw_at(get_ranged_target_turf(user, pick(GLOB.alldirs), 5), 5, 1)
 
 	return NODE_SUCCESS

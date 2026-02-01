@@ -24,8 +24,14 @@
 	else
 		return FALSE
 
-/mob/living/proc/LoseTarget()	
+/mob/living/proc/LoseTarget()
 	if(ai_root)
+		// Remove the current target from aggressors list if present
+		if(ai_root.target && ai_root.blackboard[AIBLK_AGGRESSORS])
+			ai_root.blackboard[AIBLK_AGGRESSORS] -= ai_root.target
+			if(!length(ai_root.blackboard[AIBLK_AGGRESSORS]))
+				ai_root.blackboard -= AIBLK_AGGRESSORS
+
 		ai_root.target = null
 		SEND_SIGNAL(src, COMSIG_AI_TARGET_CHANGED, null)
 
@@ -53,7 +59,7 @@
 		return FALSE
 
 	// NPCs should not move while knocked down
-	if(IsKnockdown())
+	if(IsKnockdown() || IsParalyzed())
 		return FALSE
 
 	SSai.WakeUp(src) // Assume if we got this called on us, we want to actually do it.
@@ -66,10 +72,19 @@
 		ai_root.move_destination = null
 		return FALSE
 
+	// Check if we recently failed to path to this destination (EARLY CHECK to avoid expensive operations)
+	// Only apply cooldown for static destinations (turfs/objects), not moving targets (mobs)
+	if(ai_root.blackboard && !ismob(destination))
+		var/failed_path_dest = ai_root.blackboard[AIBLK_FAILED_PATH_DEST]
+		var/failed_path_time = ai_root.blackboard[AIBLK_FAILED_PATH_TIME]
+		if(failed_path_dest == destination && failed_path_time && world.time - failed_path_time < 2 SECONDS)
+			// We recently failed to path here, don't spam pathfinding logic
+			return FALSE
+
 	// Don't repath if we are already going there and have a path
 	if(ai_root.move_destination == destination && length(ai_root.path))
 		// For moving targets (mobs), check if they've moved to a different turf
-		if(ismob(destination))
+		if(ismob(destination) || isobj(destination))
 			var/turf/path_end = ai_root.path[length(ai_root.path)]
 			var/turf/dest_turf = get_turf(destination)
 			// Null check - if destination is in null space now, clear path
@@ -140,14 +155,6 @@
 		ai_root.path = null
 		ai_root.move_destination = null
 		return FALSE
-
-	// Check if we recently failed to path to this destination
-	if(ai_root.blackboard)
-		var/failed_path_dest = ai_root.blackboard[AIBLK_FAILED_PATH_DEST]
-		var/failed_path_time = ai_root.blackboard[AIBLK_FAILED_PATH_TIME]
-		if(failed_path_dest == destination && failed_path_time && world.time - failed_path_time < 2 SECONDS)
-			// We recently failed to path here, don't spam A_Star
-			return FALSE
 
 	ai_root.path = A_Star(src, start_turf, dest_turf)
 

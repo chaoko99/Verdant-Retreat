@@ -262,8 +262,11 @@
 /datum/behavior_tree/node/sequence/combat_colossus
 	my_nodes = list(
 		/datum/behavior_tree/node/selector/acquire_target,
-		/datum/behavior_tree/node/selector/engage_target_colossus
+		/datum/behavior_tree/node/decorator/observer/target_death/engage_colossus_wrapped
 	)
+
+/datum/behavior_tree/node/decorator/observer/target_death/engage_colossus_wrapped
+	child = /datum/behavior_tree/node/selector/engage_target_colossus
 
 /datum/behavior_tree/node/selector/attack_choice_direbear
 	my_nodes = list(
@@ -286,8 +289,11 @@
 /datum/behavior_tree/node/sequence/combat_direbear
 	my_nodes = list(
 		/datum/behavior_tree/node/selector/acquire_target,
-		/datum/behavior_tree/node/selector/engage_target_direbear
+		/datum/behavior_tree/node/decorator/observer/target_death/engage_direbear_wrapped
 	)
+
+/datum/behavior_tree/node/decorator/observer/target_death/engage_direbear_wrapped
+	child = /datum/behavior_tree/node/selector/engage_target_direbear
 
 /datum/behavior_tree/node/selector/engage_target_ranged
 	my_nodes = list(
@@ -299,8 +305,11 @@
 /datum/behavior_tree/node/sequence/combat_ranged
 	my_nodes = list(
 		/datum/behavior_tree/node/selector/acquire_target,
-		/datum/behavior_tree/node/selector/engage_target_ranged
+		/datum/behavior_tree/node/decorator/observer/target_death/engage_ranged_wrapped
 	)
+
+/datum/behavior_tree/node/decorator/observer/target_death/engage_ranged_wrapped
+	child = /datum/behavior_tree/node/selector/engage_target_ranged
 
 /datum/behavior_tree/node/sequence/idle_mimic
 	my_nodes = list(
@@ -312,8 +321,11 @@
 	my_nodes = list(
 		/datum/behavior_tree/node/selector/acquire_target,
 		/datum/behavior_tree/node/action/mimic_undisguise,
-		/datum/behavior_tree/node/selector/engage_target
+		/datum/behavior_tree/node/decorator/observer/target_death/engage_mimic_wrapped
 	)
+
+/datum/behavior_tree/node/decorator/observer/target_death/engage_mimic_wrapped
+	child = /datum/behavior_tree/node/selector/engage_target
 
 /datum/behavior_tree/node/selector/engage_target_dreamfiend
 	my_nodes = list(
@@ -325,8 +337,11 @@
 /datum/behavior_tree/node/sequence/combat_dreamfiend
 	my_nodes = list(
 		/datum/behavior_tree/node/selector/acquire_target,
-		/datum/behavior_tree/node/selector/engage_target_dreamfiend
+		/datum/behavior_tree/node/decorator/observer/target_death/engage_dreamfiend_wrapped
 	)
+
+/datum/behavior_tree/node/decorator/observer/target_death/engage_dreamfiend_wrapped
+	child = /datum/behavior_tree/node/selector/engage_target_dreamfiend
 
 /datum/behavior_tree/node/sequence/attack_sequence_spacing
 	my_nodes = list(
@@ -344,8 +359,11 @@
 /datum/behavior_tree/node/sequence/combat_skeleton
 	my_nodes = list(
 		/datum/behavior_tree/node/selector/acquire_target,
-		/datum/behavior_tree/node/selector/engage_target_skeleton
+		/datum/behavior_tree/node/decorator/observer/target_death/engage_skeleton_wrapped
 	)
+
+/datum/behavior_tree/node/decorator/observer/target_death/engage_skeleton_wrapped
+	child = /datum/behavior_tree/node/selector/engage_target_skeleton
 
 /datum/behavior_tree/node/selector/engage_target_orc
 	my_nodes = list(
@@ -357,15 +375,21 @@
 	my_nodes = list(
 		/datum/behavior_tree/node/selector/acquire_target,
 		/datum/behavior_tree/node/action/call_reinforcements,
-		/datum/behavior_tree/node/selector/engage_target_orc
+		/datum/behavior_tree/node/decorator/observer/target_death/engage_orc_wrapped
 	)
+
+/datum/behavior_tree/node/decorator/observer/target_death/engage_orc_wrapped
+	child = /datum/behavior_tree/node/selector/engage_target_orc
 
 /datum/behavior_tree/node/sequence/combat_volf
 	my_nodes = list(
 		/datum/behavior_tree/node/selector/acquire_target,
 		/datum/behavior_tree/node/action/call_reinforcements,
-		/datum/behavior_tree/node/selector/engage_target
+		/datum/behavior_tree/node/decorator/observer/target_death/engage_volf_wrapped
 	)
+
+/datum/behavior_tree/node/decorator/observer/target_death/engage_volf_wrapped
+	child = /datum/behavior_tree/node/selector/engage_target
 
 // ------------------------------------------------------------------------------
 // HOSTILE TREES
@@ -610,8 +634,11 @@
 /datum/behavior_tree/node/sequence/combat_behemoth
 	my_nodes = list(
 		/datum/behavior_tree/node/selector/acquire_target,
-		/datum/behavior_tree/node/selector/engage_target_behemoth
+		/datum/behavior_tree/node/decorator/observer/target_death/engage_behemoth_wrapped
 	)
+
+/datum/behavior_tree/node/decorator/observer/target_death/engage_behemoth_wrapped
+	child = /datum/behavior_tree/node/selector/engage_target_behemoth
 
 /datum/behavior_tree/node/selector/leyline_tree
 	parent_type = /datum/behavior_tree/node/decorator/service/target_scanner/hostile
@@ -637,8 +664,11 @@
 /datum/behavior_tree/node/sequence/combat_leyline
 	my_nodes = list(
 		/datum/behavior_tree/node/selector/acquire_target,
-		/datum/behavior_tree/node/selector/engage_target_leyline
+		/datum/behavior_tree/node/decorator/observer/target_death/engage_leyline_wrapped
 	)
+
+/datum/behavior_tree/node/decorator/observer/target_death/engage_leyline_wrapped
+	child = /datum/behavior_tree/node/selector/engage_target_leyline
 
 /datum/behavior_tree/node/selector/obelisk_tree
 	parent_type = /datum/behavior_tree/node/decorator/service/target_scanner/hostile
@@ -663,8 +693,11 @@
 /datum/behavior_tree/node/sequence/combat_obelisk
 	my_nodes = list(
 		/datum/behavior_tree/node/selector/acquire_target,
-		/datum/behavior_tree/node/selector/engage_target_obelisk
+		/datum/behavior_tree/node/decorator/observer/target_death/engage_obelisk_wrapped
 	)
+
+/datum/behavior_tree/node/decorator/observer/target_death/engage_obelisk_wrapped
+	child = /datum/behavior_tree/node/selector/engage_target_obelisk
 
 /datum/behavior_tree/node/selector/dryad_tree
 	parent_type = /datum/behavior_tree/node/decorator/service/target_scanner/hostile
@@ -690,8 +723,11 @@
 /datum/behavior_tree/node/sequence/combat_dryad
 	my_nodes = list(
 		/datum/behavior_tree/node/selector/acquire_target,
-		/datum/behavior_tree/node/selector/engage_target_dryad
+		/datum/behavior_tree/node/decorator/observer/target_death/engage_dryad_wrapped
 	)
+
+/datum/behavior_tree/node/decorator/observer/target_death/engage_dryad_wrapped
+	child = /datum/behavior_tree/node/selector/engage_target_dryad
 
 // CHICKEN
 /datum/behavior_tree/node/selector/chicken_tree

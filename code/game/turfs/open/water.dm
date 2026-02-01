@@ -441,34 +441,51 @@
 /turf/open/water/river
 	name = "river"
 	desc = "A river of crystal clear water flows swiftly along the contours of the land."
-	icon = 'icons/turf/roguefloor.dmi'
-	icon_state = "rivermove"
-	water_level = 3
-	slowdown = 5
-	wash_in = TRUE
-	swim_skill = TRUE
-	var/river_processing
-	swimdir = TRUE
-
-/turf/open/water/river/update_icon()
-	if(water_overlay)
-		water_overlay.color = water_color
-		water_overlay.icon_state = "riverbot"
-		water_overlay.dir = dir
-	if(water_top_overlay)
-		water_top_overlay.color = water_color
-		water_top_overlay.icon_state = "rivertop"
-		water_top_overlay.dir = dir
+	baseturfs = /turf/open/transparent/openspace
 
 /turf/open/water/river/Initialize()
-	icon_state = "rock"
-	.  = ..()
-
-/turf/open/water/river/Entered(atom/movable/AM, atom/oldLoc)
 	. = ..()
-	if(isliving(AM))
-		if(!river_processing)
-			river_processing = addtimer(CALLBACK(src, PROC_REF(process_river)), 5, TIMER_STOPPABLE)
+
+	var/turf/new_top = ChangeTurf(/turf/open/transparent/openspace, null, CHANGETURF_IGNORE_AIR)
+	if(!new_top.cell)
+		new_top.cell = new /cell(new_top)
+		new_top.cell.InitLiquids()
+
+	var/datum/liquid/water_fluid = new_top.cell.get_fluid_datum(WATER)
+	if(water_fluid)
+		new_top.cell.fluid_volume[water_fluid] = 100
+
+	new_top.cell.flow_dir = dir
+
+	SSliquid.update_fluidsum(new_top, FALSE)
+	SSliquid.cell_index[new_top] = TRUE
+
+	var/turf/below = GetBelow(new_top)
+	if(below)
+		var/turf/river_bottom = below.ChangeTurf(/turf/open/floor/rogue/riverbot, null, CHANGETURF_IGNORE_AIR)
+		if(!river_bottom.cell)
+			river_bottom.cell = new /cell(river_bottom)
+			river_bottom.cell.InitLiquids()
+
+		var/datum/liquid/below_water = river_bottom.cell.get_fluid_datum(WATER)
+		if(below_water)
+			river_bottom.cell.fluid_volume[below_water] = 100
+
+		river_bottom.cell.flow_dir = dir
+
+		SSliquid.update_fluidsum(river_bottom, FALSE)
+		SSliquid.cell_index[river_bottom] = TRUE
+
+/turf/open/floor/rogue/riverbot
+	name = "river bottom"
+	desc = "The rocky bed of a flowing river."
+	icon = 'icons/turf/roguefloor.dmi'
+	icon_state = "riverbot"
+	footstep = FOOTSTEP_WATER
+	barefootstep = FOOTSTEP_WATER
+	clawfootstep = FOOTSTEP_WATER
+	heavyfootstep = FOOTSTEP_WATER
+
 
 /turf/open/water/river/get_heuristic_slowdown(mob/traverser, travel_dir)
 	var/const/UPSTREAM_PENALTY = 2
@@ -479,19 +496,12 @@
 	for(var/obj/structure/S in src)
 		if(S.obj_flags & BLOCK_Z_OUT_DOWN)
 			return
-	if(travel_dir == dir) // downriver
-		. += DOWNSTREAM_BONUS // faster!
-	else if(travel_dir == GLOB.reverse_dir[dir]) // upriver
-		. += UPSTREAM_PENALTY // slower
-
-/turf/open/water/river/proc/process_river()
-	river_processing = null
-	for(var/atom/movable/A in contents)
-		for(var/obj/structure/S in src)
-			if(S.obj_flags & BLOCK_Z_OUT_DOWN)
-				return
-		if((A.loc == src) && A.has_gravity())
-			A.ConveyorMove(dir)
+	if(!cell?.flow_dir)
+		return
+	if(travel_dir == cell.flow_dir)
+		. += DOWNSTREAM_BONUS
+	else if(travel_dir == GLOB.reverse_dir[cell.flow_dir])
+		. += UPSTREAM_PENALTY
 
 /turf/open/water/ocean
 	name = "salt water"
@@ -527,3 +537,36 @@
 	swim_skill = TRUE
 	wash_in = TRUE
 	water_reagent = /datum/reagent/water
+
+/turf/open/water/lake
+	name = "lake"
+	desc = "Still, deep water. Peaceful and serene."
+	icon = 'icons/turf/roguefloor.dmi'
+	icon_state = "rock"
+	slowdown = 5
+	wash_in = TRUE
+	swim_skill = TRUE
+
+/turf/open/water/lake/Initialize()
+	. = ..()
+	if(!cell)
+		cell = new /cell(src)
+		cell.InitLiquids()
+
+	var/datum/liquid/water_fluid = cell.get_fluid_datum(WATER)
+	if(water_fluid)
+		cell.fluid_volume[water_fluid] = 100
+
+	SSliquid.update_fluidsum(src, FALSE)
+	SSliquid.cell_index[src] = TRUE
+
+	var/turf/below = GetBelow(src)
+	if(below && istype(below, /turf/open))
+		if(!below.cell)
+			below.cell = new /cell(below)
+			below.cell.InitLiquids()
+		var/datum/liquid/below_water = below.cell.get_fluid_datum(WATER)
+		if(below_water)
+			below.cell.fluid_volume[below_water] = 100
+		SSliquid.update_fluidsum(below, FALSE)
+		SSliquid.cell_index[below] = TRUE

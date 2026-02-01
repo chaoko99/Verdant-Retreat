@@ -239,7 +239,8 @@
 		var/mob/living/simple_animal/hostile/retaliate/rogue/target = targets[1]
 		if(istype(target, /mob/living/simple_animal/hostile/retaliate/rogue/arcane/noc_guard))
 			if(target in invoker.summons_under)
-				target.enemies = list()
+				if(target.ai_root?.blackboard)
+					target.ai_root.blackboard[AIBLK_AGGRESSORS] = list()
 				target.LoseTarget()
 				target.say("S T A T U S: D I S E N G A G E D", spans = list(SPAN_MACHINA))
 			else

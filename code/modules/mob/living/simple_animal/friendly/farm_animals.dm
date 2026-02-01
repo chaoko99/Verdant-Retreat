@@ -51,11 +51,11 @@
 	. = ..()
 	if(.)
 		//chance to go crazy and start wacking stuff
-		if(!enemies.len && prob(1))
+		if(!ai_root?.blackboard[AIBLK_AGGRESSORS]?.len && prob(1))
 			Retaliate()
 
-		if(enemies.len && prob(10))
-			enemies = list()
+		if(ai_root?.blackboard[AIBLK_AGGRESSORS]?.len && prob(10))
+			ai_root.blackboard[AIBLK_AGGRESSORS] = list()
 			LoseTarget()
 			src.visible_message(span_notice("[src] calms down."))
 	if(stat == CONSCIOUS)

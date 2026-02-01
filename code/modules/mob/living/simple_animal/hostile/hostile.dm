@@ -224,8 +224,9 @@
 		return target.attack_animal(src)
 
 /mob/living/simple_animal/hostile/proc/Aggro()
-	if(ai_root?.next_emote_tick <= world.time)
-		vision_range = aggro_vision_range
+	var/emoting = ai_root?.next_emote_tick <= world.time
+	vision_range = aggro_vision_range
+	if(emoting)
 		if(target && emote_taunt.len && prob(taunt_chance))
 			emote("me", 1, "[pick(emote_taunt)] at [target].")
 			taunt_chance = max(taunt_chance-7,2)

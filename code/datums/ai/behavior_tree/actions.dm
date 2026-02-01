@@ -122,4 +122,6 @@
 /bt_action/check_think_valid/evaluate(mob/living/user, atom/target, list/blackboard)
 	if(user.stat == DEAD || world.time < user.ai_root.next_think_tick || user.incapacitated(ignore_restraints = 1))
 		return NODE_FAILURE
+	
+	user.ai_root.next_think_tick = world.time + user.ai_root.next_think_delay
 	return NODE_SUCCESS

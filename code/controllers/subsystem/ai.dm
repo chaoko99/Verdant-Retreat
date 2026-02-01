@@ -44,6 +44,7 @@ PROCESSING_SUBSYSTEM_DEF(ai)
 		Register(M)
 	
 	GLOB.ai_init_queue.len = 0
+	GLOB.ai_init_queue = null
 
 /datum/controller/subsystem/processing/ai/proc/Register(mob/living/M)
 	if(!can_fire || !initialized)
@@ -55,6 +56,7 @@ PROCESSING_SUBSYSTEM_DEF(ai)
 			M.ai_root.blackboard = new
 		active_mobs[M] = TRUE
 		M.ai_root.next_think_tick = world.time + M.ai_root.next_think_delay
+		M.ai_root.next_move_tick = world.time + M.ai_root.next_move_delay
 		GLOB.npc_list |= M
 
 /datum/controller/subsystem/processing/ai/proc/Unregister(mob/living/M)
@@ -133,8 +135,6 @@ PROCESSING_SUBSYSTEM_DEF(ai)
 						M.ai_root.blackboard -= AIBLK_HIBERNATION_TIMER
 			
 			INVOKE_ASYNC(M, TYPE_PROC_REF(/mob/living, RunAI))
-
-			M.ai_root.next_think_tick = current_time + M.ai_root.next_think_delay
 
 	for(var/mob/living/M as anything in unregister_queue)
 #ifdef AI_SQUADS
@@ -333,14 +333,27 @@ PROCESSING_SUBSYSTEM_DEF(ai)
 	if(!T || !claimer)
 		return
 	var/hash = hash_turf(T)
-	claimed_turfs[hash] = claimer
+	var/datum/weakref/weakclaimer = WEAKREF(claimer)
+
+	if(!weakclaimer)
+		return
+
+	claimed_turfs[hash] = weakclaimer
 
 // Unclaim a turf (called when path is cleared or mob dies)
 /datum/controller/subsystem/processing/ai/proc/unclaim_turf(turf/T, mob/living/claimer)
 	if(!T)
 		return
 	var/hash = hash_turf(T)
-	if(claimed_turfs[hash] == claimer)
+	var/datum/weakref/weakclaimer = claimed_turfs[hash]
+
+	if(!weakclaimer)
+		
+		return
+
+	var/mob/living/hardclaimer = weakclaimer.resolve() ? weakclaimer.resolve() : null
+
+	if(claimed_turfs[hash] == weakclaimer || !hardclaimer)
 		claimed_turfs -= hash
 
 // Check if a turf is claimed by another mob
@@ -348,9 +361,12 @@ PROCESSING_SUBSYSTEM_DEF(ai)
 	if(!T)
 		return null
 	var/hash = hash_turf(T)
-	var/mob/living/claimer = claimed_turfs[hash]
-	if(claimer && claimer != exclude && !QDELETED(claimer))
-		return claimer
+	var/datum/weakref/weakclaimer = claimed_turfs[hash]
+	if(!weakclaimer)
+		return null
+	var/mob/living/hardclaimer = weakclaimer.resolve() ? weakclaimer.resolve() : null
+	if(hardclaimer && hardclaimer != exclude && !QDELETED(hardclaimer))
+		return hardclaimer
 	return null
 
 //================================================================

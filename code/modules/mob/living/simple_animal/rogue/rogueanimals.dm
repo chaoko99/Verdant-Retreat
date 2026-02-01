@@ -108,9 +108,9 @@
 /mob/living/simple_animal/hostile/retaliate/rogue/tamed()
 	del_on_deaggro = 0
 	aggressive = 0
-	if(enemies.len)
+	if(ai_root?.blackboard[AIBLK_AGGRESSORS]?.len)
 		if(prob(23))
-			enemies = list()
+			ai_root.blackboard[AIBLK_AGGRESSORS] = list()
 			src.visible_message(span_notice("[src] calms down."))
 			LoseTarget()
 		else
@@ -124,13 +124,13 @@
 /mob/living/simple_animal/hostile/retaliate/rogue/Life()
 	. = ..()
 	if(.)
-		if(enemies.len)
+		if(ai_root?.blackboard[AIBLK_AGGRESSORS]?.len)
 			if(prob(4))
 				emote("cidle")
 			if(prob(deaggroprob))
 				if(mob_timers["aggro_time"])
 					if(world.time > mob_timers["aggro_time"] + 30 SECONDS)
-						enemies = list()
+						ai_root.blackboard[AIBLK_AGGRESSORS] = list()
 						src.visible_message(span_info("[src] calms down."))
 						LoseTarget()
 				else

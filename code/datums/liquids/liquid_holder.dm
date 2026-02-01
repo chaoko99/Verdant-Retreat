@@ -2,14 +2,14 @@ GLOBAL_LIST_EMPTY(liquid_types)
 /cell
 	parent_type = /datum
 
-	// Turf variables that are always initialized
-	var/list/fluid_volume
-	var/list/new_volume
-	var/fluidsum = 0 // Total amount of fluid on the turf from all fluid_volumes. Shouldn't ever exceed 100.
-	var/new_fluidsum = 0
+	var/pressure_mask = 0 // Bitmask tracking flow directions: NORTH=1, SOUTH=2, EAST=4, WEST=8
 
-	// Turf variables that are initialized by specific conditions or functions
-	var/vector/flow_vector_modification // Modifications to flow vector can be done per-turf. Null by default, so they don't get processed. We can abuse 3D vectors to use the z axis as a multiplier for magnitude. Initialize with vector(x, y, magnitude)
+	var/list/fluid_volume // Associative list mapping fluid datums to integer amounts
+	var/list/new_volume // Buffer for calculating next tick's fluid amounts
+	var/fluidsum = 0 // Total amount of fluid from all types
+	var/new_fluidsum = 0 // Buffer for calculating next tick's total
+
+	var/flow_dir = 0 // Direction bitmask for flow modification (rivers, currents)
 	var/is_liquid_source = FALSE // Make this TRUE to make a turf spawn fluid.
 	var/production_rate = 0 // Amount of the fluid produced each processing loop.
 	var/is_liquid_sink = FALSE // Make this TRUE to make a turf despawn fluid.
@@ -122,15 +122,15 @@ GLOBAL_LIST_EMPTY(liquid_types)
 /cell/proc/clear_pool_id()
 	pool_id = 0
 
-	// Flow vector methods
-/cell/proc/set_flow_vector_modification(vector/new_vector)
-	flow_vector_modification = new_vector
+	// Flow direction methods
+/cell/proc/set_flow_dir(new_dir)
+	flow_dir = new_dir
 
-/cell/proc/clear_flow_vector_modification()
-	flow_vector_modification = null
+/cell/proc/clear_flow_dir()
+	flow_dir = 0
 
 /cell/proc/has_flow_modification()
-	return flow_vector_modification != null
+	return flow_dir != 0
 
 	// Source/sink management
 /cell/proc/make_liquid_source(rate = 1)

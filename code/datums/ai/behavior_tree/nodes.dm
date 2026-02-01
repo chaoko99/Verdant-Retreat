@@ -33,23 +33,21 @@
 	// These are timestamp variables to track when commonly-done things should happen. Very lightweight compared to a timer datum. These can get randomized later.
 	// Anything that needs to be checked every tick should be stored here, rather than in the blackboard, to minimize list operations.
 
-	var/next_think_tick // The world.time when this mob can think again.
-	var/next_chatter_tick
-	var/next_emote_tick
-	var/next_attack_tick
-	var/next_move_tick
-	var/next_repath_tick
-	var/next_sleep_tick
+	var/next_think_tick = 0 // The world.time when this mob can think again.
+	var/next_chatter_tick = 0
+	var/next_emote_tick = 0
+	var/next_attack_tick = 0
+	var/next_move_tick = 0
+	var/next_repath_tick = 0
+	var/next_sleep_tick = 0
 
-	var/next_think_delay // How many ticks to wait between AI evaluations. Default = 0.5s based on cycle_pause_fast
-	var/next_chatter_delay
-	var/next_emote_delay
-	var/next_attack_delay
-	var/next_move_delay
-	var/next_repath_delay
-	var/next_sleep_delay
-
-	var/next_repath_default
+	var/next_think_delay = AI_DEFAULT_THINK_DELAY
+	var/next_chatter_delay = AI_DEFAULT_CHATTER_DELAY
+	var/next_emote_delay = AI_DEFAULT_EMOTE_DELAY
+	var/next_attack_delay = AI_DEFAULT_ATTACK_DELAY
+	var/next_move_delay = AI_DEFAULT_MOVE_DELAY
+	var/next_repath_delay = AI_DEFAULT_REPATH_DELAY
+	var/next_sleep_delay = AI_DEFAULT_SLEEP_DELAY
 
 	var/ai_flags // A bitfield
 	var/current_command // If the mob is carrying out a command given by AI commander, we store its state here.
@@ -293,8 +291,7 @@
 /// with the thinking tree. Skips over nodes to jump back to the last running node and
 /// clears the running node if the node returns anything other than NODE_RUNNING.
 /datum/behavior_tree/node/parallel/root/evaluate(mob/living/npc, atom/target, list/blackboard)
-	if(npc.ai_root.move_destination && length(npc.ai_root.path))
-		move_node.evaluate(npc, target, blackboard)
+	INVOKE_ASYNC(move_node, PROC_REF(evaluate), npc, target, blackboard)
 
 	if(running_node)
 		var/result = running_node.evaluate(npc, target, blackboard)
@@ -822,6 +819,74 @@
 // Triggered when hunger is high
 /datum/behavior_tree/node/decorator/observer/hungry
 	observed_signal = COMSIG_AI_HUNGRY
+
+// TARGET DEATH OBSERVER
+// Monitors ai_root.target - aborts if target dies
+/datum/behavior_tree/node/decorator/observer/target_death
+	observed_signal = COMSIG_LIVING_DEATH
+	var/datum/weakref/target_ref
+
+/datum/behavior_tree/node/decorator/observer/target_death/evaluate(mob/living/npc, atom/target, list/blackboard)
+	// Register to the current target's death signal
+	if(target && isliving(target))
+		var/mob/living/current_target = target_ref?.resolve()
+		if(current_target != target)
+			// New target, re-register
+			if(current_target)
+				UnregisterSignal(current_target, observed_signal)
+			RegisterSignal(target, observed_signal, PROC_REF(on_signal))
+			target_ref = WEAKREF(target)
+
+	if(triggered)
+		triggered = FALSE
+		if(npc.ai_root)
+			npc.ai_root.running_node = null
+			npc.ai_root.target = null
+		return NODE_FAILURE
+
+	return child.evaluate(npc, target, blackboard)
+
+/datum/behavior_tree/node/decorator/observer/target_death/Destroy()
+	var/mob/living/target = target_ref?.resolve()
+	if(target)
+		UnregisterSignal(target, observed_signal)
+	target_ref = null
+	. = ..()
+
+// BAIT VALIDATION OBSERVER
+// Monitors monster bait - aborts if bait dies
+/datum/behavior_tree/node/decorator/observer/bait_validation
+	observed_signal = COMSIG_LIVING_DEATH
+	var/datum/weakref/bait_ref
+
+/datum/behavior_tree/node/decorator/observer/bait_validation/evaluate(mob/living/npc, atom/target, list/blackboard)
+	var/mob/living/bait = blackboard ? blackboard[AIBLK_MONSTER_BAIT] : null
+
+	// Register to the bait's death signal if we have one
+	if(bait)
+		var/mob/living/current_bait = bait_ref?.resolve()
+		if(current_bait != bait)
+			// New bait, re-register
+			if(current_bait)
+				UnregisterSignal(current_bait, observed_signal)
+			RegisterSignal(bait, observed_signal, PROC_REF(on_signal))
+			bait_ref = WEAKREF(bait)
+
+	if(triggered)
+		triggered = FALSE
+		if(npc.ai_root)
+			npc.ai_root.running_node = null
+			blackboard -= AIBLK_MONSTER_BAIT
+		return NODE_FAILURE
+
+	return child.evaluate(npc, target, blackboard)
+
+/datum/behavior_tree/node/decorator/observer/bait_validation/Destroy()
+	var/mob/living/bait = bait_ref?.resolve()
+	if(bait)
+		UnregisterSignal(bait, observed_signal)
+	bait_ref = null
+	. = ..()
 
  // ==============================================================================
  // ADDITIONAL SERVICES

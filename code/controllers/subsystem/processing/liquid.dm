@@ -11,53 +11,15 @@
 								   ░
 									- By Plasmatik
 
-PORTABLE STANDALONE VERSION - Liquid Simulation Subsystem
-==========================================================
-
-This is a self-contained, portable version of the liquid subsystem originally
-created for IS12 Reborn. It can be integrated into any BYOND codebase with
-appropriate adaptations.
-
-ORIGINAL HEADER:
 ================
 This subsystem is used to simulate simple fluid dynamics using cellular automata in a manner similar to Dwarf Fortress.
-Unlike DF, this system operates using float values and represents discrete fluid levels as continuous ranges instead of integers.
-This is because I suck at coding and could not figure out a way to prevent rounding errors when trying to use discrete values, knock on wood.
-So instead, rounding errors just build up in a buffer and get redistributed over time.
 
 Many variables are kept on turf.cell because it is faster than using some abstract datastructure. It also makes it easy to check those variables on turfs to make cell do things.
 Fluid types are checked in sequence based on the fluid_volume and new_volume associative lists on turfs' liquid datums. There is a global list of fluid types in _defines/liquid.dm  for turf initialization to refer to,
 So that turf/Initialize() doesn't need to be altered when / if new fluid types get added.
 
 I wrote all of this myself from scratch, and would prefer if this particular system remained outside of open source codebases. Please do not publicly host this code without asking me.
-
-
-DEPENDENCIES
-============
-This system requires the following to be implemented in your codebase:
-- Cell datums attached to turfs (turf.cell)
-- Liquid datum types with volume tracking
-- Pool manager system (GLOB.pool_manager)
-- Liquid registry system (GLOB.liquid_registry)
-- Liquid debug manager (null
-- Liquid manager (GLOB.liquid_manager)
-- Vector datum for flow calculations
-- Standard BYOND subsystem architecture (master controller)
-
-FEATURES
-========
-- Dwarf Fortress-style fluid simulation with cellular automata
-- Pressure flow system (hydraulic teleportation)
-- Flow interaction with objects and mobs
-- Pool-based fluid optimization
-- Efficient pressure job pooling for performance
-- Multi-phase processing with state validation
-- Open space (multi-z) fluid dynamics
-- Flow vector modification support for rivers/currents
-
-ORIGINAL AUTHOR: Plasmatik
-LICENSE: Restricted - Do not publicly host without permission
-PORTED: 2026-01-17
+================
 */
 
 PROCESSING_SUBSYSTEM_DEF(liquid)
@@ -66,7 +28,7 @@ PROCESSING_SUBSYSTEM_DEF(liquid)
 	init_order = INIT_ORDER_LIQUID
 	wait = 1 // Needs to run every tick to avoid synchronization issues with the disjointed set implementation, but shouldn't hurt performance with all the optimizations
 	runlevels = RUNLEVELS_DEFAULT
-	flags = SS_NO_FIRE//SS_KEEP_TIMING
+	flags = SS_KEEP_TIMING
 	var/list/liquid_sources
 	var/list/liquid_sinks
 	var/remove_cells_timer = 0
@@ -83,23 +45,11 @@ PROCESSING_SUBSYSTEM_DEF(liquid)
 
 	// State validation tracking
 	var/list/cells_in_processing
-	// Note: cells_pending_sync removed as volume synchronization is now direct
-	// Kept references in pool manager and debug systems are legacy and safe to ignore
 
-	// Enhanced pressure job pool management with lifecycle tracking
-	var/list/pressure_job_pool  // Recycled pressure_job datums
-	var/pressure_job_pool_size = 0  // Current pool size for monitoring
-	var/pressure_job_pool_max = 25  // Increased from 10 for larger maps
-	var/pressure_job_pool_hits = 0   // Pool reuse statistics
-	var/pressure_job_pool_misses = 0 // Pool allocation statistics
-	var/pressure_job_lifecycle_timer = 0 // Timer for pool cleanup
 
 	// Resource management
 	var/max_cells_per_tick = 200 // Maximum cells to process per tick before splitting
 
-	// Vector objects for performance optimization (moved from static globals)
-	var/vector/flow_vector_buffer
-	var/vector/neighbor_vector_buffer
 
 /datum/controller/subsystem/processing/liquid/Initialize()
 	. = ..()
@@ -111,15 +61,8 @@ PROCESSING_SUBSYSTEM_DEF(liquid)
 	sleeping_cells = new
 	process_queue = new
 	reset_queue = new
-	pressure_job_pool = new
 	dirty = new
 	cells_in_processing = new
-	// cells_pending_sync initialization removed - no longer used with direct volume sync
-
-	// Initialize vector buffers
-	flow_vector_buffer = vector(0, 0)
-	neighbor_vector_buffer = vector(0, 0)
-
 
 	GLOB.liquid_registry.refresh_registry()
 
@@ -146,9 +89,8 @@ PROCESSING_SUBSYSTEM_DEF(liquid)
 			if(sleeping_cells[T])
 				sleeping_cells -= T
 
-			if((T.cell.fluid_flags & FLUID_MOVED) == 0)
-				process_queue += T
-			else
+			process_queue += T
+			if(T.cell.fluid_flags & FLUID_MOVED)
 				reset_queue += T
 
 			prcs_idx++
@@ -174,14 +116,6 @@ PROCESSING_SUBSYSTEM_DEF(liquid)
 			cells_in_processing += cell
 			update_cell(cell)
 
-			for(var/datum/liquid/fluid in cell.cell.fluid_volume)
-				cell.cell.fluid_volume[fluid] += cell.cell.new_volume[fluid]
-				cell.cell.new_volume[fluid] = 0
-			cell.cell.new_fluidsum = 0
-
-			cell.cell.fluid_flags &= ~FLUID_MOVED
-			update_fluidsum(cell, FALSE)
-
 			// Remove from processing tracking
 			cells_in_processing -= cell
 
@@ -199,9 +133,21 @@ PROCESSING_SUBSYSTEM_DEF(liquid)
 		if(!no_mc_tick)
 			MC_SPLIT_TICK
 
-	// Phase 3: Process pressure flow (DF-style teleportation!)
+	// Phase 3: Commit buffered changes and process pressure flow
 	if(phase == 3)
+		for(var/turf/T as anything in cell_index)
+			if(T.cell.new_fluidsum == 0)
+				continue
+
+			for(var/datum/liquid/fluid in T.cell.fluid_volume)
+				T.cell.fluid_volume[fluid] += T.cell.new_volume[fluid]
+				T.cell.new_volume[fluid] = 0
+			T.cell.new_fluidsum = 0
+
 		process_pressure_flow()
+
+		for(var/turf/T as anything in cell_index)
+			update_fluidsum(T, FALSE)
 
 		if(!no_mc_tick)
 			MC_SPLIT_TICK
@@ -275,291 +221,173 @@ PROCESSING_SUBSYSTEM_DEF(liquid)
 		return FALSE
 	return isopenspace(T) && get_fluid_level(T) > FLUID_EMPTY || !isopenspace(T) && (T.cell.fluid_flags & FLUID_MOVED || T.cell.new_fluidsum > MIN_FLUID_VOLUME)
 
-/datum/controller/subsystem/processing/liquid/proc/get_vector_to_neighbor(turf/T, turf/neighbor) as /vector
-	if(!T || !neighbor)
-		return vector(0, 0)
-
-	var/dx = neighbor.x - T.x
-	var/dy = neighbor.y - T.y
-
-	// Handle case where T and neighbor are the same position
-	if(dx == 0 && dy == 0)
-		return vector(0, 0)
-
-	// Use subsystem vector buffer to reduce allocations
-	neighbor_vector_buffer = vector(dx, dy)
-	neighbor_vector_buffer.Normalize()
-
-	return vector(neighbor_vector_buffer.x, neighbor_vector_buffer.y)
 
 
-/datum/controller/subsystem/processing/liquid/proc/get_flow_multiplier(turf/T, turf/neighbor, vector/flow_vector) as num
-	if(!flow_vector || !T?.cell || !neighbor?.cell)
-		return 0
-
-	var/vector/neighbor_vector = get_vector_to_neighbor(T, neighbor)
-	if(!neighbor_vector)
-		return 0
-
-	// Apply per-turf flow vector modifications if they exist, e.g., for rivers and so on - otherwise we just skip these
-	if(T.cell.flow_vector_modification)
-		flow_vector.x *= (T.cell.flow_vector_modification.x * T.cell.flow_vector_modification.z) // This is where we use the z axis as a multiplier, which lets flow vector modifiers exist as a vector datum instead of a list
-		flow_vector.y *= (T.cell.flow_vector_modification.y * T.cell.flow_vector_modification.z)
-
-	if(neighbor.cell.flow_vector_modification)
-		neighbor_vector.x *= (neighbor.cell.flow_vector_modification.x * neighbor.cell.flow_vector_modification.z)
-		neighbor_vector.y *= (neighbor.cell.flow_vector_modification.y * neighbor.cell.flow_vector_modification.z)
-
-	var/flow_multiplier = (flow_vector.Dot(neighbor_vector) + 2) / 3
-
-	flow_multiplier = max(flow_multiplier, 0.5) // A minimum flow rate here lets us make pools even out faster.
-
-	return flow_multiplier
 
 /datum/controller/subsystem/processing/liquid/proc/update_cell(turf/T)
 	if(!T?.cell)
 		return FALSE
 
+	// Process each fluid type separately
 	for(var/datum/liquid/fluid as anything in T.cell.fluid_volume)
 		var/current_amount = T.cell.fluid_volume[fluid]
-		if(GET_TOTAL_FLUID(T) <= 0)
-			return // This is so that if a cell gets emptied during a cycle, we won't bother to update it on the next loop if it's still empty
+		if(current_amount <= 0)
+			continue
 
-		// Retrieve viable neighbors and calculate average fluid amount
-		var/list/neighbors = list()
+		// Reset pressure mask for this turf
+		T.cell.pressure_mask = 0
 
-		for(var/turf/neighbor as anything in T)
-			if(neighbor.density)
-				continue
-			neighbors += neighbor
+		// Step 1: Gravity (Vertical Drop)
+		var/turf/down_turf = GetBelow(T)
+		if(down_turf && !down_turf.blocks_flow() && !isopenspace(T))
+			var/space_below = max(0, 100 - GET_TOTAL_FLUID(down_turf))
+			var/drop_amount = min(current_amount, space_below)
 
-		var/average_amount = get_average_amount(T, neighbors, current_amount)
+			if(drop_amount > 0)
+				T.cell.new_volume[fluid] -= drop_amount
+				var/datum/liquid/target_fluid = GetLiquidInstance(fluid, down_turf, TRUE)
+				down_turf.cell.new_volume[target_fluid] += drop_amount
+				update_fluidsum(down_turf, TRUE)
+				cell_index[down_turf] = TRUE
+				down_turf.cell.fluid_flags |= FLUID_MOVED
+				current_amount -= drop_amount
 
-		// Calculate the flow vector for fluid movement direction and speed
-		var/vector/flow_vector = calculate_flow_vector(T, neighbors, current_amount)
+		// Step 2: Lateral Flow (Neighbor Averaging with Remainder Handling)
+		if(current_amount > 0)
+			var/list/low_neighbors = list()
+			var/turf/preferred_neighbor = null
 
-		// Calculate transfer amounts to neighbors individually
-		var/list/transfer_out = calculate_transfer_out(T, neighbors, flow_vector, current_amount, average_amount, fluid)
+			// Check for flow direction preference
+			if(T.cell.flow_dir)
+				var/turf/flow_target = get_step(T, T.cell.flow_dir)
+				if(flow_target && !flow_target.density && !flow_target.blocks_flow() && !T.LinkBlocked(T, flow_target))
+					if(GET_TOTAL_FLUID(flow_target) < current_amount)
+						preferred_neighbor = flow_target
 
-		// Handle open space special case first so fluids don't spread before dropping
-		handle_open_space(T, current_amount, fluid)
+			// Find neighbors with less total fluid
+			for(var/direction in GLOB.cardinals)
+				var/turf/neighbor = get_step(T, direction)
+				if(!neighbor || neighbor.density || neighbor.blocks_flow())
+					continue
+				if(T.LinkBlocked(T, neighbor))
+					continue
 
-		// Distribute the fluid to neighbors, ensuring even-ish distribution
+				var/neighbor_total = GET_TOTAL_FLUID(neighbor)
+				if(neighbor_total < current_amount)
+					low_neighbors += neighbor
 
-		distribute_fluid(T, neighbors, transfer_out, current_amount, average_amount, fluid)
+			if(length(low_neighbors) > 0)
+				// If we have a preferred flow direction, give it priority
+				if(preferred_neighbor && (preferred_neighbor in low_neighbors))
+					var/neighbor_current = GET_TOTAL_FLUID(preferred_neighbor)
+					var/flow = ((current_amount - neighbor_current) * 6) / 10
+
+					if(flow > 0)
+						flow = min(flow, current_amount)
+						T.cell.new_volume[fluid] -= flow
+						var/datum/liquid/target_fluid = GetLiquidInstance(fluid, preferred_neighbor, TRUE)
+						preferred_neighbor.cell.new_volume[target_fluid] += flow
+
+						T.cell.pressure_mask |= T.cell.flow_dir
+
+						update_fluidsum(preferred_neighbor, TRUE)
+						cell_index[preferred_neighbor] = TRUE
+						preferred_neighbor.cell.fluid_flags |= FLUID_MOVED
+						current_amount -= flow
+
+				// Calculate total fluid across all tiles
+				var/total_fluid = current_amount
+				for(var/turf/neighbor as anything in low_neighbors)
+					total_fluid += GET_TOTAL_FLUID(neighbor)
+
+				var/tile_count = length(low_neighbors) + 1
+				var/target_level = round(total_fluid / tile_count)
+				var/remainder = total_fluid % tile_count
+
+				// Distribute to each neighbor
+				for(var/turf/neighbor as anything in low_neighbors)
+					var/neighbor_current = GET_TOTAL_FLUID(neighbor)
+					var/flow = target_level - neighbor_current
+
+					if(flow > 0)
+						flow = min(flow, current_amount)
+						T.cell.new_volume[fluid] -= flow
+						var/datum/liquid/target_fluid = GetLiquidInstance(fluid, neighbor, TRUE)
+						neighbor.cell.new_volume[target_fluid] += flow
+
+						var/flow_dir = get_dir(T, neighbor)
+						T.cell.pressure_mask |= flow_dir
+
+						update_fluidsum(neighbor, TRUE)
+						cell_index[neighbor] = TRUE
+						neighbor.cell.fluid_flags |= FLUID_MOVED
+						current_amount -= flow
+
+				// Restore remainder to source
+				if(remainder > 0)
+					T.cell.new_volume[fluid] += remainder
 
 		update_fluidsum(T, TRUE)
 		T.cell.fluid_flags |= FLUID_MOVED
 		cell_index[T] = TRUE
 
 
-/datum/controller/subsystem/processing/liquid/proc/calculate_flow_vector(turf/T, list/neighbors, current_amount) as /vector
-	// Reset subsystem vector buffer instead of creating new one
-	flow_vector_buffer = vector(0, 0)
-
-	for(var/turf/neighbor as anything in neighbors)
-		if(!neighbor?.cell)
-			continue
-		var/vector/vector_to_neighbor = get_vector_to_neighbor(T, neighbor)
-		if(!vector_to_neighbor)
-			continue
-		var/difference = current_amount - GET_TOTAL_FLUID(neighbor)
-		if(difference != 0) // Only add if there's actually a difference to avoid type mismatch
-			flow_vector_buffer += vector_to_neighbor * difference // Scalar multiplication: vector * scalar
-
-	// Only normalize if the vector has magnitude
-	if(flow_vector_buffer.x != 0 || flow_vector_buffer.y != 0)
-		flow_vector_buffer.Normalize()
-
-	// Return a copy to prevent external modification of our buffer
-	return vector(flow_vector_buffer.x, flow_vector_buffer.y)
-
-/datum/controller/subsystem/processing/liquid/proc/get_neighbors(turf/T) as /list
-	var/list/neighbors = list()
-	for(var/turf/neighbor as anything in T)
-		// Check for directional barriers between turfs (windows/doors)
-		if(T.LinkBlocked(T, neighbor))
-			continue
-		// Check if destination turf blocks flow
-		if(!neighbor.blocks_flow())
-			neighbors += neighbor
-	return neighbors
-
-/datum/controller/subsystem/processing/liquid/proc/get_average_amount(turf/T, list/neighbors, current_amount) as num
-	var/average_amount = current_amount
-	for(var/turf/neighbor as anything in neighbors)
-		average_amount += GET_TOTAL_FLUID(neighbor)
-	if(length(neighbors) > 0)
-		average_amount /= (length(neighbors) + 1)
-	return average_amount
-
-/datum/controller/subsystem/processing/liquid/proc/calculate_transfer_out(turf/T, list/neighbors, vector/flow_vector, current_amount, average_amount, fluid) as /list
-	var/list/transfer_out = list()
-	var/transfer_threshold = 2
-	for(var/turf/neighbor as anything in neighbors)
-		var/difference = current_amount - GET_TOTAL_FLUID(neighbor)
-		if(difference <= transfer_threshold)
-			continue // Skip transfers that are below the threshold
-
-		var/flow_multiplier = get_flow_multiplier(T, neighbor, flow_vector)
-
-		// Apply pool-based speed boost for better equilibration
-		var/pool_multiplier = 1.0
-		if(GLOB.pool_manager.is_in_same_pool(T, neighbor))
-			// Same pool - apply speed boost
-			pool_multiplier = 2.0
-
-			// Large pool additional boost with state-aware calculation
-			var/pool_size = get_safe_pool_size(T)
-			if(pool_size > 0) // Valid pool size
-				if(pool_size > 50)
-					pool_multiplier = 3.0
-				if(pool_size > 100)
-					pool_multiplier = 4.0
-				else
-					pool_multiplier = 1.5
-
-		var/max_transfer = FLUID_MAX_TRANSFER_RATE * pool_multiplier
-		var/transfer_amount = min(difference * flow_multiplier * pool_multiplier, T.cell.fluid_volume[fluid], max_transfer)
-		transfer_out[neighbor] = max(0, transfer_amount)
-	return transfer_out
-
-/datum/controller/subsystem/processing/liquid/proc/distribute_fluid(turf/T, list/neighbors, list/transfer_out, current_amount, average_amount, fluid)
-	var/leftover_fluid = 0
-	var/total_transferred_out = 0
-	// First, sum up the total transfer out to know how much is moving
-	for(var/turf/neighbor as anything in neighbors)
-		total_transferred_out += transfer_out[neighbor]
-
-	var/total_transferable_amount = Clamp(0, current_amount - average_amount, total_transferred_out)
-
-	var/amount_transferred = 0 // Track the amount of fluid actually transferred
-
-	var/max_neighbors = 4
-
-	for(var/turf/neighbor as anything in neighbors)
-		// Normalize the transfer amount by the number of neighbors the cell has.
-		// This is to ensure proportional transfer of fluid when less than 4 neighbors are present
-		var/transfer_amount = length(neighbors) == max_neighbors ? transfer_out[neighbor] : transfer_out[neighbor] * (max_neighbors / length(neighbors))
-
-		if(transfer_amount < MIN_FLUID_VOLUME)
-			continue
-
-		// Adjust based on how much is actually transferable
-		if(total_transferred_out > 0)
-			transfer_amount = max(0, transfer_amount * (total_transferable_amount / total_transferred_out))
-
-		// Ensure we never transfer enough liquid to exceed the maximum volume
-		transfer_amount = min(transfer_amount, MAX_FLUID_VOLUME - neighbor.cell.fluid_volume[GetLiquidInstance(fluid, neighbor)])
-
-		// Now also ensure we do not transfer more than the remaining transferable amount
-		transfer_amount = Clamp(0, transfer_amount, total_transferable_amount - amount_transferred)
-
-		var/transfered = Floor(transfer_amount)
-		leftover_fluid += fract(transfer_amount)
-		if(leftover_fluid > MIN_FLUID_VOLUME)
-			transfered += Floor(leftover_fluid)
-			leftover_fluid = fract(leftover_fluid)
-
-		// Actually transfer the fluid
-		if(transfered > 0)
-			T.cell.new_volume[fluid] -= transfered
-			neighbor.cell.new_volume[GetLiquidInstance(fluid, neighbor, TRUE)] += transfered
-			update_fluidsum(neighbor, TRUE)
-			cell_index[neighbor] = TRUE
-			amount_transferred += transfered // Update the transferred amount
-			neighbor.cell.fluid_flags |= FLUID_MOVED
-
-			// Flow interaction: knock over unanchored things with strong flow
-			if(transfered >= 15) // Significant fluid transfer
-				handle_flow_interaction(T, neighbor, transfered, FALSE)
-		else if(transfered < 0) // This should not ever happen, but if it does, that's bad and we'd better report it
-			CRASH("Negative transfer amount was detected in distribute_fluid for turf [T] to neighbor [neighbor]!")
-
 /datum/controller/subsystem/processing/liquid/proc/handle_flow_interaction(turf/source, turf/target, transfer_amount, is_pressure = FALSE, list/pressure_path)
-	// Calculate flow direction
 	var/flow_dir
-	if(is_pressure && pressure_path && length(pressure_path) >= 2)
-		// For pressure flow, use the last segment of the pressure path
-		var/turf/path_end = pressure_path[length(pressure_path)]
-		var/turf/path_prev = pressure_path[length(pressure_path) - 1]
-		flow_dir = get_dir(path_prev, path_end)
-	else
-		// For normal flow, use direct source to target
+	if(is_pressure)
 		flow_dir = get_dir(source, target)
+	else
+		var/mask = source.cell.pressure_mask
+		if(mask == 0)
+			return
+
+		if(mask == NORTH || mask == SOUTH || mask == EAST || mask == WEST)
+			flow_dir = mask
+		else
+			flow_dir = get_dir(source, target)
 
 	if(!flow_dir)
 		return
 
-	// Check for mobs and objects that can be affected by flow
 	for(var/atom/movable/AM in target)
-
-		// Skip everything except mobs and items
 		if(!ismob(AM) && !isitem(AM))
 			continue
 
-		// Skip anchored objects
 		if(AM.anchored)
 			continue
 
-		// Calculate flow intensity based on type
-		var/intensity_multiplier = 1.0
-		var/deviation_range = 15
-		var/base_dev_range = list(3, 10)
-		var/threshold_strong = 25
+		var/threshold_strong = is_pressure ? 20 : 25
 		var/threshold_moderate = 15
 
-		if(is_pressure)
-			// Pressure flow is more intense
-			intensity_multiplier = 1.5 + (length(pressure_path) / 10)
-			deviation_range = 25
-			base_dev_range = list(5, 15)
-			threshold_strong = 20
-			threshold_moderate = 15
+		var/throw_range = is_pressure ? min(4, round(transfer_amount / 15)) : min(3, round(transfer_amount / 20))
+		var/throw_speed = is_pressure ? min(4, round(transfer_amount / 10)) : min(3, round(transfer_amount / 15))
 
-		var/throw_range = min(is_pressure ? 4 : 3, (transfer_amount * intensity_multiplier) / (is_pressure ? 15 : 20))
-		var/throw_speed = min(is_pressure ? 4 : 3, (transfer_amount * intensity_multiplier) / (is_pressure ? 10 : 15))
-
-		var/dx = target.x - source.x
-		var/dy = target.y - source.y
-
-		var/deviation = rand(-deviation_range, deviation_range)
-		var/angle = arctan(dy, dx) + deviation
-
-		// Calculate target position
-		var/target_x = target.x + cos(angle) * throw_range
-		var/target_y = target.y + sin(angle) * throw_range
-		var/turf/target_turf = locate(target_x, target_y, target.z)
-		var/atom/potential_blocker = line_encounters_type(AM, target_turf, null, TRUE)
-		if(potential_blocker && potential_blocker.density)
-			target_turf = potential_blocker
+		var/throw_dir = flow_dir
+		if(prob(20))
+			throw_dir = turn(flow_dir, pick(45, -45))
 
 		if(isliving(AM))
 			var/mob/living/L = AM
-			var/dev = rand(base_dev_range[1], base_dev_range[2])
-			var/amt = max(0, round(dev - 0 / 2))
 
 			if(transfer_amount >= threshold_strong)
 				if(is_pressure)
 					L.Knockdown(30)
-					to_chat(L, "<span class='danger'>A surge of pressurized liquid blasts into you with tremendous force!</span>")
+					to_chat(L, span_danger("A surge of pressurized liquid blasts into you with tremendous force!"))
 				else
 					L.Knockdown(20)
-					to_chat(L, "<span class='warning'>The rushing liquid crashes into you and sweeps you away!</span>")
+					to_chat(L, span_warning("The rushing liquid crashes into you and sweeps you away!"))
 			else if(transfer_amount >= threshold_moderate && is_pressure)
 				L.Knockdown(10)
-				to_chat(L, "<span class='warning'>The pressurized liquid strikes you with considerable force!</span>")
+				to_chat(L, span_warning("The pressurized liquid strikes you with considerable force!"))
 			else
-				if(amt > 0)
-					amt = round(amt / 2)
-				dev = round(dev / 2)
 				L.Stun(5)
 				if(is_pressure)
-					to_chat(L, "<span class='notice'>The flowing liquid pushes against you!</span>")
+					to_chat(L, span_notice("The flowing liquid pushes against you!"))
 				else
-					to_chat(L, "<span class='notice'>The rushing liquid nearly knocks you off your feet!</span>")
+					to_chat(L, span_notice("The rushing liquid nearly knocks you off your feet!"))
 
-		if(throw_range > 0 && target_turf)
+		if(throw_range > 0)
+			var/turf/target_turf = get_edge_target_turf(target, throw_dir)
 			AM.throw_at(target_turf, throw_range, throw_speed)
 
 
@@ -569,24 +397,6 @@ PROCESSING_SUBSYSTEM_DEF(liquid)
 	else
 		return locate(fluid.type) in T.cell.fluid_volume
 
-/datum/controller/subsystem/processing/liquid/proc/handle_open_space(turf/T, current_amount, fluid)
-	if(isopenspace(T))
-		var/turf/below = GetBelow(T)
-		if(!below || below.blocks_flow())
-			return
-
-		var/max_transfer_amount = 100 - below.cell.fluidsum
-
-		max_transfer_amount = max(max_transfer_amount, 0)
-
-		var/transfer_amount = min(T.cell.new_volume[fluid], max_transfer_amount)
-
-		if(transfer_amount > 0)
-			T.cell.new_volume[fluid] -= transfer_amount
-			below.cell.new_volume[GetLiquidInstance(fluid, below, TRUE)] += transfer_amount
-			update_fluidsum(below, TRUE)
-			below.cell.fluid_flags |= FLUID_MOVED
-			cell_index[below] = TRUE
 
 /datum/controller/subsystem/processing/liquid/proc/process_sources()
 	for(var/turf/T as anything in liquid_sources)
@@ -675,13 +485,18 @@ PROCESSING_SUBSYSTEM_DEF(liquid)
 	SSliquid.liquid_sinks -= src
 	return ..()
 
-/datum/controller/subsystem/processing/liquid/proc/update_cell_image(turf/T) // This is for manually forcing turfs to update their fluid overlay for debugging purposes
+/datum/controller/subsystem/processing/liquid/proc/update_cell_image(turf/T)
 	var/datum/liquid/mostfluid = T.get_highest_fluid_by_volume()
 
 	if(mostfluid)
 		T.liquid_overlay.color = mostfluid.color
 
 	var/fluid_level = get_fluid_level(T)
+
+	if(isopenspace(T) && T.cell?.flow_dir && fluid_level >= FLUID_FULL)
+		T.liquid_overlay.icon_state = "rivermove"
+		T.liquid_overlay.dir = T.cell.flow_dir
+
 	switch(fluid_level)
 		if(FLUID_EMPTY) T.liquid_overlay.alpha = 0
 		if(FLUID_VERY_LOW) T.liquid_overlay.alpha = 80
@@ -811,191 +626,71 @@ PROCESSING_SUBSYSTEM_DEF(liquid)
 				current_trim_dirs["[direction]"] = TRUE
 
 
-//================================================================
-// --- Pressure Job Datum ---
-// Efficient data structure for BFS pressure path tracing,
-// based on the A* pathfinding approach but simplified for BFS.
-// Reuses single datum per pressure search to minimize allocations.
-//================================================================
-/pressure_job
-	parent_type = /datum
-	var/alist/parent = new()        // parent[turf] = source_turf
-	var/alist/visited = new()       // visited[turf] = TRUE
-	var/list/queue = new()          // simple BFS queue of turfs
-	var/start_z = 0                 // z-level constraint for pressure
-
-/pressure_job/proc/Reset()
-	parent.len = 0
-	visited.len = 0
-	queue.len = 0
-	start_z = 0
-
-/pressure_job/proc/reconstruct_pressure_path(turf/outlet) as /list
-	var/list/path = list(outlet)
-	var/turf/current = outlet
-	while(parent[current])
-		current = parent[current]
-		path.Insert(1, current)
-	return path
-
-// Pressure flow system - DF-style hydraulic pressure teleportation
+// Pressure flow: full tiles (>=60) push fluid to non-full neighbors
 /datum/controller/subsystem/processing/liquid/proc/process_pressure_flow()
-	var/list/pressure_sources = list()
-
-	// Find all pressure sources (full tiles that could push fluid)
 	for(var/turf/T as anything in cell_index)
-		if(get_fluid_level(T) >= FLUID_FULL)
-			pressure_sources += T
+		var/source_total = GET_TOTAL_FLUID(T)
+		if(source_total < 60)
+			continue // Not full enough for pressure
 
-	// Process each pressure source
-	for(var/turf/source as anything in pressure_sources)
-		process_pressure_from_source(source)
+		// Check all cardinal directions for pressure outlets
+		for(var/direction in list(NORTH, SOUTH, EAST, WEST, 0))
+			var/turf/target
+			if(direction == 0)
+				// Check down for vertical pressure
+				target = GetBelow(T)
+			else
+				target = get_step(T, direction)
 
-/datum/controller/subsystem/processing/liquid/proc/process_pressure_from_source(turf/source)
-	if(!source?.cell || get_fluid_level(source) < FLUID_FULL)
-		return
-
-	var/pressure_job/job = get_pressure_job()
-	job.start_z = source.z
-	job.queue += source
-	job.visited[source] = TRUE
-
-	// Trace pressure paths using efficient BFS
-	while(length(job.queue))
-		var/turf/current = job.queue[1]
-		job.queue.Cut(1, 2)
-
-		// Check if we found a pressure outlet (non-full tile that can receive fluid)
-		if(get_fluid_level(current) < FLUID_FULL && can_receive_pressure_fluid(current))
-			var/list/path = job.reconstruct_pressure_path(current)
-			execute_pressure_transfer(source, current, path)
-			continue
-
-		// Only continue tracing through full tiles
-		if(get_fluid_level(current) < FLUID_FULL)
-			continue
-
-		// Add valid neighbors to trace
-		for(var/direction in list(NORTH, SOUTH, EAST, WEST))
-			var/turf/neighbor = get_step(current, direction)
-			if(!neighbor || job.visited[neighbor])
+			if(!target?.cell || target.blocks_flow())
 				continue
 
-			// Check for directional barriers between current and neighbor (windows/doors)
-			if(current.LinkBlocked(current, neighbor))
+			if(T.LinkBlocked(T, target))
 				continue
 
-			if(neighbor.blocks_flow())
-				continue
+			// Found a pressure outlet (not full)
+			var/target_total = GET_TOTAL_FLUID(target)
+			if(target_total < 60)
+				var/total_pressure = source_total - 60
+				var/max_push = MAX_FLUID_VOLUME - target_total
 
-			if(current.blocks_flow())
-				continue
+				var/pressure_amount = (min(total_pressure, max_push) * 3) / 10
 
-			// Allow going down, or horizontal at same z-level, but never above start z
-			if(neighbor.z > job.start_z)
-				continue
+				if(pressure_amount > 0)
+					var/total_transferred = 0
+					var/datum/liquid/first_fluid = null
 
-			if(get_fluid_level(neighbor) < FLUID_FULL)
-				// Special case: allow tracing to outlets (non-full tiles that can receive)
-				// But we still need to verify the path to the outlet respects barriers
-				if(can_receive_pressure_fluid(neighbor))
-					job.parent[neighbor] = current
-					job.visited[neighbor] = TRUE
-					job.queue += neighbor
-				continue
+					// Transfer each fluid type proportionally
+					for(var/datum/liquid/fluid in T.cell.fluid_volume)
+						var/fluid_amount = T.cell.fluid_volume[fluid]
+						if(fluid_amount <= 0)
+							continue
 
-			job.parent[neighbor] = current
-			job.visited[neighbor] = TRUE
-			job.queue += neighbor
+						if(!first_fluid)
+							first_fluid = fluid
 
-	return_pressure_job(job)
+						var/fluid_transfer = (pressure_amount * fluid_amount) / source_total
 
-/datum/controller/subsystem/processing/liquid/proc/can_receive_pressure_fluid(turf/T)
-	if(!T?.cell)
-		return FALSE
+						if(fluid_transfer > 0)
+							T.cell.fluid_volume[fluid] -= fluid_transfer
+							var/datum/liquid/target_fluid = GetLiquidInstance(fluid, target, FALSE)
+							target.cell.fluid_volume[target_fluid] += fluid_transfer
+							total_transferred += fluid_transfer
 
-	// Can receive if not at max capacity and not blocked
-	return get_fluid_level(T) < FLUID_FULL && !T.blocks_flow()
+					// Handle remainder
+					var/remainder = pressure_amount - total_transferred
+					if(remainder > 0 && first_fluid)
+						T.cell.fluid_volume[first_fluid] -= remainder
+						var/datum/liquid/target_fluid = GetLiquidInstance(first_fluid, target, FALSE)
+						target.cell.fluid_volume[target_fluid] += remainder
 
-/datum/controller/subsystem/processing/liquid/proc/execute_pressure_transfer(turf/source, turf/outlet, list/path)
-	if(!source?.cell || !outlet?.cell)
-		return
+					T.cell.fluid_flags |= FLUID_MOVED
+					target.cell.fluid_flags |= FLUID_MOVED
+					cell_index[target] = TRUE
 
-	// Calculate how much pressure transfer can occur
-	var/source_excess = source.cell.fluidsum - 60 // Only transfer excess above "full"
-	if(source_excess <= 0)
-		return
+					if(pressure_amount >= 5)
+						handle_flow_interaction(T, target, pressure_amount, TRUE, null)
 
-	var/outlet_capacity = MAX_FLUID_VOLUME - outlet.cell.fluidsum
-	if(outlet_capacity <= 0)
-		return
-
-	// Transfer amount based on path length (longer paths = less transfer)
-	var/path_resistance = max(1, length(path) / 4)
-	var/transfer_amount = min(source_excess, outlet_capacity, 20 / path_resistance)
-
-	if(transfer_amount < 1)
-		return
-
-	// Find the dominant fluid type at source
-	var/datum/liquid/dominant_fluid = source.get_highest_fluid_by_volume()
-	if(!dominant_fluid)
-		return
-
-	// Execute the pressure teleportation with validation
-	var/source_fluid_amount = source.cell.fluid_volume[dominant_fluid]
-	if(source_fluid_amount >= transfer_amount)
-		// Validate neither cell is currently being processed to prevent conflicts
-		if((source in cells_in_processing) || (outlet in cells_in_processing))
-			return // Skip pressure transfer if cells are being processed
-
-		source.cell.fluid_volume[dominant_fluid] -= transfer_amount
-		outlet.cell.fluid_volume[GetLiquidInstance(dominant_fluid, outlet, FALSE)] += transfer_amount
-
-		update_fluidsum(source, FALSE)
-		update_fluidsum(outlet, FALSE)
-
-		source.cell.fluid_flags |= FLUID_MOVED
-		outlet.cell.fluid_flags |= FLUID_MOVED
-		cell_index[source] = TRUE
-		cell_index[outlet] = TRUE
-
-		// Trigger flow interactions at the pressure outlet
-		// Pressure transfers should probably create stronger effects than normal flow, so we make the threshold for effects lower.
-		if(transfer_amount >= 10)
-			handle_flow_interaction(source, outlet, transfer_amount, TRUE, path)
-
-/datum/controller/subsystem/processing/liquid/proc/get_pressure_job() as /pressure_job
-	var/pressure_job/job
-	if(pressure_job_pool_size > 0)
-		job = pressure_job_pool[pressure_job_pool_size]
-		pressure_job_pool.len--
-		pressure_job_pool_size--
-		pressure_job_pool_hits++
-
-		// Validate job integrity before reuse
-		if(!validate_pressure_job_integrity(job))
-			job = new /pressure_job()
-			pressure_job_pool_misses++
-	else
-		job = new /pressure_job()
-		pressure_job_pool_misses++
-
-	job.Reset()
-	return job
-
-/datum/controller/subsystem/processing/liquid/proc/return_pressure_job(pressure_job/job)
-	if(job && pressure_job_pool_size < pressure_job_pool_max)
-		// Validate job state before returning to pool
-		if(validate_pressure_job_for_pooling(job))
-			pressure_job_pool += job
-			pressure_job_pool_size++
-		else
-			// Job is corrupted, don't pool it
-			qdel(job)
-	else if(job)
-		// Pool is full, dispose of the job
-		qdel(job)
 
 //================================================================
 // --- Pool Integration Functions ---
@@ -1015,119 +710,6 @@ PROCESSING_SUBSYSTEM_DEF(liquid)
 
 	return GLOB.pool_manager.get_pool_size(T)
 
-//================================================================
-// --- Enhanced Pressure Job Pool Management ---
-// These functions implement lifecycle tracking and validation
-// for pressure job objects to prevent memory leaks and ensure
-// proper resource management.
-//================================================================
-
-/**
- * Validates pressure job integrity before reuse from pool.
- * Ensures the job is in a valid state for reuse.
- *
- * @param job The pressure job to validate.
- * @return TRUE if job is valid for reuse, FALSE otherwise.
- */
-/datum/controller/subsystem/processing/liquid/proc/validate_pressure_job_integrity(pressure_job/job)
-	if(!job)
-		return FALSE
-
-	// Check that required data structures exist
-	if(!istype(job.parent, /alist) || !istype(job.visited, /alist) || !islist(job.queue))
-		return FALSE
-
-	// Ensure data structures are properly initialized
-	if(!job.parent || !job.visited || !job.queue)
-		return FALSE
-
-	// Check for reasonable state (should be reset but verify structure)
-	if(length(job.parent) > 1000 || length(job.visited) > 1000 || length(job.queue) > 100)
-		// Suspiciously large, might be corrupted
-		return FALSE
-
-	return TRUE
-
-/**
- * Validates pressure job state before returning to pool.
- * Ensures the job is properly cleaned and safe for pooling.
- *
- * @param job The pressure job to validate for pooling.
- * @return TRUE if job is safe to pool, FALSE otherwise.
- */
-/datum/controller/subsystem/processing/liquid/proc/validate_pressure_job_for_pooling(pressure_job/job)
-	if(!job)
-		return FALSE
-
-	// Auto-recovery: Always attempt to reset before validation
-	job.Reset()
-
-	// Validate basic integrity after reset
-	if(!validate_pressure_job_integrity(job))
-		return FALSE
-
-	// Verify reset was successful
-	if(length(job.parent) > 0 || length(job.visited) > 0 || length(job.queue) > 0 || job.start_z != 0)
-		// Force a more aggressive reset if normal reset failed
-		try
-			job.parent = new()
-			job.visited = new()
-			job.queue = new()
-			job.start_z = 0
-		catch
-			return FALSE
-
-		// Final validation after aggressive reset
-		if(length(job.parent) > 0 || length(job.visited) > 0 || length(job.queue) > 0)
-			return FALSE
-
-	return TRUE
-
-/**
- * Performs maintenance on the pressure job pool.
- * Removes corrupted jobs and validates pool integrity.
- */
-/datum/controller/subsystem/processing/liquid/proc/cleanup_pressure_job_pool()
-	if(!pressure_job_pool || pressure_job_pool_size == 0)
-		return
-
-	var/list/valid_jobs = list()
-
-	// Validate all jobs in the pool
-	for(var/i = 1; i <= pressure_job_pool_size; i++)
-		var/pressure_job/job = pressure_job_pool[i]
-		if(validate_pressure_job_integrity(job) && validate_pressure_job_for_pooling(job))
-			valid_jobs += job
-		else
-			qdel(job)
-
-	// Rebuild pool with valid jobs only
-	pressure_job_pool = valid_jobs
-	pressure_job_pool_size = length(valid_jobs)
-
-	// Log cleanup results if monitoring is enabled
-
-/**
- * Gets performance statistics for the pressure job pool.
- * Used for monitoring and debugging pool efficiency.
- *
- * @return An associative list of pool statistics.
- */
-/datum/controller/subsystem/processing/liquid/proc/get_pressure_job_pool_stats()
-	var/list/stats = list()
-
-	stats["pool_size"] = pressure_job_pool_size
-	stats["pool_max"] = pressure_job_pool_max
-	stats["pool_hits"] = pressure_job_pool_hits
-	stats["pool_misses"] = pressure_job_pool_misses
-
-	var/total_requests = pressure_job_pool_hits + pressure_job_pool_misses
-	if(total_requests > 0)
-		stats["pool_efficiency"] = (pressure_job_pool_hits / total_requests) * 100
-	else
-		stats["pool_efficiency"] = 0
-
-	return stats
 
 //================================================================
 // --- Utility Functions ---
@@ -1173,10 +755,5 @@ PROCESSING_SUBSYSTEM_DEF(liquid)
 		var/list/pool_stats = GLOB.pool_manager.get_performance_statistics()
 		for(var/stat_name in pool_stats)
 			stats["pool_[stat_name]"] = pool_stats[stat_name]
-
-	// Pressure job pool statistics
-	var/list/pressure_stats = get_pressure_job_pool_stats()
-	for(var/stat_name in pressure_stats)
-		stats["pressure_[stat_name]"] = pressure_stats[stat_name]
 
 	return stats

@@ -201,6 +201,8 @@
 // Blackboard keys for failed pathfinding cooldown
 #define AIBLK_FAILED_PATH_DEST 3726948
 #define AIBLK_FAILED_PATH_TIME 4306083
+#define AIBLK_LAST_PATH_CALL_TIME 1022638
+#define AIBLK_PATH_CALL_COUNT 8215381
 
 // ==============================================================================
 // STATEFUL BEHAVIOR TREE - SIGNAL SYSTEM

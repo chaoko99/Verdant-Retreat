@@ -32,7 +32,8 @@ GLOBAL_DATUM_INIT(liquid_manager, /datum/liquid_manager, new)
 		log_debug("Liquid Manager: Failed to get liquid instance for [fluid_type]")
 		return 0
 
-	var/clamped_amount = clamp(amount, 0, MAX_FLUID_VOLUME - target_turf.cell.fluidsum)
+	var/int_amount = round(amount)
+	var/clamped_amount = clamp(int_amount, 0, MAX_FLUID_VOLUME - target_turf.cell.fluidsum)
 	target_turf.cell.fluid_volume[fluid_instance] += clamped_amount
 
 	// Update subsystem tracking
@@ -50,8 +51,9 @@ GLOBAL_DATUM_INIT(liquid_manager, /datum/liquid_manager, new)
 		log_debug("Liquid Manager: Cannot remove fluid - no instance found for [fluid_type]")
 		return 0
 
+	var/int_amount = round(amount)
 	var/current_amount = target_turf.cell.fluid_volume[fluid_instance]
-	var/remove_amount = min(amount, current_amount)
+	var/remove_amount = min(int_amount, current_amount)
 
 	target_turf.cell.fluid_volume[fluid_instance] -= remove_amount
 
@@ -105,12 +107,12 @@ GLOBAL_DATUM_INIT(liquid_manager, /datum/liquid_manager, new)
 
 	var/max_transfer = MAX_FLUID_VOLUME - target_turf.cell.fluid_volume[fluid_instance]
 	var/available_reagent = min(amount, container.reagents.get_reagent_amount(reagent_type))
-	var/transfer_amount = min(available_reagent, max_transfer)
+	var/transfer_amount = round(min(available_reagent, max_transfer))
 
 	if(transfer_amount <= 0)
 		return 0
 
-	target_turf.cell.fluid_volume[fluid_instance] += round(transfer_amount)
+	target_turf.cell.fluid_volume[fluid_instance] += transfer_amount
 	container.reagents.remove_reagent(reagent_type, transfer_amount)
 
 	SSliquid.update_fluidsum(target_turf, FALSE)
@@ -136,12 +138,12 @@ GLOBAL_DATUM_INIT(liquid_manager, /datum/liquid_manager, new)
 		max_container_space = container.reagents.maximum_volume - container.reagents.total_volume
 
 	var/available_fluid = source_turf.cell.fluid_volume[fluid_instance]
-	var/transfer_amount = min(amount, available_fluid, max_container_space)
+	var/transfer_amount = round(min(amount, available_fluid, max_container_space))
 
 	if(transfer_amount <= 0)
 		return 0
 
-	source_turf.cell.fluid_volume[fluid_instance] -= round(transfer_amount)
+	source_turf.cell.fluid_volume[fluid_instance] -= transfer_amount
 	container.reagents.add_reagent(fluid_type.reagent, transfer_amount)
 
 	SSliquid.update_fluidsum(source_turf, FALSE)

@@ -95,7 +95,7 @@
 	if(get_dist(user, victim) > 1) return NODE_FAILURE // Must be close
 
 	if(world.time < user.ai_root.next_attack_tick)
-		return NODE_FAILURE
+		return NODE_RUNNING
 
 	// Target legs
 	user.zone_selected = pick(BODY_ZONE_L_LEG, BODY_ZONE_R_LEG)
@@ -113,7 +113,7 @@
 	if(istype(G) && G.grabbed == victim) return NODE_SUCCESS
 
 	if(world.time < user.ai_root.next_attack_tick)
-		return NODE_FAILURE
+		return NODE_RUNNING
 
 	// Initiate grab
 	user.zone_selected = BODY_ZONE_CHEST
@@ -129,7 +129,7 @@
 	if(G.grab_state >= GRAB_AGGRESSIVE) return NODE_SUCCESS
 
 	if(world.time < user.ai_root.next_attack_tick)
-		return NODE_FAILURE
+		return NODE_RUNNING
 
 	user.use_grab_intent(G, /datum/intent/grab/upgrade, G.grabbed)
 	user.ai_root.next_attack_tick = world.time + (user.ai_root.next_attack_delay || 10)
@@ -146,7 +146,7 @@
 	if(!istype(G) || G.grab_state < GRAB_AGGRESSIVE || G.grabbed != victim || get_turf(user) != get_turf(victim)) return NODE_FAILURE
 
 	if(world.time < user.ai_root.next_attack_tick)
-		return NODE_FAILURE
+		return NODE_RUNNING
 
 	// Pin/Tackle
 	user.use_grab_intent(G, /datum/intent/grab/shove, victim)
@@ -273,8 +273,10 @@
 
 	if(world.time >= user.ai_root.next_move_tick)
 		var/turf/T = get_step(user, pick(GLOB.cardinals))
-		if(T && !T.density && user.set_ai_path_to(T))
-			return NODE_RUNNING
+		if(T && !T.density)
+			if(user.Move(T, get_dir(user, T)))
+				user.ai_root.next_move_tick = world.time + user.ai_root.next_move_delay
+				return NODE_SUCCESS
 	return NODE_FAILURE
 
 /bt_action/carbon_attack_melee/evaluate(mob/living/carbon/human/user, mob/living/target, list/blackboard)
@@ -329,8 +331,10 @@
 
 	if(prob(40) && world.time >= user.ai_root.next_move_tick)
 		var/turf/T = get_step(user, pick(GLOB.cardinals))
-		if(T && !T.density && user.set_ai_path_to(T))
-			return NODE_RUNNING
+		if(T && !T.density)
+			if(user.Move(T, get_dir(user, T)))
+				user.ai_root.next_move_tick = world.time + user.ai_root.next_move_delay
+				return NODE_SUCCESS
 	return NODE_FAILURE
 
 
