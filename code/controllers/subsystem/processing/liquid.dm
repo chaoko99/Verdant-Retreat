@@ -145,6 +145,8 @@ PROCESSING_SUBSYSTEM_DEF(liquid)
 			T.cell.new_fluidsum = 0
 
 		process_pressure_flow()
+		process_sources()
+		process_sinks()
 
 		for(var/turf/T as anything in cell_index)
 			update_fluidsum(T, FALSE)
@@ -493,9 +495,23 @@ PROCESSING_SUBSYSTEM_DEF(liquid)
 
 	var/fluid_level = get_fluid_level(T)
 
-	if(isopenspace(T) && T.cell?.flow_dir && fluid_level >= FLUID_FULL)
-		T.liquid_overlay.icon_state = "rivermove"
-		T.liquid_overlay.dir = T.cell.flow_dir
+	// Openspace above a liquid source: show surface overlay and act as sink
+	if(isopenspace(T))
+		var/turf/below = GetBelow(T)
+		if(below?.cell?.is_liquid_source && get_fluid_level(below) >= FLUID_FULL)
+			if(below.cell.flow_dir)
+				T.liquid_overlay.icon_state = "rivermove"
+				T.liquid_overlay.dir = below.cell.flow_dir
+			else
+				T.liquid_overlay.icon_state = "top2"
+			T.liquid_overlay.alpha = 205
+			if(!T.cell.is_liquid_sink)
+				T.cell.make_liquid_sink(100)
+		else
+			T.liquid_overlay.alpha = 0
+			if(T.cell.is_liquid_sink)
+				T.cell.remove_liquid_sink()
+		return
 
 	switch(fluid_level)
 		if(FLUID_EMPTY) T.liquid_overlay.alpha = 0
@@ -505,19 +521,9 @@ PROCESSING_SUBSYSTEM_DEF(liquid)
 		if(FLUID_HIGH) T.liquid_overlay.alpha = 145
 		if(FLUID_VERY_HIGH) T.liquid_overlay.alpha = 185
 		if(FLUID_FULL)
-			if(isopenspace(T) && GET_FLUID_LEVEL(T) > FLUID_EMPTY)
-				T.liquid_overlay.alpha = 125
-				T.liquid_overlay.color = T.liquid_overlay.color
-				T.liquid_overlay.alpha = 80
-			else
-				T.liquid_overlay.alpha = 205
+			T.liquid_overlay.alpha = 205
 		if(FLUID_OVERFLOW)
-			if(isopenspace(T) && GET_FLUID_LEVEL(T) > FLUID_EMPTY)
-				T.liquid_overlay.alpha = 125
-				T.liquid_overlay.color = T.liquid_overlay.color
-				T.liquid_overlay.alpha = 80
-			else
-				T.liquid_overlay.alpha = 235
+			T.liquid_overlay.alpha = 235
 
 	if((T.cell.last_fluid_level < fluid_level) && (fluid_level >= FLUID_FULL) || (T.cell.last_fluid_level > fluid_level) && (fluid_level < FLUID_FULL))
 		var/list/queue = list()

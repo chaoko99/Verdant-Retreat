@@ -73,7 +73,7 @@ SUBSYSTEM_DEF(procgen)
 		mapgen_area.setup_procgen()
 
 	for(var/turf/T as anything in fluid_cells)
-		// Use ultimate elegant operator syntax for map generation liquid spawning
+
 		T += /datum/liquid/water * 100
 	SSliquid.update_fluidsums()
 	//SSliquid.update_cell_images()
@@ -924,6 +924,434 @@ Notes about water generation:
 			if(in_bounds(offset_x, offset_y) && abs(wx) + abs(wy) <= path_width)
 				var/river_key = "[offset_x]-[offset_y]"
 				generation_map[river_key] = HOLE // Carve the river path
+
+/*
+  _____ ___  ____  _____ ____ _____
+ |  ___/ _ \|  _ \| ____/ ___|_   _|
+ | |_ | | | | |_) |  _| \___ \ | |
+ |  _|| |_| |  _ <| |___ ___) || |
+ |_|   \___/|_| \_\_____|____/ |_|
+
+Forests are generated using cellular automata with the Moore neighborhood (4-5 rule):
+- Initial random seed of trees/clearings
+- Iterative smoothing passes using Moore neighborhood (8 surrounding cells)
+- A cell becomes/stays a tree if it has 4-5 tree neighbors (birth/survival rule)
+- This creates organic-looking clearings and tree clusters
+- Additional passes populate undergrowth and convert turfs to grass
+
+The 4-5 rule creates natural forest patterns with connected clearings and realistic tree distribution.
+*/
+
+#define FOREST_TREE 1
+#define FOREST_CLEAR 0
+#define LAKE 2
+#define RIVER 3
+
+/area/procedural_generation/forest
+	// Cellular automata parameters
+	var/initial_tree_chance = 45 // Initial random fill percentage
+	var/ca_iterations = 4 // Number of cellular automata smoothing passes
+	var/birth_threshold = 5 // Neighbors needed to become a tree
+	var/survival_min = 4 // Minimum neighbors to stay a tree
+	var/survival_max = 8 // Maximum neighbors to stay a tree
+
+	// Flora variety settings
+	var/grass_conversion_chance = 60 // Chance to convert dirt to grass
+	var/undergrowth_density = 15 // Percentage for bushes, herbs, etc.
+
+	// Water feature parameters
+	var/generate_lakes = TRUE
+	min_lakes = 1
+	max_lakes = 3
+	min_lake_size = 30
+	max_lake_size = 80
+
+	var/generate_rivers = TRUE
+	var/min_rivers = 1
+	var/max_rivers = 2
+	var/river_inertia = 80 // % chance to keep going straight
+	var/river_width = 2 // River thickness
+	var/list/river_flow_map = list() // Stores flow_dir per river tile, keyed by "x-y"
+
+/area/procedural_generation/forest/setup_procgen()
+	..()
+	initialize_random_forest()
+	apply_cellular_automata()
+	if(generate_lakes)
+		generate_lakes()
+	if(generate_rivers)
+		generate_rivers()
+	convert_to_grass()
+	populate_trees()
+	populate_undergrowth()
+	final_pass()
+
+	generation_map.Cut()
+
+// Initial random seeding of the forest
+/area/procedural_generation/forest/proc/initialize_random_forest()
+	for(var/x = low_x, x <= high_x, x++)
+		for(var/y = low_y, y <= high_y, y++)
+			var/key = "[x]-[y]"
+			if(prob(initial_tree_chance))
+				generation_map[key] = FOREST_TREE
+			else
+				generation_map[key] = FOREST_CLEAR
+
+// Apply cellular automata using Moore neighborhood
+/area/procedural_generation/forest/proc/apply_cellular_automata()
+	for(var/iteration in 1 to ca_iterations)
+		var/list/new_map = list()
+
+		for(var/x = low_x, x <= high_x, x++)
+			for(var/y = low_y, y <= high_y, y++)
+				var/key = "[x]-[y]"
+				var/tree_neighbors = count_tree_neighbors(x, y)
+				var/current_state = generation_map[key]
+
+				// Moore neighborhood 4-5 rule
+				// If currently a tree: survive if 4-8 neighbors are trees
+				// If currently clear: become tree if exactly 5 neighbors are trees
+				if(current_state == FOREST_TREE)
+					if(tree_neighbors >= survival_min && tree_neighbors <= survival_max)
+						new_map[key] = FOREST_TREE
+					else
+						new_map[key] = FOREST_CLEAR
+				else
+					if(tree_neighbors == birth_threshold)
+						new_map[key] = FOREST_TREE
+					else
+						new_map[key] = FOREST_CLEAR
+
+		// Update the generation map with the new state
+		generation_map = new_map
+
+// Count tree neighbors using Moore neighborhood (all 8 surrounding cells)
+/area/procedural_generation/forest/proc/count_tree_neighbors(center_x, center_y)
+	var/count = 0
+	for(var/dx in -1 to 1)
+		for(var/dy in -1 to 1)
+			if(dx == 0 && dy == 0)
+				continue // Skip the center cell
+
+			var/nx = center_x + dx
+			var/ny = center_y + dy
+
+			// Handle edges by treating out-of-bounds as clear
+			if(!in_bounds(nx, ny))
+				continue
+
+			var/neighbor_key = "[nx]-[ny]"
+			if(generation_map[neighbor_key] == FOREST_TREE)
+				count++
+
+	return count
+
+/area/procedural_generation/forest/proc/convert_to_grass()
+	for(var/x = low_x, x <= high_x, x++)
+		for(var/y = low_y, y <= high_y, y++)
+			var/turf/current_turf = locate(x, y, src.z)
+			if(istype(current_turf, /turf/open/floor/rogue/dirt))
+				if(prob(grass_conversion_chance))
+					current_turf.ChangeTurf(/turf/open/floor/rogue/grass)
+
+/area/procedural_generation/forest/proc/populate_trees()
+	for(var/x = low_x, x <= high_x, x++)
+		for(var/y = low_y, y <= high_y, y++)
+			var/key = "[x]-[y]"
+
+			// Skip water tiles
+			var/tile_type = generation_map[key]
+			if(tile_type == LAKE || tile_type == RIVER)
+				continue
+
+			if(tile_type != FOREST_TREE)
+				continue
+
+			var/turf/current_turf = locate(x, y, src.z)
+
+			// Only place trees on grass or dirt
+			if(!istype(current_turf, /turf/open/floor/rogue/grass) && !istype(current_turf, /turf/open/floor/rogue/dirt))
+				continue
+
+			// Check for existing structures
+			if(locate(/obj/structure) in current_turf)
+				continue
+
+			// Mix of old and new tree types
+			if(prob(70))
+				new /obj/structure/flora/newtree(current_turf)
+			else
+				new /obj/structure/flora/roguetree(current_turf)
+
+/area/procedural_generation/forest/proc/populate_undergrowth()
+	for(var/x = low_x, x <= high_x, x++)
+		for(var/y = low_y, y <= high_y, y++)
+			var/key = "[x]-[y]"
+			var/tile_type = generation_map[key]
+
+			// Skip water tiles
+			if(tile_type == LAKE || tile_type == RIVER)
+				continue
+
+			var/turf/current_turf = locate(x, y, src.z)
+
+			// Only place undergrowth on grass or dirt
+			if(!istype(current_turf, /turf/open/floor/rogue/grass) && !istype(current_turf, /turf/open/floor/rogue/dirt))
+				continue
+
+			// Don't place on tiles that already have stuff
+			if(locate(/obj/structure) in current_turf || locate(/obj/item) in current_turf)
+				continue
+
+			if(prob(undergrowth_density))
+				var/i = rand(1, 100)
+				var/flora_type = null
+				switch(i)
+					if(1 to 40)
+						flora_type = /obj/structure/flora/roguegrass
+					if(41 to 55)
+						flora_type = /obj/structure/flora/roguegrass/bush
+					if(56 to 60)
+						flora_type = /obj/structure/flora/roguegrass/herb/random
+					if(61 to 70)
+						flora_type = /obj/structure/flora/roguegrass/bush/westleach
+					if(71 to 73)
+						flora_type = /obj/structure/flora/roguegrass/bush/jackberry
+					if(73 to 76)
+						flora_type = /obj/structure/flora/roguetree/stump
+					if(77 to 87)
+						flora_type = /obj/item/grown/log/tree/stick
+					if(88 to 91)
+						/obj/structure/flora/roguetree/stump/log
+					if(92 to 96)
+						flora_type = /obj/item/natural/stone
+					if(97 to 99)
+						flora_type = /obj/item/natural/rock
+					if(100)
+						flora_type = /obj/structure/closet/dirthole/closed/loot
+				
+				if(flora_type)
+					new flora_type(current_turf)
+
+// Place water features
+/area/procedural_generation/forest/final_pass()
+	for(var/x = low_x, x <= high_x, x++)
+		for(var/y = low_y, y <= high_y, y++)
+			var/key = "[x]-[y]"
+			var/tile_type = generation_map[key]
+
+			if(tile_type == LAKE)
+				place_lake_tile(x, y)
+			else if(tile_type == RIVER)
+				place_river_tile(x, y, river_flow_map[key] || SOUTH)
+
+/area/procedural_generation/forest/proc/place_lake_tile(x, y)
+	var/turf/current_turf = locate(x, y, src.z)
+	if(!current_turf)
+		return
+
+	// Top turf: open space, surface overlay and sink are managed by update_cell_image
+	var/turf/lake_surface = current_turf.ChangeTurf(/turf/open/transparent/openspace, null, CHANGETURF_IGNORE_AIR)
+
+	// Bottom turf: lakebed
+	var/turf/below = GetBelow(lake_surface)
+	if(below)
+		below.ChangeTurf(/turf/open/floor/rogue/lakebed, null, CHANGETURF_IGNORE_AIR)
+
+/area/procedural_generation/forest/proc/place_river_tile(x, y, flow_dir = SOUTH)
+	var/turf/current_turf = locate(x, y, src.z)
+	if(!current_turf)
+		return
+
+	// Top turf: open space, surface overlay and sink are managed by update_cell_image
+	var/turf/river_surface = current_turf.ChangeTurf(/turf/open/transparent/openspace, null, CHANGETURF_IGNORE_AIR)
+
+	// Bottom turf: riverbot
+	var/turf/below = GetBelow(river_surface)
+	if(below)
+		var/turf/riverbot = below.ChangeTurf(/turf/open/floor/rogue/riverbot, null, CHANGETURF_IGNORE_AIR)
+		riverbot.cell.flow_dir = flow_dir
+
+// Lake Generation - "Droplet Method" (Iterative Expansion)
+/area/procedural_generation/forest/proc/generate_lakes()
+	var/num_lakes = rand(min_lakes, max_lakes)
+
+	for(var/i in 1 to num_lakes)
+		var/center_x = rand(low_x + 10, high_x - 10)
+		var/center_y = rand(low_y + 10, high_y - 10)
+		var/lake_size = rand(min_lake_size, max_lake_size)
+
+		create_lake_at(center_x, center_y, lake_size)
+
+/area/procedural_generation/forest/create_lake_at(center_x, center_y, target_size)
+	var/list/lake_tiles = list()
+	var/start_key = "[center_x]-[center_y]"
+	lake_tiles += start_key
+	generation_map[start_key] = LAKE
+
+	// Iterative expansion from center
+	for(var/i in 1 to target_size)
+		if(!length(lake_tiles))
+			break
+
+		// Pick a random existing lake tile
+		var/origin_key = pick(lake_tiles)
+		var/list/coords = splittext(origin_key, "-")
+		var/origin_x = text2num(coords[1])
+		var/origin_y = text2num(coords[2])
+
+		// Pick a random cardinal neighbor
+		var/dir = pick(GLOB.cardinals)
+		var/nx = origin_x
+		var/ny = origin_y
+
+		switch(dir)
+			if(NORTH)
+				ny++
+			if(SOUTH)
+				ny--
+			if(EAST)
+				nx++
+			if(WEST)
+				nx--
+
+		// Check bounds
+		if(!in_bounds(nx, ny))
+			continue
+
+		var/new_key = "[nx]-[ny]"
+		if(generation_map[new_key] != LAKE) // Don't add twice
+			generation_map[new_key] = LAKE
+			lake_tiles += new_key
+
+	// Optional: Single CA smoothing pass to round edges
+	smooth_lake_edges()
+
+/area/procedural_generation/forest/proc/smooth_lake_edges()
+	var/list/new_map = generation_map.Copy()
+
+	for(var/key in generation_map)
+		if(generation_map[key] != LAKE)
+			continue
+
+		var/list/coords = splittext(key, "-")
+		var/x = text2num(coords[1])
+		var/y = text2num(coords[2])
+
+		// Count lake neighbors
+		var/lake_neighbors = 0
+		for(var/dx in -1 to 1)
+			for(var/dy in -1 to 1)
+				if(dx == 0 && dy == 0)
+					continue
+				var/nx = x + dx
+				var/ny = y + dy
+				if(!in_bounds(nx, ny))
+					continue
+				var/neighbor_key = "[nx]-[ny]"
+				if(generation_map[neighbor_key] == LAKE)
+					lake_neighbors++
+
+		// Apply 4-5 rule to smooth
+		if(lake_neighbors < 4)
+			new_map[key] = FOREST_CLEAR // Remove isolated lake tiles
+
+	generation_map = new_map
+
+// River Generation - "Drunkard's Walk with Inertia"
+/area/procedural_generation/forest/proc/generate_rivers()
+	var/num_rivers = rand(min_rivers, max_rivers)
+
+	for(var/i in 1 to num_rivers)
+		// Start from a random edge
+		var/start_x, start_y, end_x, end_y
+
+		if(prob(50)) // North-South river
+			start_x = rand(low_x, high_x)
+			start_y = high_y
+			end_x = rand(low_x, high_x)
+			end_y = low_y
+		else // East-West river
+			start_x = low_x
+			start_y = rand(low_y, high_y)
+			end_x = high_x
+			end_y = rand(low_y, high_y)
+
+		create_river(start_x, start_y, end_x, end_y)
+
+/area/procedural_generation/forest/proc/create_river(start_x, start_y, end_x, end_y)
+	var/current_x = start_x
+	var/current_y = start_y
+	var/last_direction = get_dir(locate(start_x, start_y, low_z), locate(end_x, end_y, low_z))
+	var/max_steps = (high_x - low_x) + (high_y - low_y) // Safety limit
+
+	for(var/step in 1 to max_steps)
+		// Mark current position as river with flow direction
+		carve_river_tile(current_x, current_y, last_direction)
+
+		// Check if we reached the end
+		if(current_x == end_x && current_y == end_y)
+			break
+
+		// Inertia: 80% keep going, 20% turn
+		var/new_direction
+		if(prob(river_inertia))
+			// Keep going in last direction
+			new_direction = last_direction
+		else
+			// Turn 45 or 90 degrees
+			if(prob(60))
+				new_direction = turn(last_direction, 45)
+			else
+				new_direction = turn(last_direction, -45)
+
+		// If we've gone too far off course, correct toward target
+		var/distance_to_target = abs(end_x - current_x) + abs(end_y - current_y)
+		if(distance_to_target > (max_steps / 4)) // Too far off
+			new_direction = get_dir(locate(current_x, current_y, low_z), locate(end_x, end_y, low_z))
+
+		// Move in the new direction
+		switch(new_direction)
+			if(NORTH)
+				current_y = min(current_y + 1, high_y)
+			if(SOUTH)
+				current_y = max(current_y - 1, low_y)
+			if(EAST)
+				current_x = min(current_x + 1, high_x)
+			if(WEST)
+				current_x = max(current_x - 1, low_x)
+			if(NORTHEAST)
+				current_x = min(current_x + 1, high_x)
+				current_y = min(current_y + 1, high_y)
+			if(NORTHWEST)
+				current_x = max(current_x - 1, low_x)
+				current_y = min(current_y + 1, high_y)
+			if(SOUTHEAST)
+				current_x = min(current_x + 1, high_x)
+				current_y = max(current_y - 1, low_y)
+			if(SOUTHWEST)
+				current_x = max(current_x - 1, low_x)
+				current_y = max(current_y - 1, low_y)
+
+		last_direction = new_direction
+
+/area/procedural_generation/forest/proc/carve_river_tile(center_x, center_y, flow_dir = SOUTH)
+	// Carve the river with width, storing flow direction for each tile
+	for(var/dx in -river_width to river_width)
+		for(var/dy in -river_width to river_width)
+			if(abs(dx) + abs(dy) <= river_width)
+				var/nx = center_x + dx
+				var/ny = center_y + dy
+				if(in_bounds(nx, ny))
+					var/key = "[nx]-[ny]"
+					generation_map[key] = RIVER
+					river_flow_map[key] = flow_dir
+
+#undef FOREST_TREE
+#undef FOREST_CLEAR
+#undef LAKE
+#undef RIVER
 
 #undef DIRT
 #undef WALL

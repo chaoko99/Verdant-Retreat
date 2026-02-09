@@ -181,6 +181,11 @@
 #define AIBLK_SQUAD_HUNT_LOCATION 14381209
 #define AIBLK_MONSTER_BAIT 5128972
 
+// Defines for faction AI director
+#define AIBLK_FACTION_DIRECTOR 9284612 // Reference to the faction_director datum
+#define AIBLK_FACTION_TASK 7392847 // Current faction task assigned to this mob
+#define AIBLK_FACTION_TASK_TIMEOUT 3948291 // Timeout for faction task completion
+
 // Defines for goblin squad roles
 #define GOB_SQUAD_ROLE_RESTRAINER 1
 #define GOB_SQUAD_ROLE_STRIPPER 2

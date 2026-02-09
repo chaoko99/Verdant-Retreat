@@ -61,6 +61,23 @@
 
 	vis_flags = VIS_INHERIT_PLANE|VIS_INHERIT_ID
 
+/obj/effect/liquid
+	var/datum/weakref/owner
+
+/obj/effect/liquid/Initialize(turf/T)
+	. = ..()
+	alpha = 0
+	T.vis_contents |= src
+	owner = WEAKREF(T)
+
+/obj/effect/liquid/Destroy()
+	var/turf/T = owner?.resolve()
+	if(!T)
+		return
+	T.vis_contents -= src
+	owner = null
+	return ..()
+
 /turf/vv_edit_var(var_name, new_value)
 	var/static/list/banned_edits = list("x", "y", "z")
 	if(var_name in banned_edits)
@@ -79,6 +96,8 @@
 
 	// by default, vis_contents is inherited from the turf that was here before
 	vis_contents.Cut()
+	
+	new liquid_overlay(src)
 
 	assemble_baseturfs()
 

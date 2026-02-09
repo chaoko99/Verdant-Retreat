@@ -77,8 +77,11 @@
 							water_overlay.plane = GAME_PLANE
 			var/drained = get_stamina_drain(user, get_dir(src, newloc))
 			if(drained && !user.stamina_add(drained))
-				user.Immobilize(30)
-				addtimer(CALLBACK(user, TYPE_PROC_REF(/mob/living, Knockdown), 30), 1 SECONDS)
+				handle_swim_exhaustion(user)
+
+/turf/open/water/proc/handle_swim_exhaustion(mob/living/user)
+	user.Immobilize(30)
+	addtimer(CALLBACK(user, TYPE_PROC_REF(/mob/living, Knockdown), 30), 1 SECONDS)
 
 /turf/open/water/proc/get_stamina_drain(mob/living/swimmer, travel_dir)
 	var/const/BASE_STAM_DRAIN = 15
@@ -447,18 +450,6 @@
 	. = ..()
 
 	var/turf/new_top = ChangeTurf(/turf/open/transparent/openspace, null, CHANGETURF_IGNORE_AIR)
-	if(!new_top.cell)
-		new_top.cell = new /cell(new_top)
-		new_top.cell.InitLiquids()
-
-	var/datum/liquid/water_fluid = new_top.cell.get_fluid_datum(WATER)
-	if(water_fluid)
-		new_top.cell.fluid_volume[water_fluid] = 100
-
-	new_top.cell.flow_dir = dir
-
-	SSliquid.update_fluidsum(new_top, FALSE)
-	SSliquid.cell_index[new_top] = TRUE
 
 	var/turf/below = GetBelow(new_top)
 	if(below)
@@ -485,6 +476,38 @@
 	barefootstep = FOOTSTEP_WATER
 	clawfootstep = FOOTSTEP_WATER
 	heavyfootstep = FOOTSTEP_WATER
+
+/turf/open/floor/rogue/riverbot/Initialize()
+	. = ..()
+	var/datum/liquid/water_fluid = cell.get_fluid_datum(WATER)
+	if(water_fluid)
+		cell.fluid_volume[water_fluid] = MAX_FLUID_VOLUME
+	cell.make_liquid_source(10)
+	SSliquid.update_fluidsum(src, FALSE)
+	SSliquid.cell_index[src] = TRUE
+	liquid_overlay.layer = ABOVE_MOB_LAYER
+	liquid_overlay.plane = GAME_PLANE_HIGHEST
+
+/turf/open/floor/rogue/lakebed
+	name = "lakebed"
+	desc = "The muddy bottom of a deep lake."
+	icon = 'icons/turf/roguefloor.dmi'
+	icon_state = "lakebed"
+	footstep = FOOTSTEP_WATER
+	barefootstep = FOOTSTEP_WATER
+	clawfootstep = FOOTSTEP_WATER
+	heavyfootstep = FOOTSTEP_WATER
+
+/turf/open/floor/rogue/lakebed/Initialize()
+	. = ..()
+	var/datum/liquid/water_fluid = cell.get_fluid_datum(WATER)
+	if(water_fluid)
+		cell.fluid_volume[water_fluid] = MAX_FLUID_VOLUME
+	cell.make_liquid_source(10)
+	SSliquid.update_fluidsum(src, FALSE)
+	SSliquid.cell_index[src] = TRUE
+	liquid_overlay.layer = ABOVE_MOB_LAYER
+	liquid_overlay.plane = GAME_PLANE_HIGHEST
 
 
 /turf/open/water/river/get_heuristic_slowdown(mob/traverser, travel_dir)
@@ -549,22 +572,9 @@
 
 /turf/open/water/lake/Initialize()
 	. = ..()
-	if(!cell)
-		cell = new /cell(src)
-		cell.InitLiquids()
-
-	var/datum/liquid/water_fluid = cell.get_fluid_datum(WATER)
-	if(water_fluid)
-		cell.fluid_volume[water_fluid] = 100
-
-	SSliquid.update_fluidsum(src, FALSE)
-	SSliquid.cell_index[src] = TRUE
 
 	var/turf/below = GetBelow(src)
-	if(below && istype(below, /turf/open))
-		if(!below.cell)
-			below.cell = new /cell(below)
-			below.cell.InitLiquids()
+	if(below && istype(below, /turf/open/floor))
 		var/datum/liquid/below_water = below.cell.get_fluid_datum(WATER)
 		if(below_water)
 			below.cell.fluid_volume[below_water] = 100
