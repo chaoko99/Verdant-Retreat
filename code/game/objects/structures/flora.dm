@@ -3,6 +3,7 @@
 	max_integrity = 150
 	anchored = TRUE
 	plane = GAME_PLANE_UPPER
+	layer = BELOW_OBJ_LAYER
 
 /obj/structure/flora/Initialize()
 	. = ..()

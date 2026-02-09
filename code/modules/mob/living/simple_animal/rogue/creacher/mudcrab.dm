@@ -41,9 +41,6 @@
 	init_ai_root(/datum/behavior_tree/node/selector/generic_friendly_tree)
 	ai_root.next_move_delay = move_to_delay
 	
-/mob/living/simple_animal/hostile/retaliate/rogue/mudcrab/Life()
-	..()
-
 /mob/living/simple_animal/hostile/retaliate/rogue/mudcrab/get_sound(input)
 	switch(input)
 		if("idle")

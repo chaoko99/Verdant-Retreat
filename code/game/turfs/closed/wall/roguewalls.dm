@@ -52,6 +52,7 @@
 /turf/closed/wall/mineral/rogue/stone/window
 	name = "stone window"
 	desc = "A window with a solid and sturdy stone frame."
+	icon_state="stonewindow"
 	opacity = FALSE
 	max_integrity = 1300
 
@@ -137,6 +138,7 @@
 /turf/closed/wall/mineral/rogue/wood/window
 	name = "wooden window"
 	desc = "A window with a rough-hewn wood frame."
+	icon_state = "woodwindow"
 	opacity = FALSE
 	max_integrity = 550
 
@@ -481,6 +483,7 @@
 
 /turf/closed/wall/mineral/rogue/stone/window/blue_moss
 	icon = 'icons/turf/walls/blue_mossy.dmi'
+	icon_state="stonewindow"
 
 /turf/closed/wall/mineral/rogue/stone/red_moss
     icon = 'icons/turf/walls/red_mossy.dmi'

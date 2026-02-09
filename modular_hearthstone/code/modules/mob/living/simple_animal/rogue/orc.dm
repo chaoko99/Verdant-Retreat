@@ -230,6 +230,6 @@
 	ai_root.next_move_delay = move_to_delay
 	ai_root.next_attack_delay = ORC_ATTACK_SPEED
 
-/mob/living/simple_animal/hostile/retaliate/orc/death(gibbed)
+/mob/living/simple_animal/hostile/retaliate/rogue/orc/death(gibbed)
 	..()
 	update_icon()

@@ -290,39 +290,40 @@ GLOBAL_VAR_INIT(rpg_loot_items, FALSE)
 		if(altgripped)
 			if(gripsprite)
 				icon_state = "[initial(icon_state)]1"
+				if (obj_broken)
+					update_damaged_state()
 				var/datum/component/decal/blood/B = GetComponent(/datum/component/decal/blood)
 				if(B)
 					B.remove()
 					B.generate_appearance()
 					B.apply()
-				if (obj_broken)
-					update_damaged_state()
 			return
 		if(wielded)
 			if(gripsprite)
 				icon_state = "[initial(icon_state)]1"
+			if(toggle_state)
+				icon_state = "[toggle_state]1"
+			if(gripsprite || toggle_state)
+				if (obj_broken)
+					update_damaged_state()
 				var/datum/component/decal/blood/B = GetComponent(/datum/component/decal/blood)
 				if(B)
 					B.remove()
 					B.generate_appearance()
 					B.apply()
-				if (obj_broken)
-					update_damaged_state()
-			if(toggle_state)
-				icon_state = "[toggle_state]1"
 			return
 		if(gripsprite)
 			if(!toggle_state)
 				icon_state = initial(icon_state)
 			else
 				icon_state = "[toggle_state]"
+			if (obj_broken)
+				update_damaged_state()
 			var/datum/component/decal/blood/B = GetComponent(/datum/component/decal/blood)
 			if(B)
 				B.remove()
 				B.generate_appearance()
 				B.apply()
-			if (obj_broken)
-				update_damaged_state()
 
 /obj/item/Initialize()
 	if (attack_verb)
