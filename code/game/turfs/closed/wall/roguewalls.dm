@@ -127,8 +127,8 @@
 	attacked_sound = list('sound/combat/hits/onwood/woodimpact (1).ogg','sound/combat/hits/onwood/woodimpact (2).ogg')
 	canSmoothWith = list(/turf/closed/wall/mineral/rogue/wood, /obj/structure/roguewindow, /obj/structure/roguetent, /turf/closed/wall/mineral/rogue/wooddark)
 //	sheet_type = /obj/item/grown/log/tree/lumber
-	above_floor = /turf/open/floor/rogue/ruinedwood
-	baseturfs = list(/turf/open/floor/rogue/ruinedwood)
+	above_floor = /turf/open/floor/rogue/wood/ruined
+	baseturfs = list(/turf/open/floor/rogue/wood/ruined)
 	neighborlay = "dirtedge"
 	climbdiff = 3
 
@@ -183,8 +183,8 @@
 	break_sound = 'sound/combat/hits/onwood/destroywalldoor.ogg'
 	attacked_sound = list('sound/combat/hits/onwood/woodimpact (1).ogg','sound/combat/hits/onwood/woodimpact (2).ogg')
 //	sheet_type = /obj/item/grown/log/tree/lumber
-	above_floor = /turf/open/floor/rogue/ruinedwood
-	baseturfs = list(/turf/open/floor/rogue/ruinedwood)
+	above_floor = /turf/open/floor/rogue/wood/ruined
+	baseturfs = list(/turf/open/floor/rogue/wood/ruined)
 	neighborlay = "dirtedge"
 	climbdiff = 3
 	burn_power = 20
@@ -232,7 +232,7 @@
 	break_sound = 'sound/combat/hits/onwood/destroywalldoor.ogg'
 	attacked_sound = list('sound/combat/hits/onwood/woodimpact (1).ogg','sound/combat/hits/onwood/woodimpact (2).ogg')
 	above_floor = /turf/open/floor/rogue/rooftop
-	baseturfs = list(/turf/open/floor/rogue/ruinedwood)
+	baseturfs = list(/turf/open/floor/rogue/wood/ruined)
 	neighborlay = "dirtedge"
 	climbdiff = 3
 	burn_power = 20
@@ -288,8 +288,8 @@
 	break_sound = 'sound/combat/hits/onwood/destroywalldoor.ogg'
 	attacked_sound = list('sound/combat/hits/onwood/woodimpact (1).ogg','sound/combat/hits/onwood/woodimpact (2).ogg')
 //	sheet_type = /obj/item/grown/log/tree/lumber
-	above_floor = /turf/open/floor/rogue/ruinedwood
-	baseturfs = list(/turf/open/floor/rogue/ruinedwood)
+	above_floor = /turf/open/floor/rogue/wood/ruined
+	baseturfs = list(/turf/open/floor/rogue/wood/ruined)
 	neighborlay = "dirtedge"
 	climbdiff = 3
 	burn_power = 20
