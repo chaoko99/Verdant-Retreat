@@ -2,6 +2,7 @@
 	desc = ""
 	canSmoothWith = null
 	smooth = SMOOTH_FALSE
+	smooth_diag = TRUE
 	var/smooth_icon = null
 	var/prettifyturf = TRUE
 	icon = 'icons/turf/roguefloor.dmi'
@@ -25,7 +26,9 @@
 	if(neighborlay)
 		roguesmooth(adjacencies)
 
-
+/turf/open/floor/rogue/diagonal_smooth(adjacencies)
+	if(neighborlay)
+		roguesmooth(adjacencies)
 
 /turf/open/floor/rogue/hay
 	icon_state = "hay"
@@ -141,23 +144,15 @@
 	heavyfootstep = FOOTSTEP_GENERIC_HEAVY
 	landsound = 'sound/foley/jumpland/stoneland.wav'
 	smooth = SMOOTH_MORE | SMOOTH_DIAGONAL
-	canSmoothWith = list(/turf/closed/mineral/rogue,
-						/turf/open/floor/rogue/herringbone,
-						/turf/closed/mineral,
-						/turf/closed/wall/mineral/rogue/stonebrick,
-						/turf/closed/wall/mineral/rogue/wood,
-						/turf/closed/wall/mineral/rogue/wooddark,
-						/turf/closed/wall/mineral/rogue/stone,
-						/turf/closed/wall/mineral/rogue/stone/moss,
-						/turf/open/floor/rogue/cobble,
-						/turf/open/floor/rogue/dirt,
-						/turf/open/floor/rogue/grass,
+	canSmoothWith = list(/turf/open/floor/rogue/grass,
 						/turf/open/floor/rogue/grassred,
 						/turf/open/floor/rogue/grassyel,
 						/turf/open/floor/rogue/grasscold,
 						/turf/open/floor/rogue/snowpatchy,
 						/turf/open/floor/rogue/snow,
-						/turf/open/floor/rogue/snowrough,)
+						/turf/open/floor/rogue/snowrough,
+						/turf/open/floor/rogue/AzureSand, 
+						/turf/open/floor/rogue/stone)
 	neighborlay = "stone-brick-trim"
 
 /turf/open/floor/rogue/stone/pavestones
@@ -193,8 +188,9 @@
 	name = "tiny pavestones"
 	desc = "These tiny bricks are preferred in locations where water ingress is a concern."
 	icon_state = "stone-small"
-	neighborlay = "trim-tester"//neighborlay = "stone-small-trim"
-	canSmoothWith = null
+	//neighborlay = "trim-tester"
+	neighborlay = "stone-small-trim"
+
 
 /turf/open/floor/rogue/stone/spiral
 	name = "swirling stone tiles"
@@ -385,7 +381,7 @@
 	desc = "Grass, sodden with mud and bogwater."
 
 	icon_state = "grass-green"
-	layer = MID_TURF_LAYER
+	layer = MID_TURF_LAYER_2
 	footstep = FOOTSTEP_GRASS
 	barefootstep = FOOTSTEP_SOFT_BAREFOOT
 	heavyfootstep = FOOTSTEP_GENERIC_HEAVY
@@ -399,7 +395,7 @@
 						/turf/open/floor/rogue/snowpatchy,
 						/turf/open/floor/rogue/snow,
 						/turf/open/floor/rogue/snowrough,)
-	neighborlay = "trim-tester"//neighborlay = "grass-green-trim"
+	neighborlay = "grass-green-trim"
 
 	spread_chance = 15
 	burn_power = 6
@@ -441,7 +437,7 @@
 	tiled_dirt = FALSE
 	landsound = 'sound/foley/jumpland/dirtland.wav'
 	slowdown = 2
-	smooth = SMOOTH_TRUE
+	smooth = SMOOTH_MORE
 	canSmoothWith = list(/turf/open/floor/rogue/grass,
 						/turf/open/floor/rogue/grassred,
 						/turf/open/floor/rogue/grassyel,
@@ -449,7 +445,8 @@
 						/turf/open/floor/rogue/snowpatchy,
 						/turf/open/floor/rogue/snow,
 						/turf/open/floor/rogue/snowrough,
-						/turf/open/floor/rogue/AzureSand)
+						/turf/open/floor/rogue/AzureSand, 
+						/turf/open/floor/rogue/stone)
 	neighborlay = "dirtedge"
 	var/muddy = FALSE
 	var/bloodiness = 20
@@ -574,7 +571,7 @@
 	heavyfootstep = FOOTSTEP_GENERIC_HEAVY
 	tiled_dirt = FALSE
 	landsound = 'sound/foley/jumpland/dirtland.wav'
-	smooth = SMOOTH_TRUE
+	smooth = SMOOTH_TRUE 
 	canSmoothWith = list(/turf/open/floor/rogue/dirt,
 						/turf/open/floor/rogue/grass,
 						/turf/open/floor/rogue/grassred,
@@ -623,6 +620,23 @@
 	slowdown = 0
 
 /turf/proc/roguesmooth(adjacencies)
+	adjacencies = null
+
+	var/turf/neighbortest //completely discard the existing adjacencies, they were calculated incorrectly. 
+	for (var/testing_dir in list(NORTH, SOUTH, EAST, WEST, NORTHEAST, NORTHWEST, SOUTHEAST, SOUTHWEST))
+		neighbortest = get_step(src, testing_dir)
+		if(neighbortest ==null)
+			continue
+		if(istype(neighbortest, /turf/open/transparent/openspace))
+			continue
+		if(neighbortest.layer >= src.layer)
+			continue
+		if(neighbortest.type == src)//TODO: make this take a typecache..
+			continue
+		if(iswallturf(neighbortest))
+			continue
+		adjacencies |= dir2neighbor(testing_dir)
+
 	var/list/New
 	var/holder
 
@@ -678,6 +692,58 @@
 				holder = "[T.neighborlay]-e"
 				LAZYADD(New, holder)
 				neighborlay_list += holder
+
+	if(smooth & SMOOTH_DIAGONAL)
+		if(adjacencies & N_NORTHEAST)
+			usedturf = get_step(src, NORTHEAST)
+			if(isturf(usedturf))
+				var/turf/T = usedturf
+				if(neighborlay_override)
+					holder = "[neighborlay_override]-ne"
+					LAZYADD(New, holder)
+					neighborlay_list += holder
+				else if(T.neighborlay)
+					holder = "[T.neighborlay]-ne"
+					LAZYADD(New, holder)
+					neighborlay_list += holder
+		if(adjacencies & N_NORTHWEST)
+			usedturf = get_step(src, NORTHWEST)
+			if(isturf(usedturf))
+				var/turf/T = usedturf
+				if(neighborlay_override)
+					holder = "[neighborlay_override]-nw"
+					LAZYADD(New, holder)
+					neighborlay_list += holder
+				else if(T.neighborlay)
+					holder = "[T.neighborlay]-nw"
+					LAZYADD(New, holder)
+					neighborlay_list += holder
+		if(adjacencies & N_SOUTHEAST)
+			usedturf = get_step(src, SOUTHEAST)
+			if(isturf(usedturf))
+				var/turf/T = usedturf
+				if(neighborlay_override)
+					holder = "[neighborlay_override]-se"
+					LAZYADD(New, holder)
+					neighborlay_list += holder
+				else if(T.neighborlay)
+					holder = "[T.neighborlay]-se"
+					LAZYADD(New, holder)
+					neighborlay_list += holder
+		if(adjacencies & N_SOUTHWEST)
+			usedturf = get_step(src, SOUTHWEST)
+			if(isturf(usedturf))
+				var/turf/T = usedturf
+				if(neighborlay_override)
+					holder = "[neighborlay_override]-sw"
+					LAZYADD(New, holder)
+					neighborlay_list += holder
+				else if(T.neighborlay)
+					holder = "[T.neighborlay]-sw"
+					LAZYADD(New, holder)
+					neighborlay_list += holder
+
+ 
 
 	if(New)
 		add_overlay(New)
