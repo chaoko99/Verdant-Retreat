@@ -19,9 +19,10 @@
 	component_type = /datum/component/storage/concrete/roguetown/keyring
 	//flipping keyring has a cooldown on to_chat to reduce chatspam
 	COOLDOWN_DECLARE(flip_cooldown)
-
+	COOLDOWN_DECLARE(insert_sound)
 /obj/item/storage/keyring/Initialize()
 	. = ..()
+	COOLDOWN_START(src, insert_sound, 5 SECONDS)	
 	for(var/X in keys)
 		var/obj/item/key/new_key = new X(loc)
 		if(!SEND_SIGNAL(src, COMSIG_TRY_STORAGE_INSERT, new_key, null, TRUE, TRUE))
@@ -61,9 +62,10 @@
 		desc = ""
 
 /obj/item/storage/keyring/Entered(atom/movable/arrived, atom/old_loc, list/atom/old_locs)
-    . = ..()
-    playsound(src, "sound/items/gems (1).ogg", 100, FALSE)
-    update_desc()
+	. = ..()
+	if(COOLDOWN_FINISHED(src, insert_sound)) // Prevents this shit from deafening you on init.
+		playsound(src, "sound/items/gems (1).ogg", 100, FALSE)
+	update_desc()
 
 /obj/item/storage/keyring/Exited(atom/movable/gone, direction)
     . = ..()

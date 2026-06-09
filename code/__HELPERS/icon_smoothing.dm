@@ -397,3 +397,25 @@
 	icon_state = "smooth"
 	smooth = SMOOTH_TRUE|SMOOTH_DIAGONAL|SMOOTH_BORDER
 	canSmoothWith = null
+
+/proc/dir2neighbor(dir)
+	switch(dir)
+		if(NORTH) return N_NORTH
+		if(SOUTH) return N_SOUTH
+		if(EAST) return N_EAST
+		if(WEST) return N_WEST
+		if(NORTHEAST) return N_NORTHEAST
+		if(NORTHWEST) return N_NORTHWEST
+		if(SOUTHEAST) return N_SOUTHEAST
+		if(SOUTHWEST) return N_SOUTHWEST
+
+/proc/dir2abbr(dir)
+	switch(dir)
+		if(NORTH) return "n"
+		if(SOUTH) return "s"
+		if(EAST) return "e"
+		if(WEST) return "w"
+		if(NORTHEAST) return "ne"
+		if(NORTHWEST) return "nw"
+		if(SOUTHEAST) return "se"
+		if(SOUTHWEST) return "sw"

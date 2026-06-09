@@ -762,6 +762,10 @@
 	max_integrity = 500
 	blade_dulling = DULLING_BASHCHOP
 	icon = 'icons/roguetown/misc/structure.dmi'
+obj/structure/fluff/customsign/Initialize()
+	. = ..()
+	if(wrotesign)
+		icon_state = "signwrote"
 
 /obj/structure/fluff/customsign/examine(mob/user)
 	. = ..()
