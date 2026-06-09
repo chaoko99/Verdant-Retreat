@@ -272,6 +272,7 @@
 	dir = 8
 
 /obj/structure/table/wood/large_table/middle
+	icon_state = "largetable_mid"
 	dir = 4
 
 /obj/structure/table/wood/large_table/north
