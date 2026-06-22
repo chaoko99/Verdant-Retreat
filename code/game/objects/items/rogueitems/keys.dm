@@ -32,13 +32,14 @@
 			GLOB.lockhashes += lockhash
 			GLOB.lockids[lockid] = lockhash
 
-//Behold, supreme laziness. Sets a door lock if a key spawns inside it. 
+//Behold, supreme laziness. Sets a door lock if a key spawns atop it. 
 /obj/item/roguekey/LateInitialize()
 	. = ..()
 	var/obj/structure/mineral_door/door = locate(/obj/structure/mineral_door) in get_turf(src)
 	if(door && lockid)
 		if(!door.lockid)
 			door.lockid = lockid
+			door.lockhash = lockhash
 			door.locked = TRUE
 		qdel(src)
 

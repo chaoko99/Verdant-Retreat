@@ -750,28 +750,38 @@
 	icon_state = "happymush1"
 	icon = 'icons/roguetown/misc/foliagetall.dmi'
 	desc = "Mushrooms might be the happiest beings in this god forsaken place."
+	light_outer_range = 6
+	light_power = 2
+	light_color = "#d36e3f"
 
+/obj/structure/flora/rogueshroom/happy/Initialize()
+	. = ..()
+	icon_state = initial(icon_state) //I hate roguetown so much.
 /obj/structure/flora/rogueshroom/happy/mushroom2
 	icon_state = "happymush2"
+	light_color = "#3e22af"
+
+
 
 /obj/structure/flora/rogueshroom/happy/mushroom3
 	icon_state = "happymush3"
-
+	light_color = "#aaca3f"
 /obj/structure/flora/rogueshroom/happy/mushroom4
 	icon_state = "happymush4"
-
+	light_color = "#5D3FD3"
 /obj/structure/flora/rogueshroom/happy/mushroom5
 	icon_state = "happymush5"
+	light_color = "#9d3fd3"
 
 /obj/structure/flora/rogueshroom/happy/random
 
 /obj/structure/flora/rogueshroom/happy/random/Initialize()
 	. = ..()
-	icon_state = "happymush[rand(1,5)]"
+	var/shroomspawn = pick(/obj/structure/flora/rogueshroom/happy, /obj/structure/flora/rogueshroom/happy/mushroom2,/obj/structure/flora/rogueshroom/happy/mushroom3,\
+	/obj/structure/flora/rogueshroom/happy/mushroom4,/obj/structure/flora/rogueshroom/happy/mushroom5)
+	new shroomspawn(loc)
+	qdel(src)
 
-/obj/structure/flora/rogueshroom/happy/New(loc)
-	..()
-	set_light(3, 3, 3, l_color ="#5D3FD3")
 
 /obj/structure/flora/mushroomcluster
 	name = "mushroom cluster"

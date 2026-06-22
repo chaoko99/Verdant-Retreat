@@ -128,7 +128,7 @@
 
 //Voice ranges
 #define MIN_VOICE_PITCH		0.8
-#define MAX_VOICE_PITCH		1.35
+#define MAX_VOICE_PITCH		1.15
 
 // Pronouns (LETHALSTONE)
 #define HE_HIM			"he/him"

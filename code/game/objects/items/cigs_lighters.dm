@@ -394,8 +394,8 @@ CIGARETTE PACKETS ARE IN FANCY.DM
 
 /obj/item/cigbutt/roach/Initialize()
 	. = ..()
-	pixel_x = rand(-5, 5)
-	pixel_y = rand(-5, 5)
+	pixel_x = rand(-15, 15)
+	pixel_y = rand(-15, 15)
 
 
 ////////////
