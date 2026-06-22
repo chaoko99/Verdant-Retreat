@@ -209,6 +209,7 @@
 	clawfootstep = FOOTSTEP_WOOD_CLAW
 	heavyfootstep = FOOTSTEP_GENERIC_HEAVY
 	tiled_dirt = FALSE
+	prettifyturf = FALSE
 
 /turf/open/floor/rogue/rooftop/Initialize()
 	. = ..()

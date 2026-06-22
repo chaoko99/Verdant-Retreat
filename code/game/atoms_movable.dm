@@ -306,7 +306,7 @@
 
 ////////////////////////////////////////
 
-/atom/movable/Move(atom/newloc, direct, glide_size_override = 0)
+/atom/movable/Move(atom/newloc, direction, glide_size_override = 0, update_dir = TRUE)
 	var/atom/movable/pullee = pulling
 	var/turf/T = loc
 	if(!moving_from_pull)
@@ -314,35 +314,134 @@
 	if(!loc || !newloc)
 		return FALSE
 	var/atom/oldloc = loc
-	var/direction_to_move = direct
+	var/direction_to_move = direction
 
 	//Early override for some cases like diagonal movement
-	if(glide_size_override)
+	if(glide_size_override && glide_size != glide_size_override)
 		testing("GSO 1 [glide_size_override]")
 		set_glide_size(glide_size_override)
 	
 	if(loc != newloc)
-		if (!(direct & (direct - 1))) //Cardinal move
-			lastcardinal = direct
+		if (!(direction & (direction - 1))) //Cardinal move
+			lastcardinal = direction
 			. = ..()
 		else //Diagonal move, split it into cardinal moves
-			if(allow_diagonal_movement)
-				. = ..() //right here
-			else if(lastcardinal & direct)
-				direction_to_move = direct ^ lastcardinal
-				. = step(src, direction_to_move) 
-				if(!.)
-					direction_to_move ^= direct
-					. = step(src, direction_to_move)
+			if(HAS_TRAIT(src, TRAIT_BLOCKED_DIAGONAL))
+				if (direction & NORTH)
+					if (direction & EAST)
+						if(lastcardinal == NORTH)
+							direction_to_move = EAST
+							if(!step(src, EAST))
+								direction_to_move = NORTH
+								. = step(src, NORTH)
+						else if(lastcardinal == EAST)
+							direction_to_move = NORTH
+							if(!step(src, NORTH))
+								direction_to_move = EAST
+								. = step(src, EAST)
+						else
+							direction_to_move = pick(NORTH, EAST)
+							. = step(src, direction_to_move)
+					else if (direction & WEST)
+						if(lastcardinal == NORTH)
+							direction_to_move = WEST
+							if(!step(src, WEST))
+								direction_to_move = NORTH
+								. = step(src, NORTH)
+						else if(lastcardinal == WEST)
+							direction_to_move = NORTH
+							if(!step(src, NORTH))
+								direction_to_move = WEST
+								. = step(src, WEST)
+						else
+							direction_to_move = pick(NORTH, WEST)
+							. = step(src, direction_to_move)
+				else if (direction & SOUTH)
+					if (direction & EAST)
+						if(lastcardinal == SOUTH)
+							direction_to_move = EAST
+							if(!step(src, EAST))
+								direction_to_move = SOUTH
+								. = step(src, SOUTH)
+						else if(lastcardinal == EAST)
+							direction_to_move = SOUTH
+							if(!step(src, SOUTH))
+								direction_to_move = EAST
+								. = step(src, EAST)
+						else
+							direction_to_move = pick(SOUTH, EAST)
+							. = step(src, direction_to_move)
+					else if (direction & WEST)
+						if(lastcardinal == SOUTH)
+							direction_to_move = WEST
+							if(!step(src, WEST))
+								direction_to_move = SOUTH
+								. = step(src, SOUTH)
+						else if(lastcardinal == WEST)
+							direction_to_move = SOUTH
+							if(!step(src, SOUTH))
+								direction_to_move = WEST
+								. = step(src, WEST)
+						else
+							direction_to_move = pick(SOUTH, WEST)
+							. = step(src, direction_to_move)
 			else
-				direction_to_move = direct & pick( (NORTH | SOUTH), (EAST | WEST) )
-				. = step(src, direction_to_move)
+				moving_diagonally = FIRST_DIAG_STEP
+				var/first_step_dir
+				// The `&& moving_diagonally` checks are so that a forceMove taking
+				// place due to a Crossed, Bumped, etc. call will interrupt
+				// the second half of the diagonal movement, or the second attempt
+				// at a first half if step() fails because we hit something.
+				if (direction & NORTH)
+					if (direction & EAST)
+						if (step(src, NORTH) && moving_diagonally)
+							first_step_dir = NORTH
+							moving_diagonally = SECOND_DIAG_STEP
+							. = step(src, EAST)
+						else if (moving_diagonally && step(src, EAST))
+							first_step_dir = EAST
+							moving_diagonally = SECOND_DIAG_STEP
+							. = step(src, NORTH)
+					else if (direction & WEST)
+						if (step(src, NORTH) && moving_diagonally)
+							first_step_dir = NORTH
+							moving_diagonally = SECOND_DIAG_STEP
+							. = step(src, WEST)
+						else if (moving_diagonally && step(src, WEST))
+							first_step_dir = WEST
+							moving_diagonally = SECOND_DIAG_STEP
+							. = step(src, NORTH)
+				else if (direction & SOUTH)
+					if (direction & EAST)
+						if (step(src, SOUTH) && moving_diagonally)
+							first_step_dir = SOUTH
+							moving_diagonally = SECOND_DIAG_STEP
+							. = step(src, EAST)
+						else if (moving_diagonally && step(src, EAST))
+							first_step_dir = EAST
+							moving_diagonally = SECOND_DIAG_STEP
+							. = step(src, SOUTH)
+					else if (direction & WEST)
+						if (step(src, SOUTH) && moving_diagonally)
+							first_step_dir = SOUTH
+							moving_diagonally = SECOND_DIAG_STEP
+							. = step(src, WEST)
+						else if (moving_diagonally && step(src, WEST))
+							first_step_dir = WEST
+							moving_diagonally = SECOND_DIAG_STEP
+							. = step(src, SOUTH)
+				if(moving_diagonally == SECOND_DIAG_STEP)
+					if(!. && update_dir)
+						setDir(first_step_dir)
+				moving_diagonally = 0
+				return
+
 	if(!loc || (loc == oldloc && oldloc != newloc))
 		last_move = 0
 		return
 	
 	if(.)
-		Moved(oldloc, direct)
+		Moved(oldloc, direction)
 	if(. && pulling && pulling == pullee && pulling != moving_from_pull) //we were pulling a thing and didn't lose it during our move.
 		if(pulling.anchored)
 			stop_pulling()
@@ -361,10 +460,10 @@
 		testing("GSO 2 [glide_size_override]")
 		set_glide_size(glide_size_override)
 
-	last_move = direct
+	last_move = direction
 	if(!nodirchange && !throwing)
 		setDir(direction_to_move)
-	if(. && has_buckled_mobs() && !handle_buckled_mob_movement(loc,direct, glide_size_override)) //movement failed due to buckled mob(s)
+	if(. && has_buckled_mobs() && !handle_buckled_mob_movement(loc,direction, glide_size_override)) //movement failed due to buckled mob(s)
 		return FALSE
 
 //Called after a successful Move(). By this point, we've already moved

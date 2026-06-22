@@ -1016,6 +1016,9 @@ GLOBAL_LIST_INIT(roguetown_areas_typecache, typecacheof(/area/rogue/indoors/town
 	droning_sound_night = null
 	converted_type = /area/rogue/outdoors/exposed/tavern
 	tavern_area = TRUE
+	soundenv = 4 //livingroom
+/area/rogue/indoors/town/tavern/hall
+	soundenv = 12 //hallway
 /area/rogue/outdoors/exposed/tavern
 	icon_state = "tavern"
 	droning_sound = 'sound/silence.ogg'
@@ -1107,7 +1110,7 @@ GLOBAL_LIST_INIT(roguetown_areas_typecache, typecacheof(/area/rogue/indoors/town
 	droning_sound = 'sound/music/area/dwarf.ogg'
 	droning_sound_dusk = null
 	droning_sound_night = null
-	first_time_text = "The Dwarven Quarter"
+	first_time_text = "Merchant's Row"
 	converted_type = /area/rogue/outdoors/exposed/dwarf
 /area/rogue/outdoors/exposed/dwarf
 	icon_state = "dwarf"
@@ -1120,12 +1123,12 @@ GLOBAL_LIST_INIT(roguetown_areas_typecache, typecacheof(/area/rogue/indoors/town
 /area/rogue/outdoors/town
 	name = "outdoors"
 	icon_state = "town"
-	soundenv = 16
+	soundenv = 16 //city
 	droning_sound = 'sound/music/area/townstreets.ogg'
 	droning_sound_dusk = 'sound/music/area/septimus.ogg'
 	droning_sound_night = 'sound/music/area/sleeping.ogg'
 	converted_type = /area/rogue/indoors/shelter/town
-	first_time_text = "THE CITY OF SCARLET REACH"
+	first_time_text = "THE END OF THE WORLD"
 	town_area = TRUE
 
 /area/rogue/indoors/shelter/town
