@@ -432,7 +432,7 @@
 	desc = "The dirt is pocked with the scars of countless wars."
 	icon_state = "dirt"
 	layer = MID_TURF_LAYER
-	footstep = FOOTSTEP_GRASS
+	footstep = FOOTSTEP_MUD
 	barefootstep = FOOTSTEP_SOFT_BAREFOOT
 	heavyfootstep = FOOTSTEP_GENERIC_HEAVY
 	tiled_dirt = FALSE
@@ -1249,8 +1249,8 @@
 	name = "bath tiles"
 	desc = "A special waterproof flooring suited for baths and pools. Slippery when wet."
 	icon_state = "bathtile"
-
-
+/turf/open/floor/rogue/tile/chess
+	icon_state = "stone-checker"
 /turf/open/floor/rogue/tile/brick
 	icon_state = "bricktile"
 

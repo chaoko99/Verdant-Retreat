@@ -31,7 +31,7 @@
 				lockhash = rand(100,999)
 			GLOB.lockhashes += lockhash
 			GLOB.lockids[lockid] = lockhash
-
+	return INITIALIZE_HINT_LATELOAD
 //Behold, supreme laziness. Sets a door lock if a key spawns atop it. 
 /obj/item/roguekey/LateInitialize()
 	. = ..()

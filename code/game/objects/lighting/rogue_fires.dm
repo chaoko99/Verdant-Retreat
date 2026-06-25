@@ -521,6 +521,8 @@
 				attachment.reagents.expose_temperature(400, 0.033)
 				if(attachment.reagents.chem_temp > MIN_STEW_TEMPERATURE)
 					boilloop.start()
+					if(prob(25)) // This will cause it to deplete, steadily, if you leave it on like a moron.
+						reagents.remove_any(1)
 				else
 					boilloop.stop()
 	update_icon()

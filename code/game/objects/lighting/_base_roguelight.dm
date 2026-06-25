@@ -17,7 +17,8 @@
 /obj/machinery/light/rogue/Initialize()
 	if(soundloop)
 		soundloop = new soundloop(src, FALSE)
-		soundloop.start()
+		if(on)
+			soundloop.start()
 	GLOB.fires_list += src
 	if(fueluse > 0)
 		fueluse = fueluse - (rand(fueluse*0.1,fueluse*0.3))
