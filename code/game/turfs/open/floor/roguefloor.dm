@@ -382,7 +382,7 @@
 	desc = "Grass, sodden with mud and bogwater."
 
 	icon_state = "grass-green"
-	layer = MID_TURF_LAYER_2
+	layer = MID_TURF_LAYER_3
 	footstep = FOOTSTEP_GRASS
 	barefootstep = FOOTSTEP_SOFT_BAREFOOT
 	heavyfootstep = FOOTSTEP_GENERIC_HEAVY
@@ -1213,7 +1213,7 @@
 	icon_state = "chess"
 	desc = "Feet march across a grid of plots and schemes."
 	landsound = 'sound/foley/jumpland/tileland.wav'
-	footstep = FOOTSTEP_FLOOR
+	footstep = FOOTSTEP_TILE
 	barefootstep = FOOTSTEP_HARD_BAREFOOT
 	clawfootstep = FOOTSTEP_HARD_CLAW
 	heavyfootstep = FOOTSTEP_GENERIC_HEAVY

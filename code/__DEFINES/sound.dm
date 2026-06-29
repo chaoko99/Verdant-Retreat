@@ -27,6 +27,33 @@
 #define STEREO_PANNING_STRENGTH 0.3 // Reduces extreme left-right panning (0 = mono, 1 = full stereo)
 #define ZSOUND_DRYLOSS_PER_Z -2000 // Affects what happens to the dry channel as the sound travels through z-levels
 
+//Defines for environment presets.
+#define ENV_GENERIC 0
+#define ENV_PADDED_CELL 1
+#define ENV_ROOM 2
+#define ENV_BATHROOM 3
+#define ENV_LIVINGROOM 4
+#define ENV_STONEROOM 5
+#define ENV_AUDITORIUM 6
+#define ENV_CONCERT_HALL 7
+#define ENV_CAVE 8
+#define ENV_ARENA 9
+#define ENV_HANGAR 10
+#define ENV_CARPETED_HALLWAY 11
+#define ENV_HALLWAY 12
+#define ENV_STONE_CORRIDOR 13
+#define ENV_ALLEY 14
+#define ENV_FOREST 15
+#define ENV_CITY 16
+#define ENV_MOUNTAINS 17
+#define ENV_PLAIN 19
+#define ENV_PARKING_LOT 20
+#define ENV_SEWER_PIPE 21
+#define ENV_UNDERWATER 22
+#define ENV_DRUGGED 23
+#define ENV_DIZZY 24
+#define ENV_PSYCHOTIC 25
+
 // Defines for echo list index positions.
 // ECHO_DIRECT and ECHO_ROOM are the only two that actually appear to do anything, and represent the dry and wet channels of the environment effects, respectively.
 // The rest of the defines are there primarily for the sake of completeness. It might be worth testing on EAX-enabled hardware, and on future BYOND versions
