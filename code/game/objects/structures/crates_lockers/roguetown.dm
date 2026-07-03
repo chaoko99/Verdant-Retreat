@@ -100,7 +100,7 @@
 			skeleton = 0
 
 		if(20)
-			for(1 to 20) //https://www.youtube.com/watch?v=xMcb1Bmbv_8
+			for(var/i in 1 to 20) //https://www.youtube.com/watch?v=xMcb1Bmbv_8
 				new /mob/living/carbon/human/species/skeleton/npc/ambush(src)
 			skeleton = 0
 	..()
