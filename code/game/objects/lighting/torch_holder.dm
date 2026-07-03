@@ -158,6 +158,7 @@
 	name = "lantern post"
 	desc = "A small lamptern dangles from a wooden post. The metal frame around the inner flame casts shadows on its surroundings."
 	icon = 'icons/roguetown/misc/tallstructure.dmi'
+	overlayicon = 'icons/roguetown/misc/tallstructure_overlay.dmi'
 	icon_state = "streetlantern1"
 	base_state = "streetlantern"
 	torch_off_state = "streetlantern0"

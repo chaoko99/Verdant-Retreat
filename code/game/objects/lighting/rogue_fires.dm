@@ -241,7 +241,6 @@
 
 /obj/machinery/light/rogue/wallfire/candle/floorcandle
 	name = "candles"
-	icon = 'icons/roguetown/items/lighting.dmi'
 	icon_state = "floorcandle1"
 	base_state = "floorcandle"
 	pixel_y = 0
