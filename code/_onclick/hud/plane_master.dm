@@ -100,11 +100,18 @@
 	mouse_opacity = MOUSE_OPACITY_TRANSPARENT
 	render_target = "lighting"
 
+
 /atom/movable/screen/plane_master/lighting/Initialize()
 	. = ..()
 	filters += filter(type="alpha", render_source = EMISSIVE_RENDER_TARGET, flags = MASK_INVERSE)
 	filters += filter(type="alpha", render_source = EMISSIVE_UNBLOCKABLE_RENDER_TARGET, flags = MASK_INVERSE)
 	filters += filter(type="alpha", render_source = O_LIGHTING_VISUAL_RENDER_TARGET, flags = MASK_INVERSE)
+
+/atom/movable/screen/plane_master/emissive
+	name = "emissive plane master"
+	render_target = EMISSIVE_RENDER_TARGET
+	plane = EMISSIVE_PLANE
+
 
 /atom/movable/screen/plane_master/parallax
 	name = "parallax plane master"

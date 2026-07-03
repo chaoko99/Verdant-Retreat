@@ -29,7 +29,7 @@
 	dir = pick(GLOB.cardinals)
 
 /turf/open/lava/cardinal_smooth(adjacencies)
-	roguesmooth(adjacencies)
+	roguesmooth(adjacencies, TRUE)
 
 /turf/open/lava/can_traverse_safely(atom/movable/traveler)
 	return FALSE

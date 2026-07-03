@@ -382,7 +382,7 @@
 	desc = "Grass, sodden with mud and bogwater."
 
 	icon_state = "grass-green"
-	layer = MID_TURF_LAYER_2
+	layer = MID_TURF_LAYER_3
 	footstep = FOOTSTEP_GRASS
 	barefootstep = FOOTSTEP_SOFT_BAREFOOT
 	heavyfootstep = FOOTSTEP_GENERIC_HEAVY
@@ -432,7 +432,7 @@
 	desc = "The dirt is pocked with the scars of countless wars."
 	icon_state = "dirt"
 	layer = MID_TURF_LAYER
-	footstep = FOOTSTEP_GRASS
+	footstep = FOOTSTEP_MUD
 	barefootstep = FOOTSTEP_SOFT_BAREFOOT
 	heavyfootstep = FOOTSTEP_GENERIC_HEAVY
 	tiled_dirt = FALSE
@@ -620,23 +620,23 @@
 	landsound = 'sound/foley/jumpland/dirtland.wav'
 	slowdown = 0
 
-/turf/proc/roguesmooth(adjacencies)
-	adjacencies = null
-
-	var/turf/neighbortest //completely discard the existing adjacencies, they were calculated incorrectly. 
-	for (var/testing_dir in list(NORTH, SOUTH, EAST, WEST, NORTHEAST, NORTHWEST, SOUTHEAST, SOUTHWEST))
-		neighbortest = get_step(src, testing_dir)
-		if(neighbortest ==null)
-			continue
-		if(istype(neighbortest, /turf/open/transparent/openspace))
-			continue
-		if(neighbortest.layer >= src.layer)
-			continue
-		if(neighbortest.type == src)//TODO: make this take a typecache..
-			continue
-		if(iswallturf(neighbortest))
-			continue
-		adjacencies |= dir2neighbor(testing_dir)
+/turf/proc/roguesmooth(adjacencies, use_old_behavior)
+	if(!use_old_behavior)
+		adjacencies = null
+		var/turf/neighbortest //completely discard the existing adjacencies, they were calculated incorrectly. 
+		for (var/testing_dir in list(NORTH, SOUTH, EAST, WEST, NORTHEAST, NORTHWEST, SOUTHEAST, SOUTHWEST))
+			neighbortest = get_step(src, testing_dir)
+			if(neighbortest ==null)
+				continue
+			if(istype(neighbortest, /turf/open/transparent/openspace))
+				continue
+			if(neighbortest.layer >= src.layer)
+				continue
+			if(neighbortest.type == src)//TODO: make this take a typecache..
+				continue
+			if(iswallturf(neighbortest))
+				continue
+			adjacencies |= dir2neighbor(testing_dir)
 
 	var/list/New
 	var/holder
@@ -917,7 +917,7 @@
 	icon_state = "church_marble"
 	name = "marble flooring"
 	desc = "Polished marble tiling clacks softly with every footstep. A prized material for vaunted halls."
-	footstep = FOOTSTEP_STONE
+	footstep = FOOTSTEP_TILE
 	barefootstep = FOOTSTEP_HARD_BAREFOOT
 	clawfootstep = FOOTSTEP_HARD_CLAW
 	heavyfootstep = FOOTSTEP_GENERIC_HEAVY
@@ -946,7 +946,7 @@
 	icon_state = "church"
 	name = "polished tile floor"
 	desc = "Glazed tiling that has withstood the decades with barely a scratch despite the steady accumulation of dirt and grime."
-	footstep = FOOTSTEP_STONE
+	footstep = FOOTSTEP_TILE
 	barefootstep = FOOTSTEP_HARD_BAREFOOT
 	clawfootstep = FOOTSTEP_HARD_CLAW
 	heavyfootstep = FOOTSTEP_GENERIC_HEAVY
@@ -973,7 +973,7 @@
 
 /turf/open/floor/rogue/churchbrick
 	icon_state = "church_brick"
-	footstep = FOOTSTEP_STONE
+	footstep = FOOTSTEP_TILE
 	barefootstep = FOOTSTEP_HARD_BAREFOOT
 	clawfootstep = FOOTSTEP_HARD_CLAW
 	heavyfootstep = FOOTSTEP_GENERIC_HEAVY
@@ -1213,7 +1213,7 @@
 	icon_state = "chess"
 	desc = "Feet march across a grid of plots and schemes."
 	landsound = 'sound/foley/jumpland/tileland.wav'
-	footstep = FOOTSTEP_FLOOR
+	footstep = FOOTSTEP_TILE
 	barefootstep = FOOTSTEP_HARD_BAREFOOT
 	clawfootstep = FOOTSTEP_HARD_CLAW
 	heavyfootstep = FOOTSTEP_GENERIC_HEAVY
@@ -1249,8 +1249,8 @@
 	name = "bath tiles"
 	desc = "A special waterproof flooring suited for baths and pools. Slippery when wet."
 	icon_state = "bathtile"
-
-
+/turf/open/floor/rogue/tile/chess
+	icon_state = "stone-checker"
 /turf/open/floor/rogue/tile/brick
 	icon_state = "bricktile"
 

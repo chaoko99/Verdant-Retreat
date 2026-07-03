@@ -241,7 +241,6 @@
 
 /obj/machinery/light/rogue/wallfire/candle/floorcandle
 	name = "candles"
-	icon = 'icons/roguetown/items/lighting.dmi'
 	icon_state = "floorcandle1"
 	base_state = "floorcandle"
 	pixel_y = 0
@@ -521,6 +520,8 @@
 				attachment.reagents.expose_temperature(400, 0.033)
 				if(attachment.reagents.chem_temp > MIN_STEW_TEMPERATURE)
 					boilloop.start()
+					if(prob(25)) // This will cause it to deplete, steadily, if you leave it on like a moron.
+						attachment.reagents.remove_any(1)
 				else
 					boilloop.stop()
 	update_icon()

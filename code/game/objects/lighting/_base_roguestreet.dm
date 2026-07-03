@@ -1,5 +1,6 @@
 /obj/machinery/light/roguestreet
 	icon = 'icons/roguetown/misc/tallstructure.dmi'
+	overlayicon = 'icons/roguetown/misc/tallstructure_overlay.dmi'
 	icon_state = "slamp1"
 	base_state = "slamp"
 	brightness = 10
@@ -12,6 +13,7 @@
 	light_system = STATIC_LIGHT
 /obj/machinery/light/roguestreet/midlamp
 	icon = 'icons/roguetown/misc/64x64.dmi'
+	icon = 'icons/roguetown/misc/64x64_overlay.dmi'	
 	icon_state = "midlamp1"
 	base_state = "midlamp"
 	light_color = "#56ff0d" //roguetown use defines challenge: as yet uncompleted
