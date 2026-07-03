@@ -85,6 +85,26 @@
 	blade_dulling = DULLING_BASHCHOP
 	dense_when_open = FALSE
 	mob_storage_capacity = 2
+	var/skeleton
+
+/obj/structure/closet/crate/roguecloset/Initialize()
+	. = ..()
+	if(prob(1))
+		skeleton = 1 //this used to be a true but lummox told me not to
+		if(prob(10)) //one in every one thousand closets.
+			skeleton = 20
+/obj/structure/closet/crate/roguecloset/open()
+	switch(skeleton)
+		if(1)
+			new /mob/living/carbon/human/species/skeleton/npc/ambush(src)
+			skeleton = 0
+
+		if(20)
+			for(1 to 20) //https://www.youtube.com/watch?v=xMcb1Bmbv_8
+				new /mob/living/carbon/human/species/skeleton/npc/ambush(src)
+			skeleton = 0
+	..()
+	
 
 /obj/structure/closet/crate/roguecloset/inn/south
 	base_icon_state = "closet3"

@@ -187,6 +187,7 @@
 	add_delay = round(add_delay, world.tick_lag)
 	mob.set_glide_size(MOVEMENT_ADJUSTED_GLIDE_SIZE(add_delay, scalar))
 	move_delay += add_delay
+	move_delay = round(move_delay, world.tick_lag)
 	if(.) // If mob is null here, we deserve the runtime
 		if(mob.throwing)
 			mob.throwing.finalize(FALSE)
