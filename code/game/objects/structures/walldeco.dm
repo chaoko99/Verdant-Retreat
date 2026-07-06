@@ -253,7 +253,11 @@
 /obj/structure/fluff/walldeco/med
 	name = "diagram"
 	icon_state = "medposter"
-
+/obj/structure/fluff/walldeco/med/random
+/obj/structure/fluff/walldeco/med/random/Initialize()
+	. = ..()
+	var/stupid_number_holder = pick(0,6)
+	icon_state = "medposter[stupid_number_holder >0 ? stupid_number_holder : ""]"
 /obj/structure/fluff/walldeco/med2
 	name = "diagram"
 	icon_state = "medposter2"

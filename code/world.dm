@@ -12,11 +12,11 @@
   */
 /world
 	mob = /mob/dead/new_player
-	turf = /turf/closed
+	turf = /turf/open/transparent/openspace
 	area = /area/rogue
 	view = "15x15"
-	hub = "Exadv1.spacestation13"
-	name = "SCARLET REACH"
+	hub = "Exadv1.spacestation13"	
+	name = "VERDANT RETREAT"
 	fps = 20
 #ifdef FIND_REF_NO_CHECK_TICK
 	loop_checks = FALSE

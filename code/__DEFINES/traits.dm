@@ -88,6 +88,8 @@
 #define TRAIT_SLAYER "Slayer Oath"
 #define TRAIT_NODEF "Recklessness"
 #define TRAIT_WAGES_SUSPENDED "Wages Suspended" //steward has suspended your wages
+//Can't move diagonally.
+#define TRAIT_BLOCKED_DIAGONAL "blocked_diagonals"
 
 //Hearthstone port (Tracking)
 #define TRAIT_PERFECT_TRACKER "Perfect Tracker" //Will always find any tracks and analyzes them perfectly.

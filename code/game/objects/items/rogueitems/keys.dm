@@ -16,6 +16,7 @@
 	anvilrepair = /datum/skill/craft/blacksmithing
 	resistance_flags = FIRE_PROOF
 	experimental_inhand = FALSE
+	var/remain_unlocked = FALSE
 
 	grid_height = 32
 	grid_width = 32
@@ -31,15 +32,17 @@
 				lockhash = rand(100,999)
 			GLOB.lockhashes += lockhash
 			GLOB.lockids[lockid] = lockhash
-
-//Behold, supreme laziness. Sets a door lock if a key spawns inside it. 
+	return INITIALIZE_HINT_LATELOAD
+//Behold, supreme laziness. Sets a door lock if a key spawns atop it. 
 /obj/item/roguekey/LateInitialize()
 	. = ..()
 	var/obj/structure/mineral_door/door = locate(/obj/structure/mineral_door) in get_turf(src)
 	if(door && lockid)
 		if(!door.lockid)
 			door.lockid = lockid
-			door.locked = TRUE
+			door.lockhash = lockhash
+			if(!remain_unlocked)
+				door.locked = TRUE
 		qdel(src)
 
 /obj/item/lockpick
@@ -540,6 +543,7 @@
 	name = ""
 	icon_state = ""
 	lockid = ""
+	remain_unlocked = TRUE
 
 /obj/item/roguekey/apartments/apartment1
 	name = "apartment i key"

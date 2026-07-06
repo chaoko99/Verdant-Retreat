@@ -2,11 +2,12 @@
 	desc = ""
 	canSmoothWith = null
 	smooth = SMOOTH_FALSE
+	smooth_diag = TRUE
 	var/smooth_icon = null
-	var/prettifyturf = FALSE
+	var/prettifyturf = TRUE
 	icon = 'icons/turf/roguefloor.dmi'
 	baseturfs = list(/turf/open/transparent/openspace)
-	neighborlay = ""
+	neighborlay = null
 
 /turf/open/floor/rogue/break_tile()
 	return //unbreakable
@@ -17,50 +18,17 @@
 /turf/open/floor/rogue/Initialize()
 	if(smooth_icon)
 		icon = smooth_icon
+	if(prettifyturf)
+		dir = pick(GLOB.cardinals)
 	. = ..()
 
-/turf/open/floor/rogue/ruinedwood
-	icon_state = "wooden_floor"
-	name = "wooden floorboards"
-	desc = "Interlocking wooden floorboards scratched with thousands of steps."
-	footstep = FOOTSTEP_WOOD
-	barefootstep = FOOTSTEP_HARD_BAREFOOT
-	clawfootstep = FOOTSTEP_WOOD_CLAW
-	heavyfootstep = FOOTSTEP_GENERIC_HEAVY
-	tiled_dirt = FALSE
-	landsound = 'sound/foley/jumpland/woodland.wav'
-//	smooth = SMOOTH_MORE
-//	canSmoothWith = list(/turf/closed/mineral/rogue, /turf/closed/mineral, /turf/closed/wall/mineral/rogue/stonebrick, /turf/closed/wall/mineral/rogue/wood, /turf/closed/wall/mineral/rogue/wooddark, /turf/closed/wall/mineral/rogue/decowood, /turf/closed/wall/mineral/rogue/decostone, /turf/closed/wall/mineral/rogue/stone, /turf/closed/wall/mineral/rogue/stone/moss, /turf/open/floor/rogue/cobble, /turf/open/floor/rogue/dirt, /turf/open/floor/rogue/grass)
-	neighborlay = "dirtedge"
+/turf/open/floor/rogue/cardinal_smooth(adjacencies)
+	if(neighborlay)
+		roguesmooth(adjacencies)
 
-/turf/open/floor/rogue/ruinedwood/Initialize()
-	dir = pick(GLOB.cardinals)
-	. = ..()
-
-/turf/open/floor/rogue/ruinedwood/turned
-	icon_state = "wooden_floort"
-	name = "wooden floorboards"
-	desc = "Interlocking wooden floorboards scratched with thousands of steps."
-
-/turf/open/floor/rogue/ruinedwood/spiral
-	icon_state = "weird1"
-	name = "wooden floorboards"
-	desc = "Interlocking wooden floorboards."
-/turf/open/floor/rogue/ruinedwood/chevron
-	icon_state = "weird2"
-	name = "floorboards"
-	desc = "Interlocking wooden floorboards."
-
-/turf/open/floor/rogue/ruinedwood/platform
-	name = "platform"
-	desc = "A destructible platform."
-	damage_deflection = 8
-	break_sound = 'sound/combat/hits/onwood/destroywalldoor.ogg'
-	attacked_sound = list('sound/combat/hits/onwood/woodimpact (1).ogg','sound/combat/hits/onwood/woodimpact (2).ogg')
-
-/turf/open/floor/rogue/ruinedwood/platform/turf_destruction(damage_flag)
-	. = ..()
-	ScrapeAway(flags = CHANGETURF_INHERIT_AIR)
+/turf/open/floor/rogue/diagonal_smooth(adjacencies)
+	if(neighborlay)
+		roguesmooth(adjacencies)
 
 /turf/open/floor/rogue/hay
 	icon_state = "hay"
@@ -81,10 +49,7 @@
 	tiled_dirt = FALSE
 	landsound = 'sound/foley/jumpland/grassland.wav'
 	slowdown = 0
-
-/turf/open/floor/rogue/twig/Initialize()
-	dir = pick(GLOB.cardinals)
-	. = ..()
+	prettifyturf = TRUE
 
 /turf/open/floor/rogue/twig/platform
 	name = "twig platform"
@@ -99,8 +64,10 @@
 	ScrapeAway(flags = CHANGETURF_INHERIT_AIR)
 
 /turf/open/floor/rogue/wood
-	smooth_icon = 'icons/turf/floors/wood.dmi'
-	icon_state = "wooden_floor2"
+	name = "wooden floorboards"
+	desc = "Polished wooden floorboards, worn but swept. This is what home feels like."
+
+	icon_state = "boards"
 	footstep = FOOTSTEP_WOOD
 	barefootstep = FOOTSTEP_HARD_BAREFOOT
 	clawfootstep = FOOTSTEP_WOOD_CLAW
@@ -111,29 +78,128 @@
 	canSmoothWith = list(/turf/open/floor/rogue/wood,/turf/open/floor/carpet)
 
 /turf/open/floor/rogue/wood/nosmooth //these are here so we can put wood floors next to each other but not have them smooth
-	name = "wooden floorboards"
-	desc = "Polished wooden floorboards scuffed by scratches and a persistent layer of grime."
-	icon_state = "wooden_floor"
+	name = "hardwood floorboards"
+	desc = "Polished dark floorboards gently stained by the years. This is what luxury looks like."
+	icon_state = "boards-dark"
 	smooth = SMOOTH_MORE
 	canSmoothWith = list(/turf/open/floor/rogue/wood/nosmooth,/turf/open/floor/carpet)
 
-/turf/open/floor/rogue/woodturned
-	smooth_icon = 'icons/turf/floors/wood_turned.dmi'
-	icon_state = "wooden_floor2t"
-	smooth = SMOOTH_MORE
-	canSmoothWith = list(/turf/open/floor/rogue/woodturned,/turf/open/floor/carpet)
-	footstep = FOOTSTEP_WOOD
+/turf/open/floor/rogue/wood/turned
+	icon_state = "boards-sideways"
+	canSmoothWith = list(/turf/open/floor/rogue/wood/turned,/turf/open/floor/carpet)
+	neighborlay = "boards-sideways-trim"
+
+/turf/open/floor/rogue/wood/herringbone
+	name = "wooden herringbone flooring"
+	desc = "Thin planks of wood carefully arranged in a rather pleasing pattern. So fine!"
+	icon_state = "boards-herringbone"
+
+/turf/open/floor/rogue/wood/diagonal
+	icon_state = "boads-diagonal"
+	neighborlay = "boards-diagonal-trim"
+
+/turf/open/floor/rogue/wood/chevron
+	icon_state = "boards-chevron"
+/turf/open/floor/rogue/wood/ruined
+	icon_state = "boards-worn"
+	name = "ruined wooden floorboards"
+	desc = "Interlocking wooden floorboards. These ones could use some love."
+	
+/turf/open/floor/rogue/wood/ruined/turned
+	icon_state = "boards-sideways-ruined"
+
+/turf/open/floor/rogue/wood/ruined/diagonal
+	icon_state = "boads-diagonal-ruined"
+	neighborlay = "boards-diagonal-trim"
+
+/turf/open/floor/rogue/wood/ruined/chevron
+	icon_state = "replace-me"
+
+/turf/open/floor/rogue/wood/ruined/herringbone
+	name = "wooden herringbone flooring"
+	desc = "Thin planks of wood carefully arranged in a rather pleasing pattern. They could use some care."
+	landsound = 'sound/foley/jumpland/woodland.wav'
+	icon_state = "boards-herringbone-ruined"
+
+
+/turf/open/floor/rogue/wood/ruined/platform
+	name = "platform"
+	desc = "A destructible platform."
+	damage_deflection = 8
+	break_sound = 'sound/combat/hits/onwood/destroywalldoor.ogg'
+	attacked_sound = list('sound/combat/hits/onwood/woodimpact (1).ogg','sound/combat/hits/onwood/woodimpact (2).ogg')
+
+/turf/open/floor/rogue/wood/ruined/platform/turf_destruction(damage_flag)
+	. = ..()
+	ScrapeAway(flags = CHANGETURF_INHERIT_AIR)
+
+/turf/open/floor/rogue/stone
+	name = "stone bricks"
+	desc = "Square-edged bricks put down and around for your convenience. Stones outlast young mortals, and so they are the preferred material by many an elder race."
+
+	icon_state = "stone-brick"
+	footstep = FOOTSTEP_STONE
 	barefootstep = FOOTSTEP_HARD_BAREFOOT
-	clawfootstep = FOOTSTEP_WOOD_CLAW
+	clawfootstep = FOOTSTEP_HARD_CLAW
 	heavyfootstep = FOOTSTEP_GENERIC_HEAVY
+	landsound = 'sound/foley/jumpland/stoneland.wav'
+	smooth = SMOOTH_MORE | SMOOTH_DIAGONAL
+	canSmoothWith = list(/turf/open/floor/rogue/grass,
+						/turf/open/floor/rogue/grassred,
+						/turf/open/floor/rogue/grassyel,
+						/turf/open/floor/rogue/grasscold,
+						/turf/open/floor/rogue/snowpatchy,
+						/turf/open/floor/rogue/snow,
+						/turf/open/floor/rogue/snowrough,
+						/turf/open/floor/rogue/AzureSand, 
+						/turf/open/floor/rogue/stone)
+	neighborlay = "stone-brick-trim"
 
-/turf/open/floor/rogue/woodturned/nosmooth
-	name = "wooden floorboards"
-	desc = "Polished wooden floorboards scuffed by scratches and a persistent layer of grime."
-	icon_state = "wooden_floort"
-	smooth = SMOOTH_MORE
-	canSmoothWith = list(/turf/open/floor/rogue/woodturned/nosmooth,/turf/open/floor/carpet)
+/turf/open/floor/rogue/stone/pavestones
+	name = "pavestones"
+	desc = "Tiny little rocks! Rocks in little rectangles!"
+	icon_state = "stone-paver"
+	neighborlay = null
+/turf/open/floor/rogue/stone/rows
+	icon_state = "stone-rows"
+	neighborlay = null
+/turf/open/floor/rogue/stone/ornate
+	name = "ornate stone tiles"
+	desc = "The circle channel carved into these tiles describe many cycles. When turned but a smidge, one must point must surely mount for the same that another will fall."
+	icon_state = "stone-ornate"
+	neighborlay = null
+/turf/open/floor/rogue/stone/grid3
+	name = "stone tiles"
+	icon_state = "stone-grid3"
+	neighborlay = null
+/turf/open/floor/rogue/stone/grid2
+	name = "stone tiles"
+	icon_state = "stone-grid2"
+	neighborlay = null
+/turf/open/floor/rogue/stone/masoned
+	name = "masoned bricks"
+	desc = "Masterfully worked, polished stone. This will last generations."
+	icon_state = "stone-masoned"
+	neighborlay = "stone-masoned-trim"
+/turf/open/floor/rogue/stone/diagonal
+	icon_state = "stone-diagonal"
+	neighborlay = null
+/turf/open/floor/rogue/stone/small
+	name = "tiny pavestones"
+	desc = "These tiny bricks are preferred in locations where water ingress is a concern."
+	icon_state = "stone-small"
+	//neighborlay = "trim-tester"
+	neighborlay = "stone-small-trim"
 
+
+/turf/open/floor/rogue/stone/spiral
+	name = "swirling stone tiles"
+	desc = "These tiles remind you of something, but you just can't recall what."
+	icon_state = "stone-swirl"
+	neighborlay = null
+
+
+//Rooftops.
 /turf/open/floor/rogue/rooftop
 	name = "roof"
 	desc = "Overlapping wooden shingles protect the building and its inhabitants from the rain."
@@ -143,57 +209,46 @@
 	clawfootstep = FOOTSTEP_WOOD_CLAW
 	heavyfootstep = FOOTSTEP_GENERIC_HEAVY
 	tiled_dirt = FALSE
+	prettifyturf = FALSE
 
 /turf/open/floor/rogue/rooftop/Initialize()
 	. = ..()
 	icon_state = "roof"
-
 /turf/open/floor/rogue/rooftop/green
 	icon_state = "roofg-arw"
 
 /turf/open/floor/rogue/rooftop/green/Initialize()
 	. = ..()
 	icon_state = "roofg"
-
 /turf/open/floor/rogue/rooftop/green/north
 	dir = 1
-
 /turf/open/floor/rogue/rooftop/green/east
 	dir = 4
-
 /turf/open/floor/rogue/rooftop/green/west
 	dir = 8
-
 /turf/open/floor/rogue/rooftop/green/corner1
 	icon_state = "roofgc1-arw"
 
 /turf/open/floor/rogue/rooftop/green/corner1/Initialize()
 	. = ..()
 	icon_state = "roofgc1"
-
 /turf/open/floor/rogue/rooftop/green/corner1/dirone
 	dir = 1
-
 /turf/open/floor/rogue/rooftop/green/corner1/dirfour
 	dir = 4
-
-
 /turf/open/floor/rogue/rooftop/green/corner1/direight
 	dir = 8
-
-
 /turf/open/floor/rogue/rooftop/green/corner1/dirfive
 	dir = 5
-
 /turf/open/floor/rogue/rooftop/green/corner1/dirnine
 	dir = 9
-
 /turf/open/floor/rogue/rooftop/green/corner1/dirsix
 	dir = 6
-
-
 /turf/open/floor/rogue/rooftop/green/corner1/dirten
 	dir = 10
+
+
+//AZURE SAND
 /turf/open/floor/rogue/AzureSand
 	name = "sand"
 	desc = "Warm sand that, sadly, have been mixed with dirt."
@@ -208,13 +263,8 @@
 	smooth = SMOOTH_TRUE
 	canSmoothWith = list(/turf/open/floor/rogue/AzureSand,)
 	neighborlay = "grimshartedge"
+	prettifyturf = TRUE
 
-/turf/open/floor/rogue/AzureSand/Initialize()
-	dir = pick(GLOB.cardinals)
-	. = ..()
-
-/turf/open/floor/rogue/AzureSand/cardinal_smooth(adjacencies)
-	roguesmooth(adjacencies)
 
 /turf/open/floor/rogue/snow
 	name = "snow"
@@ -231,13 +281,7 @@
 	canSmoothWith = list(/turf/open/floor/rogue/snow,)
 	neighborlay = "snowedge"
 	spread_chance = 0
-
-/turf/open/floor/rogue/snow/Initialize()
-	dir = pick(GLOB.cardinals)
-	. = ..()
-
-/turf/open/floor/rogue/snow/cardinal_smooth(adjacencies)
-	roguesmooth(adjacencies)
+	prettifyturf = TRUE
 
 /turf/open/floor/rogue/snowrough
 	name = "rough snow"
@@ -254,13 +298,8 @@
 	canSmoothWith = list(/turf/open/floor/rogue/snowrough,)
 	neighborlay = "snowroughedge"
 	spread_chance = 0
+	prettifyturf = TRUE
 
-/turf/open/floor/rogue/snowrough/Initialize()
-	dir = pick(GLOB.cardinals)
-	. = ..()
-
-/turf/open/floor/rogue/snowrough/cardinal_smooth(adjacencies)
-	roguesmooth(adjacencies)
 
 /turf/open/floor/rogue/snowpatchy
 	name = "patchy snow"
@@ -278,8 +317,6 @@
 						/turf/open/floor/rogue/snowrough,)
 	neighborlay = "snowpatchy_grassedge"
 
-/turf/open/floor/rogue/snowpatchy/cardinal_smooth(adjacencies)
-	roguesmooth(adjacencies)
 
 /turf/open/floor/rogue/grasscold
 	name = "tundra grass"
@@ -297,13 +334,7 @@
 						/turf/open/floor/rogue/snow,
 						/turf/open/floor/rogue/snowrough,)
 	neighborlay = "grass_coldedge"
-
-/turf/open/floor/rogue/grasscold/Initialize()
-	dir = pick(GLOB.cardinals)
-	. = ..()
-
-/turf/open/floor/rogue/grasscold/cardinal_smooth(adjacencies)
-	roguesmooth(adjacencies)
+	prettifyturf = TRUE
 
 /turf/open/floor/rogue/grassred
 	name = "red grass"
@@ -324,13 +355,8 @@
 						/turf/open/floor/rogue/snow,
 						/turf/open/floor/rogue/snowrough,)
 	neighborlay = "grass_rededge"
+	prettifyturf = TRUE
 
-/turf/open/floor/rogue/grassred/Initialize()
-	dir = pick(GLOB.cardinals)
-	. = ..()
-
-/turf/open/floor/rogue/grassred/cardinal_smooth(adjacencies)
-	roguesmooth(adjacencies)
 
 /turf/open/floor/rogue/grassyel
 	name = "yellow grass"
@@ -349,44 +375,32 @@
 						/turf/open/floor/rogue/snow,
 						/turf/open/floor/rogue/snowrough,)
 	neighborlay = "grass_yeledge"
-
-/turf/open/floor/rogue/grassyel/Initialize()
-	dir = pick(GLOB.cardinals)
-	. = ..()
-
-/turf/open/floor/rogue/grassyel/cardinal_smooth(adjacencies)
-	roguesmooth(adjacencies)
+	prettifyturf = TRUE
 
 /turf/open/floor/rogue/grass
-	name = "grass"
+	name = "green grass"
 	desc = "Grass, sodden with mud and bogwater."
-	icon_state = "grass"
-	layer = MID_TURF_LAYER
+
+	icon_state = "grass-green"
+	layer = MID_TURF_LAYER_3
 	footstep = FOOTSTEP_GRASS
 	barefootstep = FOOTSTEP_SOFT_BAREFOOT
 	heavyfootstep = FOOTSTEP_GENERIC_HEAVY
 	tiled_dirt = FALSE
 	landsound = 'sound/foley/jumpland/grassland.wav'
 	slowdown = 0
-	smooth = SMOOTH_TRUE
+	smooth = SMOOTH_MORE | SMOOTH_DIAGONAL
 	canSmoothWith = list(/turf/open/floor/rogue/grassred,
 						/turf/open/floor/rogue/grassyel,
 						/turf/open/floor/rogue/grasscold,
 						/turf/open/floor/rogue/snowpatchy,
 						/turf/open/floor/rogue/snow,
 						/turf/open/floor/rogue/snowrough,)
-	neighborlay = "grassedge"
+	neighborlay = "grass-green-trim"
 
 	spread_chance = 15
 	burn_power = 6
-
-/turf/open/floor/rogue/grass/Initialize()
-	dir = pick(GLOB.cardinals)
-//	GLOB.dirt_list += src
-	. = ..()
-
-/turf/open/floor/rogue/grass/cardinal_smooth(adjacencies)
-	roguesmooth(adjacencies)
+	prettifyturf = TRUE
 
 /turf/open/floor/rogue/dirt/ambush
 	name = "dirt"
@@ -418,13 +432,13 @@
 	desc = "The dirt is pocked with the scars of countless wars."
 	icon_state = "dirt"
 	layer = MID_TURF_LAYER
-	footstep = FOOTSTEP_GRASS
+	footstep = FOOTSTEP_MUD
 	barefootstep = FOOTSTEP_SOFT_BAREFOOT
 	heavyfootstep = FOOTSTEP_GENERIC_HEAVY
 	tiled_dirt = FALSE
 	landsound = 'sound/foley/jumpland/dirtland.wav'
 	slowdown = 2
-	smooth = SMOOTH_TRUE
+	smooth = SMOOTH_MORE
 	canSmoothWith = list(/turf/open/floor/rogue/grass,
 						/turf/open/floor/rogue/grassred,
 						/turf/open/floor/rogue/grassyel,
@@ -432,13 +446,14 @@
 						/turf/open/floor/rogue/snowpatchy,
 						/turf/open/floor/rogue/snow,
 						/turf/open/floor/rogue/snowrough,
-						/turf/open/floor/rogue/AzureSand)
+						/turf/open/floor/rogue/AzureSand, 
+						/turf/open/floor/rogue/stone)
 	neighborlay = "dirtedge"
 	var/muddy = FALSE
 	var/bloodiness = 20
 	var/obj/structure/closet/dirthole/holie
 	var/dirt_amt = 3
-
+	prettifyturf = TRUE
 /turf/open/floor/rogue/dirt/get_slowdown(mob/user)
 	. = ..()
 	var/negate_slowdown = FALSE
@@ -497,13 +512,6 @@
 		if(water_level)
 			START_PROCESSING(SSwaterlevel, src)
 
-/turf/open/floor/rogue/dirt/cardinal_smooth(adjacencies)
-	roguesmooth(adjacencies)
-
-/turf/open/floor/rogue/dirt/Initialize()
-	dir = pick(GLOB.cardinals)
-	. = ..()
-	update_water()
 
 /turf/open/floor/rogue/dirt/update_water()
 	water_level = max(water_level-10,0)
@@ -564,7 +572,7 @@
 	heavyfootstep = FOOTSTEP_GENERIC_HEAVY
 	tiled_dirt = FALSE
 	landsound = 'sound/foley/jumpland/dirtland.wav'
-	smooth = SMOOTH_TRUE
+	smooth = SMOOTH_TRUE 
 	canSmoothWith = list(/turf/open/floor/rogue/dirt,
 						/turf/open/floor/rogue/grass,
 						/turf/open/floor/rogue/grassred,
@@ -579,9 +587,6 @@
 
 /turf/open/floor/rogue/dirt/road/attack_right(mob/user)
 	return
-
-/turf/open/floor/rogue/dirt/road/cardinal_smooth(adjacencies)
-	roguesmooth(adjacencies)
 
 /turf/open/floor/rogue/sand
 	name = "sand"
@@ -615,7 +620,24 @@
 	landsound = 'sound/foley/jumpland/dirtland.wav'
 	slowdown = 0
 
-/turf/proc/roguesmooth(adjacencies)
+/turf/proc/roguesmooth(adjacencies, use_old_behavior)
+	if(!use_old_behavior)
+		adjacencies = null
+		var/turf/neighbortest //completely discard the existing adjacencies, they were calculated incorrectly. 
+		for (var/testing_dir in list(NORTH, SOUTH, EAST, WEST, NORTHEAST, NORTHWEST, SOUTHEAST, SOUTHWEST))
+			neighbortest = get_step(src, testing_dir)
+			if(neighbortest ==null)
+				continue
+			if(istype(neighbortest, /turf/open/transparent/openspace))
+				continue
+			if(neighbortest.layer >= src.layer)
+				continue
+			if(neighbortest.type == src)//TODO: make this take a typecache..
+				continue
+			if(iswallturf(neighbortest))
+				continue
+			adjacencies |= dir2neighbor(testing_dir)
+
 	var/list/New
 	var/holder
 
@@ -671,6 +693,58 @@
 				holder = "[T.neighborlay]-e"
 				LAZYADD(New, holder)
 				neighborlay_list += holder
+
+	if(smooth & SMOOTH_DIAGONAL)
+		if(adjacencies & N_NORTHEAST)
+			usedturf = get_step(src, NORTHEAST)
+			if(isturf(usedturf))
+				var/turf/T = usedturf
+				if(neighborlay_override)
+					holder = "[neighborlay_override]-ne"
+					LAZYADD(New, holder)
+					neighborlay_list += holder
+				else if(T.neighborlay)
+					holder = "[T.neighborlay]-ne"
+					LAZYADD(New, holder)
+					neighborlay_list += holder
+		if(adjacencies & N_NORTHWEST)
+			usedturf = get_step(src, NORTHWEST)
+			if(isturf(usedturf))
+				var/turf/T = usedturf
+				if(neighborlay_override)
+					holder = "[neighborlay_override]-nw"
+					LAZYADD(New, holder)
+					neighborlay_list += holder
+				else if(T.neighborlay)
+					holder = "[T.neighborlay]-nw"
+					LAZYADD(New, holder)
+					neighborlay_list += holder
+		if(adjacencies & N_SOUTHEAST)
+			usedturf = get_step(src, SOUTHEAST)
+			if(isturf(usedturf))
+				var/turf/T = usedturf
+				if(neighborlay_override)
+					holder = "[neighborlay_override]-se"
+					LAZYADD(New, holder)
+					neighborlay_list += holder
+				else if(T.neighborlay)
+					holder = "[T.neighborlay]-se"
+					LAZYADD(New, holder)
+					neighborlay_list += holder
+		if(adjacencies & N_SOUTHWEST)
+			usedturf = get_step(src, SOUTHWEST)
+			if(isturf(usedturf))
+				var/turf/T = usedturf
+				if(neighborlay_override)
+					holder = "[neighborlay_override]-sw"
+					LAZYADD(New, holder)
+					neighborlay_list += holder
+				else if(T.neighborlay)
+					holder = "[T.neighborlay]-sw"
+					LAZYADD(New, holder)
+					neighborlay_list += holder
+
+ 
 
 	if(New)
 		add_overlay(New)
@@ -731,11 +805,7 @@
 	smooth = SMOOTH_TRUE
 	canSmoothWith = list(/turf/open/floor/rogue/dirt/road,/turf/open/floor/rogue/dirt)
 	neighborlay = "lavedge"
-
-/turf/open/floor/rogue/volcanic/Initialize()
-	dir = pick(GLOB.cardinals)
-	. = ..()
-
+	prettifyturf = TRUE
 
 /turf/open/floor/rogue/blocks
 	icon_state = "blocks"
@@ -762,10 +832,7 @@
 						/turf/open/floor/rogue/snowpatchy,
 						/turf/open/floor/rogue/snow,
 						/turf/open/floor/rogue/snowrough,)
-
-/turf/open/floor/rogue/blocks/Initialize()
-	. = ..()
-	dir = pick(GLOB.cardinals)
+	prettifyturf = TRUE
 
 /turf/open/floor/rogue/blocks/stonered
 	icon_state = "stoneredlarge"
@@ -842,13 +909,7 @@
 						/turf/open/floor/rogue/snowpatchy,
 						/turf/open/floor/rogue/snow,
 						/turf/open/floor/rogue/snowrough,)
-
-/turf/open/floor/rogue/hexstone/cardinal_smooth(adjacencies)
-	roguesmooth(adjacencies)
-
-/turf/open/floor/rogue/hexstone/Initialize()
-	. = ..()
-	dir = pick(GLOB.cardinals)
+	prettifyturf = TRUE
 
 //Church floors
 
@@ -856,7 +917,7 @@
 	icon_state = "church_marble"
 	name = "marble flooring"
 	desc = "Polished marble tiling clacks softly with every footstep. A prized material for vaunted halls."
-	footstep = FOOTSTEP_STONE
+	footstep = FOOTSTEP_TILE
 	barefootstep = FOOTSTEP_HARD_BAREFOOT
 	clawfootstep = FOOTSTEP_HARD_CLAW
 	heavyfootstep = FOOTSTEP_GENERIC_HEAVY
@@ -879,19 +940,13 @@
 						/turf/open/floor/rogue/snowpatchy,
 						/turf/open/floor/rogue/snow,
 						/turf/open/floor/rogue/snowrough,)
-
-/turf/open/floor/rogue/churchmarble/cardinal_smooth(adjacencies)
-	roguesmooth(adjacencies)
-
-/turf/open/floor/rogue/churchmarble/Initialize()
-	. = ..()
-	dir = pick(GLOB.cardinals)
+	prettifyturf = TRUE
 
 /turf/open/floor/rogue/church
 	icon_state = "church"
 	name = "polished tile floor"
 	desc = "Glazed tiling that has withstood the decades with barely a scratch despite the steady accumulation of dirt and grime."
-	footstep = FOOTSTEP_STONE
+	footstep = FOOTSTEP_TILE
 	barefootstep = FOOTSTEP_HARD_BAREFOOT
 	clawfootstep = FOOTSTEP_HARD_CLAW
 	heavyfootstep = FOOTSTEP_GENERIC_HEAVY
@@ -914,17 +969,11 @@
 						/turf/open/floor/rogue/snowpatchy,
 						/turf/open/floor/rogue/snow,
 						/turf/open/floor/rogue/snowrough,)
-
-/turf/open/floor/rogue/church/cardinal_smooth(adjacencies)
-	roguesmooth(adjacencies)
-
-/turf/open/floor/rogue/church/Initialize()
-	. = ..()
-	dir = pick(GLOB.cardinals)
+	prettifyturf = TRUE
 
 /turf/open/floor/rogue/churchbrick
 	icon_state = "church_brick"
-	footstep = FOOTSTEP_STONE
+	footstep = FOOTSTEP_TILE
 	barefootstep = FOOTSTEP_HARD_BAREFOOT
 	clawfootstep = FOOTSTEP_HARD_CLAW
 	heavyfootstep = FOOTSTEP_GENERIC_HEAVY
@@ -947,13 +996,7 @@
 						/turf/open/floor/rogue/snowpatchy,
 						/turf/open/floor/rogue/snow,
 						/turf/open/floor/rogue/snowrough,)
-
-/turf/open/floor/rogue/churchbrick/cardinal_smooth(adjacencies)
-	roguesmooth(adjacencies)
-
-/turf/open/floor/rogue/churchbrick/Initialize()
-	. = ..()
-	dir = pick(GLOB.cardinals)
+	prettifyturf = TRUE
 
 /turf/open/floor/rogue/churchrough
 	icon_state = "church_rough"
@@ -980,14 +1023,8 @@
 						/turf/open/floor/rogue/snowpatchy,
 						/turf/open/floor/rogue/snow,
 						/turf/open/floor/rogue/snowrough,)
+	prettifyturf = TRUE
 
-/turf/open/floor/rogue/churchrough/cardinal_smooth(adjacencies)
-	roguesmooth(adjacencies)
-
-/turf/open/floor/rogue/churchrough/Initialize()
-	. = ..()
-	dir = pick(GLOB.cardinals)
-//
 /turf/open/floor/rogue/herringbone
 	icon_state = "herringbone"
 	name = "stone herringbone flooring"
@@ -1010,12 +1047,7 @@
 						/turf/open/floor/rogue/snow,
 						/turf/open/floor/rogue/snowrough,)
 
-/turf/open/floor/rogue/herringbone/cardinal_smooth(adjacencies)
-	roguesmooth(adjacencies)
 
-/turf/open/floor/rogue/herringbone/Initialize()
-	. = ..()
-	dir = pick(GLOB.cardinals)
 
 /obj/effect/decal/herringbone
 	name = "herringbone flooring"
@@ -1038,25 +1070,16 @@
 	icon_state = "herringbonewood2edge"
 	mouse_opacity = 0
 
-/turf/open/floor/rogue/ruinedwood/herringbone
+/turf/open/floor/rogue/wood/ruined/herringbone
 	name = "wooden herringbone flooring"
-	desc = "Thin planks of wood carefully arranged in a rather pleasing pattern."
-	footstep = FOOTSTEP_WOOD
-	barefootstep = FOOTSTEP_HARD_BAREFOOT
-	clawfootstep = FOOTSTEP_WOOD_CLAW
-	heavyfootstep = FOOTSTEP_GENERIC_HEAVY
-	tiled_dirt = FALSE
+	desc = "Thin planks of wood carefully arranged in a rather pleasing pattern. They could use some care."
 	landsound = 'sound/foley/jumpland/woodland.wav'
-	icon_state = "herringbonewood"
+	icon_state = "boards-herringbone-ruined"
 
 /turf/open/floor/rogue/wood/herringbone
-	footstep = FOOTSTEP_WOOD
-	barefootstep = FOOTSTEP_HARD_BAREFOOT
-	clawfootstep = FOOTSTEP_WOOD_CLAW
-	heavyfootstep = FOOTSTEP_GENERIC_HEAVY
-	tiled_dirt = FALSE
-	landsound = 'sound/foley/jumpland/woodland.wav'
-	icon_state = "herringbonewood2"
+	name = "wooden herringbone flooring"
+	desc = "Thin planks of wood carefully arranged in a rather pleasing pattern. So fine!"
+	icon_state = "boards-herringbone"
 
 /turf/open/floor/rogue/cobble
 	icon_state = "cobblestone1"
@@ -1078,9 +1101,6 @@
 						/turf/open/floor/rogue/snow,
 						/turf/open/floor/rogue/snowrough,
 						/turf/open/floor/rogue/AzureSand)
-
-/turf/open/floor/rogue/cobble/cardinal_smooth(adjacencies)
-	roguesmooth(adjacencies)
 
 /turf/open/floor/rogue/cobble/Initialize()
 	. = ..()
@@ -1106,8 +1126,6 @@
 						/turf/open/floor/rogue/snow,
 						/turf/open/floor/rogue/snowrough,)
 
-/turf/open/floor/rogue/cobble/mossy/cardinal_smooth(adjacencies)
-	roguesmooth(adjacencies)
 
 /turf/open/floor/rogue/cobble/mossy/Initialize()
 	. = ..()
@@ -1142,8 +1160,7 @@
 						/turf/closed/mineral,
 						/turf/closed/wall/mineral)
 
-/turf/open/floor/rogue/cobblerock/cardinal_smooth(adjacencies)
-	roguesmooth(adjacencies)
+
 
 /obj/effect/decal/cobbleedge
 	name = "old cobble path"
@@ -1196,7 +1213,7 @@
 	icon_state = "chess"
 	desc = "Feet march across a grid of plots and schemes."
 	landsound = 'sound/foley/jumpland/tileland.wav'
-	footstep = FOOTSTEP_FLOOR
+	footstep = FOOTSTEP_TILE
 	barefootstep = FOOTSTEP_HARD_BAREFOOT
 	clawfootstep = FOOTSTEP_HARD_CLAW
 	heavyfootstep = FOOTSTEP_GENERIC_HEAVY
@@ -1232,8 +1249,8 @@
 	name = "bath tiles"
 	desc = "A special waterproof flooring suited for baths and pools. Slippery when wet."
 	icon_state = "bathtile"
-
-
+/turf/open/floor/rogue/tile/chess
+	icon_state = "stone-checker"
 /turf/open/floor/rogue/tile/brick
 	icon_state = "bricktile"
 
@@ -1291,10 +1308,7 @@
 						/turf/open/floor/rogue/snow,
 						/turf/open/floor/rogue/snowrough,)
 
-/turf/open/floor/rogue/concrete/Initialize()
-	. = ..()
-	icon_state = "concretefloor[rand(1,2)]"
-	dir = pick(GLOB.cardinals)
+	prettifyturf = TRUE
 
 /turf/open/floor/rogue/concrete/bronze
 	color = "#ff9100"
@@ -1326,9 +1340,7 @@
 						/turf/open/floor/rogue/snow,
 						/turf/open/floor/rogue/snowrough,)
 
-/turf/open/floor/rogue/metal/Initialize()
-	. = ..()
-	dir = pick(GLOB.cardinals)
+	prettifyturf = TRUE
 
 /turf/open/floor/rogue/metal/barograte
 	icon_state = "barograte"
@@ -1360,7 +1372,7 @@
 						/turf/open/floor/rogue/snowpatchy,
 						/turf/open/floor/rogue/snow,
 						/turf/open/floor/rogue/snowrough,)
-
+	prettifyturf = TRUE
 /turf/open/floor/rogue/carpet/lord
 	icon_state = ""
 
@@ -1384,9 +1396,6 @@
 /turf/open/floor/rogue/carpet/lord/center
 	icon_state = "carpet_c"
 
-/turf/open/floor/rogue/carpet/lord/center/Initialize()
-	dir = pick(GLOB.cardinals)
-	..()
 
 /turf/open/floor/rogue/carpet/lord/left
 	icon_state = "carpet_l"
@@ -1403,7 +1412,7 @@
 	clawfootstep = null
 	heavyfootstep = null
 	slowdown = 4
-
+	prettifyturf = TRUE
 /turf/open/floor/rogue/shroud/Entered(atom/movable/AM, atom/oldLoc)
 	..()
 	if(isliving(AM))
@@ -1413,7 +1422,6 @@
 /turf/open/floor/rogue/shroud/Initialize()
 	. = ..()
 	icon_state = "treetop[rand(1,2)]"
-	dir = pick(GLOB.cardinals)
 
 /turf/open/floor/rogue/naturalstone
 	name = "rough stone ground"
@@ -1428,6 +1436,3 @@
 	canSmoothWith = list(/turf/open/floor/rogue,
 						/turf/closed/mineral,
 						/turf/closed/wall/mineral)
-
-/turf/open/floor/rogue/naturalstone/cardinal_smooth(adjacencies)
-	roguesmooth(adjacencies)

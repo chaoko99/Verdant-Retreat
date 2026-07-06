@@ -607,6 +607,7 @@
 		cmode = FALSE
 		if(client && HAS_TRAIT(src, TRAIT_SCREENSHAKE))
 			animate(client, pixel_y)
+		cmode_timer = addtimer(TRAIT_CALLBACK_REMOVE(src, TRAIT_BLOCKED_DIAGONAL, "combat"), 10 SECONDS, TIMER_STOPPABLE | TIMER_OVERRIDE | TIMER_UNIQUE)
 	else
 		cmode = TRUE
 		playsound_local(src, 'sound/misc/combon.ogg', 100)
@@ -617,6 +618,8 @@
 		if(client && HAS_TRAIT(src, TRAIT_SCHIZO_AMBIENCE))
 			animate(client, pixel_y = 1, time = 1, loop = -1, flags = ANIMATION_RELATIVE)
 			animate(pixel_y = -1, time = 1, flags = ANIMATION_RELATIVE)
+		ADD_TRAIT(src, TRAIT_BLOCKED_DIAGONAL, "combat")
+		deltimer(cmode_timer)
 	if(hud_used)
 		if(hud_used.cmode_button)
 			hud_used.cmode_button.update_icon()

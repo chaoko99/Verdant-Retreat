@@ -266,6 +266,7 @@
 	desc = "It was once said that the gods used these to separate high and low; now they only give the illusion of depth, since Psydonia has the real thing."
 	icon = 'icons/turf/roguefloor.dmi'
 	icon_state = "borderfall"
+	layer = TURF_DECAL_LAYER
 	dir = NORTH
 
 /obj/structure/fluff/railing/fence
@@ -762,6 +763,10 @@
 	max_integrity = 500
 	blade_dulling = DULLING_BASHCHOP
 	icon = 'icons/roguetown/misc/structure.dmi'
+obj/structure/fluff/customsign/Initialize()
+	. = ..()
+	if(wrotesign)
+		icon_state = "signwrote"
 
 /obj/structure/fluff/customsign/examine(mob/user)
 	. = ..()

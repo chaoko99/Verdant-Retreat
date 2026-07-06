@@ -9,8 +9,8 @@ on:
       - main
 
 env:
-  BYOND_MAJOR: 515
-  BYOND_MINOR: 1636
+  BYOND_MAJOR: 516
+  BYOND_MINOR: 1681
   SPACEMAN_DMM_VERSION: suite-1.9
 
 jobs:
@@ -50,18 +50,20 @@ jobs:
           # tools/bootstrap/python tools/ci/validate_dme.py < roguetown.dme # TODO: fix unincluded files
           tools/bootstrap/python -m dmi.test
           tools/bootstrap/python -m mapmerge2.dmm_test
-          ~/dreamchecker > ${GITHUB_WORKSPACE}/output-annotations.txt 2>&1
-      - name: Annotate Lints
-        uses: yogstation13/DreamAnnotate@v2
-        if: always()
-        with:
-          outputFile: output-annotations.txt
+          ~/dreamchecker 2>&1 | bash tools/ci/annotate_dm.sh
+
   build:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
         uses: actions/checkout@v2
-      
+
+      - name: Install curl
+        run: |
+          sudo dpkg --add-architecture i386
+          sudo apt update || true
+          sudo apt install -o APT::Immediate-Configure=false curl:i386
+
       - name: Restore BYOND cache
         uses: actions/cache@v4
         with:

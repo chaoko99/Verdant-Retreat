@@ -5,7 +5,7 @@
 //Master wood crafting - standardizes all wood crafting.
 /datum/crafting_recipe/roguetown/turfs/wood
 	name = "wooden floor"
-	result = /turf/open/floor/rogue/ruinedwood
+	result = /turf/open/floor/rogue/wood/ruined
 	reqs = list(/obj/item/grown/log/tree/small = 1)
 	skillcraft = /datum/skill/craft/carpentry
 	verbage_simple = "construct"
@@ -21,7 +21,7 @@
 
 /datum/crafting_recipe/roguetown/turfs/wood/floor
 	name = "floor (crude wood)"
-	result = /turf/open/floor/rogue/ruinedwood
+	result = /turf/open/floor/rogue/wood/ruined
 	reqs = list(/obj/item/natural/wood/plank = 1)
 
 /datum/crafting_recipe/roguetown/turfs/wood/floor
@@ -32,25 +32,25 @@
 
 /datum/crafting_recipe/roguetown/turfs/wood/platform
 	name = "platform (wood)"
-	result = /turf/open/floor/rogue/ruinedwood/platform
+	result = /turf/open/floor/rogue/wood/ruined/platform
 	reqs = list(/obj/item/natural/wood/plank = 2)
 	craftdiff = 2
 
 /datum/crafting_recipe/roguetown/turfs/wood/floorhw
 	name = "floor (herringbone weathered)"
-	result = /turf/open/floor/rogue/ruinedwood/herringbone
+	result = /turf/open/floor/rogue/wood/ruined/herringbone
 	reqs = list(/obj/item/natural/wood/plank = 1)
 	craftdiff = 4
 
 /datum/crafting_recipe/roguetown/turfs/wood/floorhs
-	name = "floor (herringbone stamped)"
-	result = /turf/open/floor/rogue/ruinedwood/chevron
+	name = "floor (chevron)"
+	result = /turf/open/floor/rogue/wood/chevron
 	reqs = list(/obj/item/natural/wood/plank = 1)
 	craftdiff = 4
 
 /datum/crafting_recipe/roguetown/turfs/wood/floorslanted
 	name = "floor (slanted)"
-	result = /turf/open/floor/rogue/ruinedwood/spiral
+	result = /turf/open/floor/rogue/wood/diagonal
 	reqs = list(/obj/item/natural/wood/plank = 1)
 	craftdiff = 3
 

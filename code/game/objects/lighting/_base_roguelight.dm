@@ -1,11 +1,13 @@
 /obj/machinery/light/rogue
 	icon = 'icons/roguetown/misc/lighting.dmi'
+	overlayicon = 'icons/roguetown/misc/lighting_overlays.dmi'
 	brightness = 8
 	nightshift_allowed = FALSE
 	fueluse = 60 MINUTES
 	bulb_colour = "#f9ad80"
 	bulb_power = 1
 	light_system = STATIC_LIGHT
+	
 	var/datum/looping_sound/soundloop = null // = /datum/looping_sound/fireloop
 	pass_flags = LETPASSTHROW
 	flags_1 = NODECONSTRUCT_1
@@ -17,7 +19,8 @@
 /obj/machinery/light/rogue/Initialize()
 	if(soundloop)
 		soundloop = new soundloop(src, FALSE)
-		soundloop.start()
+		if(on)
+			soundloop.start()
 	GLOB.fires_list += src
 	if(fueluse > 0)
 		fueluse = fueluse - (rand(fueluse*0.1,fueluse*0.3))
@@ -66,8 +69,12 @@
 	update_icon()
 
 /obj/machinery/light/rogue/update_icon()
+	cut_overlays()
 	if(on)
 		icon_state = "[base_state]1"
+		var/mutable_appearance/glowybit = mutable_appearance(overlayicon, base_state, plane = EMISSIVE_PLANE)
+		glowybit.alpha = CLAMP(light_power*250, 30, 200)
+		add_overlay(glowybit)
 	else
 		icon_state = "[base_state]0"
 

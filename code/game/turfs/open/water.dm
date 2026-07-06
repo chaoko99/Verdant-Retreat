@@ -132,7 +132,7 @@
 
 
 /turf/open/water/cardinal_smooth(adjacencies)
-	roguesmooth(adjacencies)
+	roguesmooth(adjacencies, TRUE)
 
 /turf/open/water/roguesmooth(adjacencies)
 	var/list/Yeah = ..()

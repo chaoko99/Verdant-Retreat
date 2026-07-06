@@ -6,6 +6,8 @@
 // DO NOT RE-ENABLE IT UNTIL FURTHER NOTICE
 /obj/machinery/light/rogue/smelter
 	icon = 'icons/roguetown/misc/forge.dmi'
+	overlayicon = 'icons/roguetown/misc/forge_overlay.dmi'
+
 	name = "stone furnace"
 	desc = "A stone furnace, weathered by time and heat."
 	icon_state = "cavesmelter0"

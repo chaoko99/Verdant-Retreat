@@ -33,7 +33,7 @@ GLOBAL_DATUM_INIT(openspace_backdrop_one_for_all, /atom/movable/openspace_backdr
 	neighborlay_override = "staticedge"
 
 /turf/open/transparent/openspace/cardinal_smooth(adjacencies)
-	roguesmooth(adjacencies)
+	roguesmooth(adjacencies, TRUE)
 
 /turf/open/transparent/openspace/roguesmooth(adjacencies)
 	var/list/Yeah = ..()
