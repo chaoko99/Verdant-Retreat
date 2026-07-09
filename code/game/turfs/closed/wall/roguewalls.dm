@@ -100,7 +100,7 @@
 /turf/closed/wall/mineral/rogue/stonebrick
 	name = "brick wall"
 	desc = "Rows of overlapping bricks form this wall."
-	icon = 'icons/turf/walls/stonebrick.dmi'
+	icon = 'icons/turf/walls/stonebrick_new.dmi'
 	icon_state = "stonebrick"
 	smooth = SMOOTH_MORE
 	blade_dulling = DULLING_BASH
@@ -306,7 +306,7 @@
 /turf/closed/wall/mineral/rogue/decostone
 	name = "decorated stone wall"
 	desc = "The mason did an excellent job etching details into this wall."
-	icon = 'icons/turf/roguewall.dmi'
+	icon = 'icons/turf/walls/decostone.dmi'
 	icon_state = "decostone-b"
 	smooth = SMOOTH_MORE
 	blade_dulling = DULLING_BASH
@@ -434,7 +434,7 @@
 /turf/closed/wall/mineral/rogue/pipe
 	name = "metal wall"
 	desc = "Solid steel made into an impenetrable obstacle."
-	icon = 'icons/turf/pipewall.dmi'
+	icon = 'icons/turf/walls/roguepipe.dmi'
 	icon_state = "iron_box"
 	smooth = SMOOTH_MORE
 	blade_dulling = DULLING_BASH

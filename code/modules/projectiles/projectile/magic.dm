@@ -10,6 +10,12 @@
 	var/explode_sound = list('sound/misc/explode/incendiary (1).ogg','sound/misc/explode/incendiary (2).ogg')
 	var/mob/living/carbon/human/sender
 
+
+/obj/projectile/magic/Initialize()
+	. = ..()
+	var/mutable_appearance/glowybit = mutable_appearance(icon_state, icon, plane = EMISSIVE_PLANE)
+	glowybit.alpha = CLAMP(light_power*250, 30, 200)
+	add_overlay(glowybit)
 /obj/projectile/magic/death
 	name = "bolt of death"
 	icon_state = "pulse1_bl"

@@ -64,19 +64,19 @@
 
 /obj/machinery/light/rogue/oven/north
 	dir = NORTH
-	pixel_y = -32
+	pixel_y = 32
 
 /obj/machinery/light/rogue/oven/south
 	dir = SOUTH
-	pixel_y = 32 //so we see it in mapper
+	pixel_y = -32 //so we see it in mapper
 
 /obj/machinery/light/rogue/oven/west
 	dir = WEST
-	pixel_x = 32
+	pixel_x = -32
 
 /obj/machinery/light/rogue/oven/east
 	dir = EAST
-	pixel_x = -32
+	pixel_x = 32
 
 /obj/machinery/light/rogue/oven/center
 
