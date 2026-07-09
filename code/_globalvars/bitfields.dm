@@ -1,3 +1,8 @@
+#define DEFINE_BITFIELD(_variable, _flags) /datum/bitfield/##_variable { \
+    flags = ##_flags; \
+    variable = #_variable; \
+}
+
 GLOBAL_LIST_INIT(bitfields, list(
 	"appearance_flags" = list(
 		"LONG_GLIDE" = LONG_GLIDE,
