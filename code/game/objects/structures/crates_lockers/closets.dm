@@ -168,6 +168,8 @@
 	for(var/atom/movable/AM in L)
 		if(AM != src && insert(AM) == -1) // limit reached
 			break
+		if(AM.pixel_x<-world.icon_size || AM.pixel_x>-world.icon_size ||  AM.pixel_y<-world.icon_size || AM.pixel_y>-world.icon_size) //To prevent the collection of severely off-grid items that might be mapped on walls or something. 
+			continue
 
 /obj/structure/closet/proc/open(mob/living/user)
 	if(opened)
@@ -195,7 +197,6 @@
 
 /obj/structure/closet/proc/insertion_allowed(atom/movable/AM)
 	if(ismob(AM))
-		testing("begin")
 		if(!isliving(AM)) //let's not put ghosts or camera mobs inside closets...
 			return FALSE
 		var/mob/living/L = AM
@@ -213,7 +214,6 @@
 			for(var/obj/structure/closet/crate/C in contents)
 				if(C != src)
 					return FALSE
-		testing("enmd")
 		L.stop_pulling()
 
 	else if(isobj(AM))
