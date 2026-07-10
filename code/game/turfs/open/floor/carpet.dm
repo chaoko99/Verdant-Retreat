@@ -16,10 +16,6 @@
 
 	spread_chance = 15
 
-/turf/open/floor/carpet/examine(mob/user)
-	. = ..()
-//	. += "<span class='notice'>There's a <b>small crack</b> on the edge of it.</span>"
-
 /turf/open/floor/carpet/Initialize()
 	. = ..()
 	update_icon()

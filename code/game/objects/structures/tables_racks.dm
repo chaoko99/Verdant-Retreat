@@ -224,7 +224,6 @@
 
 /obj/structure/table/wood
 	name = "wooden table"
-	desc = ""
 	icon = 'icons/roguetown/misc/tables.dmi'
 	icon_state = "tablewood"
 	resistance_flags = FLAMMABLE

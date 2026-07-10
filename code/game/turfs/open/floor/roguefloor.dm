@@ -270,7 +270,6 @@
 	name = "snow"
 	desc = "A gentle blanket of snow."
 	icon_state = "snow"
-	layer = MID_TURF_LAYER
 	footstep = FOOTSTEP_GRASS
 	barefootstep = FOOTSTEP_SOFT_BAREFOOT
 	heavyfootstep = FOOTSTEP_GENERIC_HEAVY
@@ -406,7 +405,6 @@
 	name = "dirt"
 	desc = "The dirt is pocked with the scars of countless wars."
 	icon_state = "dirt"
-	layer = MID_TURF_LAYER
 	footstep = FOOTSTEP_GRASS
 	barefootstep = FOOTSTEP_SOFT_BAREFOOT
 	heavyfootstep = FOOTSTEP_GENERIC_HEAVY
@@ -777,7 +775,6 @@
 	name = "ash"
 	desc = "Smells like burnt wood."
 	icon_state = "ash"
-	layer = MID_TURF_LAYER
 	footstep = FOOTSTEP_SAND
 	barefootstep = FOOTSTEP_SOFT_BAREFOOT
 	heavyfootstep = FOOTSTEP_GENERIC_HEAVY

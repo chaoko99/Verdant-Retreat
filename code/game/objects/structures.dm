@@ -73,8 +73,6 @@
 			O.redstone_attached -= src
 			redstone_attached -= O
 		GLOB.redstone_objs -= src
-//	if(smooth)
-//		queue_smooth_neighbors(src)
 	return ..()
 
 /obj/structure/attack_hand(mob/user)

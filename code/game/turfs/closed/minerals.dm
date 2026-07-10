@@ -30,22 +30,13 @@
 	attacked_sound = list('sound/combat/hits/onrock/onrock (1).ogg', 'sound/combat/hits/onrock/onrock (2).ogg', 'sound/combat/hits/onrock/onrock (3).ogg', 'sound/combat/hits/onrock/onrock (4).ogg')
 	neighborlay = "dirtedge"
 
-/turf/closed/mineral/Initialize()
-	if (!canSmoothWith)
-		canSmoothWith = list(/turf/closed/mineral, /turf/closed/indestructible)
-//	var/matrix/M = new
-//	M.Translate(-4, -4)
-//	transform = M
-	icon = smooth_icon
-	. = ..()
-
 /turf/closed/mineral/Destroy()
 	. = ..()
 	lastminer = null
 
 /turf/closed/mineral/LateInitialize()
 	. = ..()
-	if (mineralType && mineralAmt && spread && spreadChance)
+	if(mineralType && mineralAmt && spread && spreadChance)
 		for(var/dir in GLOB.cardinals)
 			if(prob(spreadChance))
 				var/turf/T = get_step(src, dir)
@@ -110,7 +101,7 @@
 		var/obj/item/natural/rock/explo_rock = rockType
 		ScrapeAway()
 		GLOB.mined_resource_loc |= get_turf(src)
-		queue_smooth_neighbors(src)
+		QUEUE_SMOOTH_NEIGHBORS(src)
 		new /obj/item/natural/stone(src)
 		if(prob(30))
 			new /obj/item/natural/stone(src)

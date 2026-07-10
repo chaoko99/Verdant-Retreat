@@ -873,8 +873,6 @@
 	opacity = FALSE
 	windowed = TRUE
 	keylock = FALSE
-	icon = 'icons/roguetown/misc/doors.dmi'
-	icon_state = "swing"
 	blade_dulling = DULLING_BASHCHOP
 	break_sound = 'sound/combat/hits/onwood/destroywalldoor.ogg'
 	attacked_sound = list('sound/combat/hits/onwood/woodimpact (1).ogg','sound/combat/hits/onwood/woodimpact (2).ogg')
@@ -927,7 +925,6 @@
 /obj/structure/mineral_door/wood/deadbolt/Initialize()
 	. = ..()
 	lockdir = dir
-	icon_state = base_state
 
 /obj/structure/mineral_door/wood/deadbolt/attack_right(mob/user)
 	user.changeNext_move(CLICK_CD_FAST)

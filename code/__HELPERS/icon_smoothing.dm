@@ -1,16 +1,16 @@
-
 //generic (by snowflake) tile smoothing code; smooth your icons with this!
 /*
 	Each tile is divided in 4 corners, each corner has an appearance associated to it; the tile is then overlayed by these 4 appearances
-	To use this, just set your atom's 'smooth' var to 1. If your atom can be moved/unanchored, set its 'can_be_unanchored' var to 1.
+	To use this, just set your atom's 'smoothing_flags' var to 1. If your atom can be moved/unanchored, set its 'can_be_unanchored' var to 1.
 	If you don't want your atom's icon to smooth with anything but atoms of the same type, set the list 'canSmoothWith' to null;
-	Otherwise, put all types you want the atom icon to smooth with in 'canSmoothWith' INCLUDING THE TYPE OF THE ATOM ITSELF.
+	Otherwise, put all the smoothing groups you want the atom icon to smooth with in 'canSmoothWith', including the group of the atom itself.
+	Smoothing groups are just shared flags between objects. If one of the 'canSmoothWith' of A matches one of the `smoothing_groups` of B, then A will smooth with B.
 
 	Each atom has its own icon file with all the possible corner states. See 'smooth_wall.dmi' for a template.
 
 	DIAGONAL SMOOTHING INSTRUCTIONS
 	To make your atom smooth diagonally you need all the proper icon states (see 'smooth_wall.dmi' for a template) and
-	to add the 'SMOOTH_DIAGONAL' flag to the atom's smooth var (in addition to either SMOOTH_TRUE or SMOOTH_MORE).
+	to add the 'SMOOTH_DIAGONAL' flag to the atom's smoothing_flags var (in addition to either SMOOTH_TRUE or SMOOTH_MORE).
 
 	For turfs, what appears under the diagonal corners depends on the turf that was in the same position previously: if you make a wall on
 	a plating floor, you will see plating under the diagonal wall corner, if it was space, you will see space.
@@ -148,170 +148,364 @@
 			replace_smooth_overlays("d-nw","d-nw-1")
 
 		else
-			cardinal_smooth(adjacencies)
-			return
+			corners_cardinal_smooth(adjacencies)
+			return FALSE
 
 	icon_state = ""
-	return adjacencies
+	return TRUE
 
-//only walls should have a need to handle underlays
-/turf/closed/wall/diagonal_smooth(adjacencies)
-	adjacencies = reverse_ndir(..())
-	if(adjacencies)
-		var/mutable_appearance/underlay_appearance = mutable_appearance(layer = TURF_LAYER, plane = FLOOR_PLANE)
-		var/list/U = list(underlay_appearance)
-		if(fixed_underlay)
-			if(fixed_underlay["space"])
-				underlay_appearance.icon = 'icons/turf/space.dmi'
-				underlay_appearance.icon_state = SPACE_ICON_STATE
-				underlay_appearance.plane = PLANE_SPACE
-			else
-				underlay_appearance.icon = fixed_underlay["icon"]
-				underlay_appearance.icon_state = fixed_underlay["icon_state"]
-		else
-			var/turned_adjacency = turn(adjacencies, 180)
-			var/turf/T = get_step(src, turned_adjacency)
-			if(!T.get_smooth_underlay_icon(underlay_appearance, src, turned_adjacency))
-				T = get_step(src, turn(adjacencies, 135))
-				if(!T.get_smooth_underlay_icon(underlay_appearance, src, turned_adjacency))
-					T = get_step(src, turn(adjacencies, 225))
-			//if all else fails, ask our own turf
-			if(!T.get_smooth_underlay_icon(underlay_appearance, src, turned_adjacency) && !get_smooth_underlay_icon(underlay_appearance, src, turned_adjacency))
-				underlay_appearance.icon = DEFAULT_UNDERLAY_ICON
-				underlay_appearance.icon_state = DEFAULT_UNDERLAY_ICON_STATE
-		underlays = U
-
-/atom/proc/cardinal_smooth(adjacencies)
+/atom/proc/corners_cardinal_smooth(adjacencies)
 	//NW CORNER
 	var/nw = "1-i"
-	if((adjacencies & N_NORTH) && (adjacencies & N_WEST))
-		if(adjacencies & N_NORTHWEST)
+	if((adjacencies & NORTH_JUNCTION) && (adjacencies & WEST_JUNCTION))
+		if(adjacencies & NORTHWEST_JUNCTION)
 			nw = "1-f"
 		else
 			nw = "1-nw"
 	else
-		if(adjacencies & N_NORTH)
+		if(adjacencies & NORTH_JUNCTION)
 			nw = "1-n"
-		else if(adjacencies & N_WEST)
+		else if(adjacencies & WEST_JUNCTION)
 			nw = "1-w"
 
 	//NE CORNER
 	var/ne = "2-i"
-	if((adjacencies & N_NORTH) && (adjacencies & N_EAST))
-		if(adjacencies & N_NORTHEAST)
+	if((adjacencies & NORTH_JUNCTION) && (adjacencies & EAST_JUNCTION))
+		if(adjacencies & NORTHEAST_JUNCTION)
 			ne = "2-f"
 		else
 			ne = "2-ne"
 	else
-		if(adjacencies & N_NORTH)
+		if(adjacencies & NORTH_JUNCTION)
 			ne = "2-n"
-		else if(adjacencies & N_EAST)
+		else if(adjacencies & EAST_JUNCTION)
 			ne = "2-e"
 
 	//SW CORNER
 	var/sw = "3-i"
-	if((adjacencies & N_SOUTH) && (adjacencies & N_WEST))
-		if(adjacencies & N_SOUTHWEST)
+	if((adjacencies & SOUTH_JUNCTION) && (adjacencies & WEST_JUNCTION))
+		if(adjacencies & SOUTHWEST_JUNCTION)
 			sw = "3-f"
 		else
 			sw = "3-sw"
 	else
-		if(adjacencies & N_SOUTH)
+		if(adjacencies & SOUTH_JUNCTION)
 			sw = "3-s"
-		else if(adjacencies & N_WEST)
+		else if(adjacencies & WEST_JUNCTION)
 			sw = "3-w"
 
 	//SE CORNER
 	var/se = "4-i"
-	if((adjacencies & N_SOUTH) && (adjacencies & N_EAST))
-		if(adjacencies & N_SOUTHEAST)
+	if((adjacencies & SOUTH_JUNCTION) && (adjacencies & EAST_JUNCTION))
+		if(adjacencies & SOUTHEAST_JUNCTION)
 			se = "4-f"
 		else
 			se = "4-se"
 	else
-		if(adjacencies & N_SOUTH)
+		if(adjacencies & SOUTH_JUNCTION)
 			se = "4-s"
-		else if(adjacencies & N_EAST)
+		else if(adjacencies & EAST_JUNCTION)
 			se = "4-e"
 
-	var/list/New
+	var/list/new_overlays
 
 	if(top_left_corner != nw)
 		cut_overlay(top_left_corner)
 		top_left_corner = nw
-		LAZYADD(New, nw)
+		LAZYADD(new_overlays, nw)
 
 	if(top_right_corner != ne)
 		cut_overlay(top_right_corner)
 		top_right_corner = ne
-		LAZYADD(New, ne)
+		LAZYADD(new_overlays, ne)
 
 	if(bottom_right_corner != sw)
 		cut_overlay(bottom_right_corner)
 		bottom_right_corner = sw
-		LAZYADD(New, sw)
+		LAZYADD(new_overlays, sw)
 
 	if(bottom_left_corner != se)
 		cut_overlay(bottom_left_corner)
 		bottom_left_corner = se
-		LAZYADD(New, se)
+		LAZYADD(new_overlays, se)
+
+	if(new_overlays)
+		add_overlay(new_overlays)
+
+/turf/proc/edge_cardinal_smooth(adjacencies)
+	var/list/New
+	var/turf/used
+	var/holder
+
+	for(var/A in neighborlay_list)
+		cut_overlay("[A]")
+		neighborlay_list -= A
+
+	if(adjacencies & NORTH_JUNCTION)
+		used = get_step(src, NORTH)
+		if(isturf(used) && (type != used.type))
+			var/turf/T = used
+			if(neighborlay_override)
+				holder = "[neighborlay_override]-n"
+				LAZYADD(New, holder)
+				neighborlay_list += holder
+			else if(T.neighborlay)
+				holder = "[T.neighborlay]-n"
+				LAZYADD(New, holder)
+				neighborlay_list += holder
+	if(adjacencies & SOUTH_JUNCTION)
+		used = get_step(src, SOUTH)
+		if(isturf(used) && (type != used.type))
+			var/turf/T = used
+			if(neighborlay_override)
+				holder = "[neighborlay_override]-s"
+				LAZYADD(New, holder)
+				neighborlay_list += holder
+			else if(T.neighborlay)
+				holder = "[T.neighborlay]-s"
+				LAZYADD(New, holder)
+				neighborlay_list += holder
+	if(adjacencies & WEST_JUNCTION)
+		used = get_step(src, WEST)
+		if(isturf(used) && (type != used.type))
+			var/turf/T = used
+			if(neighborlay_override)
+				holder = "[neighborlay_override]-w"
+				LAZYADD(New, holder)
+				neighborlay_list += holder
+			else if(T.neighborlay)
+				holder = "[T.neighborlay]-w"
+				LAZYADD(New, holder)
+				neighborlay_list += holder
+	if(adjacencies & EAST_JUNCTION)
+		used = get_step(src, EAST)
+		if(isturf(used) && (type != used.type))
+			var/turf/T = used
+			if(neighborlay_override)
+				holder = "[neighborlay_override]-e"
+				LAZYADD(New, holder)
+				neighborlay_list += holder
+			else if(T.neighborlay)
+				holder = "[T.neighborlay]-e"
+				LAZYADD(New, holder)
+				neighborlay_list += holder
 
 	if(New)
 		add_overlay(New)
+	return New
 
-/proc/find_type_in_direction(atom/source, direction)
-	var/turf/target_turf = get_step(source, direction)
+///Scans direction to find targets to smooth with.
+/atom/proc/find_type_in_direction(direction)
+	var/turf/target_turf = get_step(src, direction)
 	if(!target_turf)
 		return NULLTURF_BORDER
 
-	var/area/target_area = get_area(target_turf)
-	var/area/source_area = get_area(source)
-	if(source_area.canSmoothWithAreas && !is_type_in_typecache(target_area, source_area.canSmoothWithAreas))
-		return null
-	if(target_area.canSmoothWithAreas && !is_type_in_typecache(source_area, target_area.canSmoothWithAreas))
-		return null
+	if(isnull(smoothing_list)) //special case in which it will only smooth with itself
+		if(isturf(src))
+			return (type == target_turf.type) ? ADJ_FOUND : NO_ADJ_FOUND
+		var/atom/matching_obj = locate(type) in target_turf
+		return (matching_obj && matching_obj.type == type) ? ADJ_FOUND : NO_ADJ_FOUND
 
-	if(source.canSmoothWith)
-		var/atom/A
-		if(source.smooth & SMOOTH_MORE)
-			for(var/a_type in source.canSmoothWith)
-				if( istype(target_turf, a_type) )
-					return target_turf
-				A = locate(a_type) in target_turf
-				if(A)
-					return A
-			return null
+	if(!isnull(target_turf.smoothing_groups))
+		for(var/target in smoothing_list)
+			if(!(smoothing_list[target] & target_turf.smoothing_groups[target]))
+				continue
+			return ADJ_FOUND
 
-		for(var/a_type in source.canSmoothWith)
-			if(a_type == target_turf.type)
-				return target_turf
-			A = locate(a_type) in target_turf
-			if(A && A.type == a_type)
-				return A
-		return null
-	else
-		if(isturf(source))
-			return source.type == target_turf.type ? target_turf : null
-		var/atom/A = locate(source.type) in target_turf
-		return A && A.type == source.type ? A : null
+	if(smoothing_flags & SMOOTH_OBJ)
+		for(var/am in target_turf)
+			var/atom/movable/thing = am
+			if(!thing.anchored || isnull(thing.smoothing_groups))
+				continue
+			for(var/target in smoothing_list)
+				if(!(smoothing_list[target] & thing.smoothing_groups[target]))
+					continue
+				return ADJ_FOUND
+
+	return NO_ADJ_FOUND
+
+/**
+  * Basic smoothing proc. The atom checks for adjacent directions to smooth with and changes the icon_state based on that.
+  *
+  * Returns the previous smoothing_junction state so the previous state can be compared with the new one after the proc ends, and see the changes, if any.
+  *
+*/
+/atom/proc/smooth(edge = FALSE)
+	var/new_junction = NONE
+
+	// cache for sanic speed
+	var/smoothing_list = src.smoothing_list
+
+	var/smooth_border = (smoothing_flags & SMOOTH_BORDER)
+	var/smooth_obj = (smoothing_flags & SMOOTH_OBJ)
+	var/smooth_edge = (smoothing_flags & SMOOTH_EDGE)
+
+	#define SET_ADJ_IN_DIR(direction, direction_flag) \
+		set_adj_in_dir: { \
+			do { \
+				var/turf/neighbor = get_step(src, direction); \
+				if(!neighbor) { \
+					if(smooth_border) { \
+						new_junction |= direction_flag; \
+					}; \
+					break set_adj_in_dir; \
+				}; \
+				if(smooth_edge && type == neighbor.type) { \
+					break set_adj_in_dir; \
+				}; \
+				if(smooth_obj) { \
+					for(var/atom/movable/thing as anything in neighbor) { \
+						if(!thing.anchored) { \
+							continue; \
+						}; \
+						if(!smoothing_list) { \
+							if(type == thing.type) { \
+								new_junction |= direction_flag; \
+								break set_adj_in_dir; \
+							}; \
+							continue; \
+						}; \
+						var/thing_smoothing_groups = thing.smoothing_groups; \
+						if(!thing_smoothing_groups) { \
+							continue; \
+						}; \
+						for(var/target in smoothing_list) { \
+							if(smoothing_list[target] & thing_smoothing_groups[target]) { \
+								new_junction |= direction_flag; \
+								break set_adj_in_dir; \
+							}; \
+						}; \
+					}; \
+				}; \
+				if(!smoothing_list) { \
+					if(type == neighbor.type) { \
+						new_junction |= direction_flag; \
+					}; \
+					break set_adj_in_dir; \
+				}; \
+				var/neighbor_smoothing_groups = neighbor.smoothing_groups; \
+				if(neighbor_smoothing_groups) { \
+					for(var/target as anything in smoothing_list) { \
+						if(smoothing_list[target] & neighbor_smoothing_groups[target]) { \
+							new_junction |= direction_flag; \
+							break set_adj_in_dir; \
+						}; \
+					}; \
+				}; \
+				break set_adj_in_dir; \
+			} while(FALSE) \
+		}
+
+	for(var/direction as anything in GLOB.cardinals) //Cardinal case first.
+		SET_ADJ_IN_DIR(direction, direction)
+
+	if(smooth_edge)
+		if(!isturf(src))
+			CRASH("[type] has SMOOTH_EDGE set but is not a turf!")
+		var/turf/T = src
+		T.set_neighborlays(new_junction)
+		return
+
+	if(smoothing_flags & SMOOTH_BITMASK_CARDINALS || !(new_junction & (NORTH|SOUTH)) || !(new_junction & (EAST|WEST)))
+		set_smoothed_icon_state(new_junction)
+		return
+
+	if(new_junction & NORTH_JUNCTION)
+		if(new_junction & WEST_JUNCTION)
+			SET_ADJ_IN_DIR(NORTHWEST, NORTHWEST_JUNCTION)
+
+		if(new_junction & EAST_JUNCTION)
+			SET_ADJ_IN_DIR(NORTHEAST, NORTHEAST_JUNCTION)
+
+	if(new_junction & SOUTH_JUNCTION)
+		if(new_junction & WEST_JUNCTION)
+			SET_ADJ_IN_DIR(SOUTHWEST, SOUTHWEST_JUNCTION)
+
+		if(new_junction & EAST_JUNCTION)
+			SET_ADJ_IN_DIR(SOUTHEAST, SOUTHEAST_JUNCTION)
+
+	set_smoothed_icon_state(new_junction)
+
+	#undef SET_ADJ_IN_DIR
+
+///Changes the icon state based on the new junction bitmask.
+/atom/proc/set_smoothed_icon_state(new_junction)
+	icon_state = "[smoothing_icon]-[new_junction]"
+
+/turf/proc/set_neighborlays(new_junction)
+	remove_neighborlays()
+
+	if(new_junction == NONE)
+		return
+
+	if(new_junction & NORTH)
+		handle_edge_icon(NORTH)
+
+	if(new_junction & SOUTH)
+		handle_edge_icon(SOUTH)
+
+	if(new_junction & EAST)
+		handle_edge_icon(EAST)
+
+	if(new_junction & WEST)
+		handle_edge_icon(WEST)
+
+/turf/proc/handle_edge_icon(dir)
+	if(neighborlay_self)
+		add_neighborlay(dir, neighborlay_self)
+	if(neighborlay)
+		// Reverse dir because we are offsetting the overlay onto the adjacency
+		add_neighborlay(REVERSE_DIR(dir), neighborlay, TRUE)
+
+/turf/proc/add_neighborlay(dir, edgeicon, offset = FALSE)
+	var/add
+	var/y = 0
+	var/x = 0
+	switch(dir)
+		if(NORTH)
+			add = "[edgeicon]-n"
+			y = -32
+		if(SOUTH)
+			add = "[edgeicon]-s"
+			y = 32
+		if(EAST)
+			add = "[edgeicon]-e"
+			x = -32
+		if(WEST)
+			add = "[edgeicon]-w"
+			x = 32
+
+	if(!add)
+		return
+
+	var/image/overlay = image(icon, src, add, TURF_DECAL_LAYER, pixel_x = offset ? x : 0, pixel_y = offset ? y : 0 )
+
+	LAZYADDASSOC(neighborlay_list, "[dir]", overlay)
+	add_overlay(overlay)
+
+/turf/proc/remove_neighborlays()
+	for(var/key as anything in neighborlay_list)
+		cut_overlay(neighborlay_list[key])
+		qdel(neighborlay_list[key])
+		neighborlay_list[key] = null
+		LAZYREMOVE(neighborlay_list, key)
 
 //Icon smoothing helpers
 /proc/smooth_zlevel(zlevel, now = FALSE)
 	var/list/away_turfs = block(locate(1, 1, zlevel), locate(world.maxx, world.maxy, zlevel))
-	for(var/V in away_turfs)
-		var/turf/T = V
-		if(T.smooth)
+	for(var/turf/T as anything in away_turfs)
+		if(T.smoothing_flags & USES_SMOOTHING)
 			if(now)
-				smooth_icon(T)
+				T.smooth_icon()
 			else
-				queue_smooth(T)
-		for(var/R in T)
-			var/atom/A = R
-			if(A.smooth)
+				QUEUE_SMOOTH(T)
+		for(var/atom/A as anything in T)
+			if(A.smoothing_flags & USES_SMOOTHING)
 				if(now)
-					smooth_icon(A)
+					A.smooth_icon()
 				else
-					queue_smooth(A)
+					QUEUE_SMOOTH(A)
+
 
 /atom/proc/clear_smooth_overlays()
 	cut_overlay(top_left_corner)
@@ -335,6 +529,7 @@
 	bottom_right_corner = se
 	O += se
 	add_overlay(O)
+
 
 /proc/reverse_ndir(ndir)
 	switch(ndir)

@@ -35,8 +35,6 @@
 	var/bullet_sizzle = FALSE //used by ammo_casing/bounce_away() to determine if the shell casing should make a sizzle sound when it's ejected over the turf
 							//IE if the turf is supposed to be water, set TRUE.
 
-	var/tiled_dirt = FALSE // use smooth tiled dirt decal
-
 	var/turf_integrity	//defaults to max_integrity
 	var/max_integrity = 500
 	var/integrity_failure = 0 //0 if we have no special broken behavior, otherwise is a percentage of at what point the obj breaks. 0.5 being 50%
@@ -56,6 +54,9 @@
 	var/teleport_restricted = FALSE //whether turf teleport spells are forbidden from teleporting to this turf
 
 	vis_flags = VIS_INHERIT_PLANE|VIS_INHERIT_ID
+
+	///Icon-smoothing variable to map a diagonal wall corner with a fixed underlay.
+	var/list/fixed_underlay = null
 
 /turf/vv_edit_var(var_name, new_value)
 	var/static/list/banned_edits = list("x", "y", "z")
@@ -79,8 +80,11 @@
 	assemble_baseturfs()
 
 	levelupdate()
-	if(smooth)
-		queue_smooth(src)
+
+	SETUP_SMOOTHING()
+
+	if(smoothing_flags & USES_SMOOTHING)
+		QUEUE_SMOOTH(src)
 
 	for(var/atom/movable/AM in src)
 		Entered(AM)
@@ -111,7 +115,7 @@
 
 	ComponentInitialize()
 
-	queue_smooth_neighbors(src)
+	QUEUE_SMOOTH_NEIGHBORS(src)
 
 	return INITIALIZE_HINT_NORMAL
 
@@ -123,6 +127,8 @@
 	if(!changing_turf)
 		stack_trace("Incorrect turf deletion")
 	changing_turf = FALSE
+	if(neighborlay_list)
+		remove_neighborlays()
 	var/turf/T = GET_TURF_ABOVE(src)
 	if(T)
 		T.multiz_turf_del(src, DOWN)
