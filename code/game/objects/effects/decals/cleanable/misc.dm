@@ -1,15 +1,6 @@
-/obj/effect/decal/cleanable/dirt/Initialize()
-	. = ..()
-	var/turf/T = get_turf(src)
-	if(T.tiled_dirt)
-		smoothing_flags = SMOOTH_CORNERS
-		icon = 'icons/effects/dirt.dmi'
-		icon_state = ""
-		QUEUE_SMOOTH(src)
-	QUEUE_SMOOTH_NEIGHBORS(src)
+
 
 /obj/effect/decal/cleanable/dirt/Destroy()
-	QUEUE_SMOOTH_NEIGHBORS(src)
 	return ..()
 
 /obj/effect/decal/cleanable/dirt/dust

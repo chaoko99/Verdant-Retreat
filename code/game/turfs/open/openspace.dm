@@ -19,12 +19,9 @@ GLOBAL_DATUM_INIT(openspace_backdrop_one_for_all, /atom/movable/openspace_backdr
 	var/can_cover_up = TRUE
 	var/can_build_on = TRUE
 	dynamic_lighting = 1
-	canSmoothWith = list(/turf/closed/mineral,/turf/closed/wall/mineral/rogue, /turf/open/floor/rogue)
-	smooth = SMOOTH_MORE
-	neighborlay_override = "staticedge"
-
-/turf/open/transparent/openspace/cardinal_smooth(adjacencies)
-	roguesmooth(adjacencies, TRUE)
+/turf/open/transparent/openspace/debug/update_multiz()
+	..()
+	return TRUE
 
 /turf/open/transparent/openspace/roguesmooth(adjacencies)
 	var/list/Yeah = ..()

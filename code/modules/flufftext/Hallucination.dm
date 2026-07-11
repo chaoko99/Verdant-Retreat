@@ -854,7 +854,7 @@ GLOBAL_LIST_INIT(hallucination_list, list(
 /datum/hallucination/dangerflash
 
 /datum/hallucination/dangerflash/New(mob/living/carbon/C, forced = TRUE, danger_type)
-	set waitfor = FALSE
+/*	set waitfor = FALSE
 	..()
 	//Flashes of danger
 	if(!target.halimage)
@@ -867,13 +867,13 @@ GLOBAL_LIST_INIT(hallucination_list, list(
 				danger_type = pick("lava","chasm","anomaly")
 			switch(danger_type)
 				if("lava")
-					new /obj/effect/hallucination/danger/lava(danger_point, target)
+//					new /obj/effect/hallucination/danger/lava(danger_point, target)
 				if("chasm")
-					new /obj/effect/hallucination/danger/chasm(danger_point, target)
+//					new /obj/effect/hallucination/danger/chasm(danger_point, target)
 				if("anomaly")
-					new /obj/effect/hallucination/danger/anomaly(danger_point, target)
+//					new /obj/effect/hallucination/danger/anomaly(danger_point, target)
 	qdel(src)
-
+*/
 /obj/effect/hallucination/danger
 	var/image/image
 
@@ -893,7 +893,7 @@ GLOBAL_LIST_INIT(hallucination_list, list(
 /obj/effect/hallucination/danger/Destroy()
 	clear_icon()
 	. = ..()
-
+/*
 /obj/effect/hallucination/danger/lava
 	name = "lava"
 
@@ -923,7 +923,7 @@ GLOBAL_LIST_INIT(hallucination_list, list(
 		target.Paralyze(40)
 		addtimer(CALLBACK(GLOBAL_PROC, GLOBAL_PROC_REF(to_chat), target, "<span class='notice'>It's surprisingly shallow.</span>"), 15)
 		QDEL_IN(src, 30)
-
+*/
 /obj/effect/hallucination/danger/anomaly
 	name = "him."
 

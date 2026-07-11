@@ -48,10 +48,14 @@
 	var/debris = null
 	var/break_message = null
 
+	/// What we overlay onto turfs in our smoothing_list
 	var/neighborlay
-	var/neighborlay_list = list()
-	var/neighborlay_override
-	var/teleport_restricted = FALSE //whether turf teleport spells are forbidden from teleporting to this turf
+	/// If we were going to smooth with an Atom instead overlay this onto self
+	var/neighborlay_self
+	/// Current neighborlays, associative "DIR" = Overlay, neighborlays are always handled by the smoothing atom not what it smoothed with
+	var/list/neighborlay_list
+	//whether turf teleport spells are forbidden from teleporting to this turf
+	var/teleport_restricted = FALSE 
 
 	vis_flags = VIS_INHERIT_PLANE|VIS_INHERIT_ID
 

@@ -3,8 +3,8 @@
 /turf/closed/wall
 	name = ""
 	desc = ""
-	icon = 'icons/turf/walls/wall.dmi'
-	icon_state = "wall"
+	icon = 'icons/turf/smooth/walls/stone.dmi'
+	icon_state = MAP_SWITCH("stone", "stone-0")
 	explosion_block = 1
 
 	baseturfs = list(/turf/open/floor/rogue/dirt/road)
@@ -14,10 +14,10 @@
 	var/sheet_type = null
 	var/sheet_amount = 2
 
-	canSmoothWith = list(
-	/turf/closed/wall)
-	smooth = SMOOTH_TRUE
-
+	smoothing_flags = SMOOTH_BITMASK
+	smoothing_groups = SMOOTH_GROUP_CLOSED_WALL + SMOOTH_GROUP_WALLS_STONE
+	smoothing_list = SMOOTH_GROUP_DOOR_SECRET + SMOOTH_GROUP_WALLS_STONE
+	
 	var/list/dent_decals
 	var/obj/effect/track/thievescant/thiefmessage
 
