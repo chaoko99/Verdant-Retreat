@@ -205,6 +205,7 @@
 		/datum/behavior_tree/node/selector/humanoid_self_recovery, // Resist restraints/fire, stand back up
 		/datum/behavior_tree/node/decorator/observer/pain_crit/flee_response,
 		/datum/behavior_tree/node/sequence/goblin_combat,
+		/datum/behavior_tree/node/selector/faction_ai_branch,
 		/datum/behavior_tree/node/sequence/humanoid_idle
 	)
 

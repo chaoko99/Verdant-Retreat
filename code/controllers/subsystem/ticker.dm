@@ -161,7 +161,7 @@ SUBSYSTEM_DEF(ticker)
 		GLOB.syndicate_code_response_regex = codeword_match
 
 	start_at = world.time + (CONFIG_GET(number/lobby_countdown) * 10)
-	if(world.params["bt_compare"] || world.GetConfig("env", "BT_COMPARE"))
+	if(world.params["bt_compare"] || world.GetConfig("env", "BT_COMPARE") || world.params["faction_test"] || world.GetConfig("env", "FACTION_TEST"))
 		start_immediately = TRUE
 	if(CONFIG_GET(flag/randomize_shift_time))
 		gametime_offset = rand(0, 23) HOURS

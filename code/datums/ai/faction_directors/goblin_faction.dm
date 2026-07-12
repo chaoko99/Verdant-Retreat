@@ -1,55 +1,40 @@
-// ==============================================================================
-// GOBLIN FACTION DIRECTOR
-// ==============================================================================
-// Example implementation of faction AI for goblin tribes
-// Demonstrates resource gathering, spawning, and faction management
-// ==============================================================================
-
 /faction_director/goblin
 	faction_id = "goblins_base"
 	faction_name = "Goblin Tribe"
-	faction_tags = list("orcs")
+	faction_tags = list("orcs", "goblins_base")
 
-	// Goblin-specific settings
-	points_per_cycle = 15 // Goblins accumulate points faster (more chaotic)
+	points_per_cycle = 15
 	max_director_points = 500
 
 /faction_director/goblin/InitializeResources()
 	..()
-	// Goblins also track scrap and shiny objects
 	resources["scrap"] = 0
 	resources["shinies"] = 0
 
 /faction_director/goblin/InitializeGoals()
 	..()
-	// Add goblin-specific goals
 	available_goals += new /faction_goal/goblin_raid(src)
 	available_goals += new /faction_goal/spawn_unit/spawn_goblin(src)
 	available_goals += new /faction_goal/scavenge_scrap(src)
 
 /faction_director/goblin/ConsiderSpawning()
-	// Goblins can spawn randomly when they have enough resources
 	if(GetResource("food") >= 50 && director_points >= 100)
-		if(prob(20)) // 20% chance per cycle
+		if(prob(20))
 			var/current_gob_count = 0
 			for(var/count in current_units)
 				current_gob_count += current_units[count]
 
-			if(current_gob_count < 15) // Cap at 15 goblins
+			if(current_gob_count < 15)
 				if(SpendResource("food", 50) && SpendPoints(100))
 					SpawnUnit(/mob/living/carbon/human/species/goblin/npc)
-
-// ==============================================================================
-// SEA GOBLIN FACTION
-// ==============================================================================
 
 /faction_director/goblin/sea
 	faction_id = "sea_goblins"
 	faction_name = "Sea Goblin Raiders"
+	faction_tags = list("orcs", "goblins_sea")
 
 /faction_director/goblin/sea/InitializeGoals()
 	..()
-	// Sea goblins prioritize raiding coastal areas
 	available_goals += new /faction_goal/goblin_coastal_raid(src)
 
 /faction_director/goblin/sea/ConsiderSpawning()
@@ -63,17 +48,13 @@
 				if(SpendResource("food", 40) && SpendPoints(80))
 					SpawnUnit(/mob/living/carbon/human/species/goblin/npc/sea)
 
-// ==============================================================================
-// CAVE GOBLIN FACTION
-// ==============================================================================
-
 /faction_director/goblin/cave
 	faction_id = "cave_goblins"
 	faction_name = "Cave Goblin Miners"
+	faction_tags = list("orcs", "goblins_cave")
 
 /faction_director/goblin/cave/InitializeGoals()
 	..()
-	// Cave goblins focus on mining
 	available_goals += new /faction_goal/gather_resources(src, "stone")
 	available_goals += new /faction_goal/gather_resources(src, "metal")
 	available_goals += new /faction_goal/goblin_fortify(src)
@@ -89,31 +70,40 @@
 				if(SpendResource("stone", 100) && SpendPoints(120))
 					SpawnUnit(/mob/living/carbon/human/species/goblin/npc/cave)
 
-// ==============================================================================
-// GOBLIN FACTION GOALS
-// ==============================================================================
-
-// Goal: Conduct a raid
 /faction_goal/goblin_raid
 	goal_name = "Raid Nearby Settlement"
 	activation_cost = 200
 	base_score = 120
 
-	var/raid_launched = FALSE
+	var/turf/raid_target
+	var/list/task_refs = list()
+	var/activation_time = 0
+
+/faction_goal/goblin_raid/proc/find_raid_target()
+	var/list/candidates = list()
+	for(var/obj/effect/landmark/start/villagerlate/L in GLOB.start_landmarks_list)
+		candidates += L
+	if(length(candidates))
+		return get_turf(pick(candidates))
+	if(length(GLOB.player_list))
+		var/mob/M = pick(GLOB.player_list)
+		return get_turf(M)
+	return null
 
 /faction_goal/goblin_raid/CanActivate(faction_director/director)
 	if(!..())
 		return FALSE
 
-	// Need enough goblins to raid
 	var/total_units = 0
 	for(var/count in director.current_units)
 		total_units += director.current_units[count]
 
-	return total_units >= 8
+	if(total_units < 8)
+		return FALSE
+
+	return find_raid_target() != null
 
 /faction_goal/goblin_raid/CalculateScore(faction_director/director)
-	// More goblins = higher raid desire
 	var/total_units = 0
 	for(var/count in director.current_units)
 		total_units += director.current_units[count]
@@ -121,35 +111,42 @@
 	if(total_units < 8)
 		return 0
 
-	// Score increases with goblin count
 	return base_score + (total_units * 5)
 
 /faction_goal/goblin_raid/OnActivate(faction_director/director)
 	. = ..()
-	raid_launched = FALSE
+	raid_target = find_raid_target()
+	task_refs = list()
+	activation_time = world.time
 
 /faction_goal/goblin_raid/Process(faction_director/director)
-	if(!raid_launched)
-		// Create raid tasks for goblins
-		var/tasks_created = 0
-		for(var/i = 1 to 5)
-			var/faction_task/goblin_raid_task/T = new()
-			director.AddTask(T)
-			tasks_created++
-
-		raid_launched = TRUE
+	if(!raid_target)
+		return
+	if(length(task_refs))
+		return
+	for(var/i in 1 to 5)
+		var/faction_task/goblin_raid_task/T = new()
+		T.raid_target = raid_target
+		director.AddTask(T)
+		task_refs += T
 
 /faction_goal/goblin_raid/IsComplete(faction_director/director)
-	return raid_launched // Complete immediately after launching
+	if(!raid_target)
+		return TRUE
+	if(world.time >= activation_time + 5 MINUTES)
+		return TRUE
+	for(var/faction_task/goblin_raid_task/T as anything in task_refs)
+		if(QDELETED(T) || !T.completed)
+			return FALSE
+	return TRUE
 
-// Goal: Coastal raid (sea goblins)
 /faction_goal/goblin_coastal_raid
+	parent_type = /faction_goal/goblin_raid
 	goal_name = "Raid Coastal Area"
 	activation_cost = 150
 	base_score = 140
 
 /faction_goal/goblin_coastal_raid/CalculateScore(faction_director/director)
-	// Sea goblins always want to raid if they have enough units
 	var/total_units = 0
 	for(var/count in director.current_units)
 		total_units += director.current_units[count]
@@ -159,7 +156,6 @@
 
 	return base_score + (total_units * 7)
 
-// Goal: Spawn goblin units
 /faction_goal/spawn_unit/spawn_goblin
 	goal_name = "Recruit Goblin"
 	activation_cost = 50
@@ -178,35 +174,48 @@
 	if(current_units >= 20)
 		return 0
 
-	// Higher score when we have lots of food but few goblins
 	var/food = director.GetResource("food")
 	var/deficit = 20 - current_units
 
 	return base_score + (deficit * 10) + (food / 10)
 
-// Goal: Scavenge for scrap
 /faction_goal/scavenge_scrap
 	goal_name = "Scavenge Scrap"
 	activation_cost = 25
 	base_score = 70
 
+	var/list/active_tasks = list()
+
 /faction_goal/scavenge_scrap/CalculateScore(faction_director/director)
 	var/scrap = director.GetResource("scrap")
 
 	if(scrap >= 100)
-		return 0 // Have enough scrap
+		return 0
 
 	return base_score + (100 - scrap) / 5
 
+/faction_goal/scavenge_scrap/OnActivate(faction_director/director)
+	. = ..()
+	active_tasks = list()
+
 /faction_goal/scavenge_scrap/Process(faction_director/director)
-	// Create scavenging tasks
+	var/list/still_active = list()
+	for(var/faction_task/scavenge/T as anything in active_tasks)
+		if(!QDELETED(T) && !T.completed)
+			still_active += T
+	active_tasks = still_active
+
+	if(length(active_tasks) >= 3)
+		return
+
 	var/faction_task/scavenge/T = new()
+	T.scavenge_location = director.get_random_work_turf()
 	director.AddTask(T)
+	active_tasks += T
 
 /faction_goal/scavenge_scrap/IsComplete(faction_director/director)
 	return director.GetResource("scrap") >= 100
 
-// Goal: Fortify position (cave goblins)
 /faction_goal/goblin_fortify
 	goal_name = "Fortify Cave"
 	activation_cost = 100
@@ -217,75 +226,68 @@
 	var/wood = director.GetResource("wood")
 
 	if(stone < 50 || wood < 50)
-		return 0 // Need resources first
+		return 0
 
 	return base_score
 
 /faction_goal/goblin_fortify/Process(faction_director/director)
-	// Spend resources to fortify (placeholder)
 	if(director.SpendResource("stone", 50) && director.SpendResource("wood", 50))
-		// In a real implementation, this would create fortifications
-		// For now, just log it
-		return
+		director.fortification_level++
 
 /faction_goal/goblin_fortify/IsComplete(faction_director/director)
-	return TRUE // Complete immediately
+	return TRUE
 
-// ==============================================================================
-// GOBLIN FACTION TASKS
-// ==============================================================================
-
-// Task: Participate in raid
 /faction_task/goblin_raid_task
 	task_name = "Join Raid"
 	task_priority = 80
+	var/turf/raid_target
 
 /faction_task/goblin_raid_task/Execute(mob/living/M)
-	// This would integrate with behavior trees to make goblins move toward raid target
-	// For now, just a placeholder that "completes" after some time
-	return FALSE
+	if(!M?.ai_root)
+		return NODE_FAILURE
+	if(!raid_target)
+		return NODE_FAILURE
 
-// Task: Scavenge for items
-/faction_task/scavenge
-	task_name = "Scavenge"
-	task_priority = 40
+	M.ai_root.blackboard[AIBLK_FACTION_TASK_DEST] = raid_target
+	if(get_dist(M, raid_target) <= 5)
+		M.set_ai_path_to(null)
+		M.ai_root.blackboard -= AIBLK_FACTION_TASK_DEST
+		return NODE_SUCCESS
+	if(M.set_ai_path_to(raid_target))
+		return NODE_RUNNING
+	return NODE_FAILURE
 
-/faction_task/scavenge/Execute(mob/living/M)
-	// Placeholder - would make goblins search for items
-	return FALSE
+/proc/initialize_goblin_factions(list/portal_turfs)
+	if(!length(portal_turfs))
+		return
 
-// ==============================================================================
-// HELPER PROCS FOR SETTING UP GOBLIN FACTIONS
-// ==============================================================================
+	var/faction_director/goblin/base_goblins = SSfaction_ai.GetFaction("goblins_base")
+	if(!base_goblins)
+		base_goblins = new()
+	base_goblins.spawn_points |= portal_turfs
+	if(!base_goblins.faction_home_base)
+		base_goblins.faction_home_base = portal_turfs[1]
 
-// Call this to initialize goblin faction directors at round start
-/proc/initialize_goblin_factions()
-	// Create sea goblin faction
-	var/faction_director/goblin/sea/sea_goblins = new()
-	sea_goblins.faction_home_base = null // Set to a specific location if needed
+	var/faction_director/goblin/sea/sea_goblins = SSfaction_ai.GetFaction("sea_goblins")
+	if(!sea_goblins)
+		sea_goblins = new()
+	sea_goblins.spawn_points |= portal_turfs
+	if(!sea_goblins.faction_home_base)
+		sea_goblins.faction_home_base = portal_turfs[1]
 
-	// Create cave goblin faction
-	var/faction_director/goblin/cave/cave_goblins = new()
-	cave_goblins.faction_home_base = null // Set to a specific location if needed
+	var/faction_director/goblin/cave/cave_goblins = SSfaction_ai.GetFaction("cave_goblins")
+	if(!cave_goblins)
+		cave_goblins = new()
+	cave_goblins.spawn_points |= portal_turfs
+	if(!cave_goblins.faction_home_base)
+		cave_goblins.faction_home_base = portal_turfs[1]
 
-	// You could create more factions here
-	// The factions will automatically register with SSfaction_ai
-
-// Example: Assign a faction director to a mob when it spawns
 /mob/living/carbon/human/species/goblin/npc/proc/assign_faction_director(faction_id)
 	if(!ai_root?.blackboard)
 		return
 
 	var/faction_director/director = SSfaction_ai.GetFaction(faction_id)
 	if(!director)
-		// Create a new director if it doesn't exist
-		switch(faction_id)
-			if("sea_goblins")
-				director = new /faction_director/goblin/sea()
-			if("cave_goblins")
-				director = new /faction_director/goblin/cave()
-			else
-				director = new /faction_director/goblin()
-				director.faction_id = faction_id
+		return
 
 	ai_root.blackboard[AIBLK_FACTION_DIRECTOR] = director

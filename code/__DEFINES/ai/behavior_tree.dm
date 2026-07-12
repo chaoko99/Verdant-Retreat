@@ -192,6 +192,11 @@
 #define AIBLK_FACTION_DIRECTOR 9284612 // Reference to the faction_director datum
 #define AIBLK_FACTION_TASK 7392847 // Current faction task assigned to this mob
 #define AIBLK_FACTION_TASK_TIMEOUT 3948291 // Timeout for faction task completion
+#define AIBLK_FACTION_TASK_DEST 15682956
+
+#define FACTION_TASK_TRAVEL 1
+#define FACTION_TASK_WORK 2
+#define FACTION_TASK_RETURN 3
 
 // Defines for goblin squad roles
 #define GOB_SQUAD_ROLE_RESTRAINER 1
