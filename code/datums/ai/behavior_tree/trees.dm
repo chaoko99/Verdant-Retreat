@@ -51,6 +51,7 @@
 
 /datum/behavior_tree/node/parallel/root/New(typepath, mob/owner)
 
+	tree_typepath = typepath
 	main_node = new /datum/behavior_tree/node/sequence/main(typepath)
 	move_node = new /datum/behavior_tree/node/sequence/movement_tree()
 	my_nodes = list(main_node, move_node)

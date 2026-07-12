@@ -43,11 +43,20 @@
 	if(!aggressors) return
 
 	for(var/mob/living/L in aggressors)
-		if(QDELETED(L) || L.stat == DEAD || get_dist(npc, L) > npc.client?.view || 7)
+		if(QDELETED(L) || L.stat == DEAD || get_dist(npc, L) > (npc.client?.view || 7))
 			aggressors -= L
-	
+
 	if(!length(aggressors))
 		blackboard -= AIBLK_AGGRESSORS
+
+/datum/behavior_tree/node/decorator/service/chatter
+	interval = 2 SECONDS
+
+/datum/behavior_tree/node/decorator/service/chatter/service_tick(mob/living/npc, list/blackboard)
+	var/mob/living/simple_animal/SA = npc
+	if(!istype(SA))
+		return
+	SA.handle_automated_speech()
 
 // ------------------------------------------------------------------------------
 // OBSERVERS
@@ -73,14 +82,19 @@
 	var/mob/living/simple_animal/hostile/H = user
 	if(!istype(H)) return NODE_FAILURE
 
+	var/list/current_aggressors = blackboard[AIBLK_AGGRESSORS]
+	var/retaliate_only = !H.aggressive && istype(H, /mob/living/simple_animal/hostile/retaliate)
+
 	var/list/valid_targets = list()
-	
+
 	for(var/atom/A in candidates)
 		// Basic Checks
 		if(A == user) continue
 		if(isturf(A)) continue
 		if(A.type == /atom/movable/lighting_object) continue
-		
+		var/is_wanted_prey = isliving(A) && length(H.wanted_prey) && is_type_in_typecache(A, H.wanted_prey)
+		if(retaliate_only && !is_wanted_prey && !(current_aggressors && (A in current_aggressors))) continue
+
 		// Hostile Checks
 		if(ismob(A))
 			var/mob/M = A
@@ -96,7 +110,8 @@
 					if(!H.npc_detect_sneak(L, H.simple_detect_bonus))
 						continue
 
-		if(H.search_objects < 2 && isliving(A))
+		if(isliving(A) && !is_wanted_prey)
+			if(H.search_objects >= 2) continue
 			var/mob/living/L = A
 			var/faction_check = H.faction_check_mob(L)
 			if(H.robust_searching)
@@ -129,7 +144,7 @@
 			best = A
 	
 	if(best)
-		user.ai_root.target = best
+		user.GiveTarget(best)
 		H.LosePatience()
 		H.GainPatience() // Reset patience logic
 		H.last_aggro_loss = 0
@@ -161,21 +176,28 @@
 	var/mob/living/current = user.ai_root.target
 	var/mob/living/best_aggressor = null
 	var/best_dist = 999
-	
+	var/mob/living/simple_animal/hostile/H = user
+	var/is_hostile = istype(H)
+
 	if(current)
 		best_dist = get_dist(user, current)
-	
+
 	for(var/mob/living/A in aggressors)
 		if(A == current) continue
 		if(A.stat == DEAD) continue
-		
+		if(is_hostile)
+			if(H.robust_searching)
+				if(A.stat > H.stat_attack) continue
+			else if(A.stat)
+				continue
+
 		var/dist = get_dist(user, A)
 		if(dist < best_dist - switch_threshold_dist)
 			best_dist = dist
 			best_aggressor = A
 	
 	if(best_aggressor)
-		user.ai_root.target = best_aggressor
+		user.GiveTarget(best_aggressor)
 		blackboard[AIBLK_LAST_KNOWN_TARGET_LOC] = get_turf(best_aggressor)
 		return NODE_SUCCESS
 		
@@ -226,8 +248,17 @@
 	
 	if(world.time < user.ai_root.next_attack_tick)
 		return NODE_FAILURE
+	if(world.time < H.next_move)
+		return NODE_FAILURE
+	if(H.swinging)
+		return NODE_FAILURE
 
-	H.AttackingTarget()
+	H.face_atom(target)
+	if(length(H.possible_a_intents))
+		H.a_intent = pick(H.possible_a_intents)
+	H.ClickOn(target, list())
+	if(!user.ai_root)
+		return NODE_FAILURE
 	user.ai_root.next_attack_tick = world.time + (user.ai_root.next_attack_delay || 10)
 	return NODE_SUCCESS
 
@@ -241,16 +272,17 @@
 	if(H.ranged_cooldown > world.time)
 		return NODE_FAILURE
 
-	H.visible_message(span_danger("<b>[H]</b> [H.ranged_message] at [target]!"))
-	if(H.rapid > 1)
-		var/datum/callback/cb = CALLBACK(H, TYPE_PROC_REF(/mob/living/simple_animal/hostile, Shoot), target)
-		for(var/i in 1 to H.rapid)
-			addtimer(cb, (i - 1)*H.rapid_fire_delay)
-	else
-		H.Shoot(target)
-
-	H.ranged_cooldown = world.time + H.ranged_cooldown_time
+	H.OpenFire(target)
 	return NODE_SUCCESS
+
+/bt_action/do_ranged_attack/passthrough/evaluate(mob/living/user, mob/living/target, list/blackboard)
+	var/mob/living/simple_animal/hostile/H = user
+	if(!istype(H) || !H.ranged || !target)
+		return NODE_FAILURE
+	if(get_dist(user, target) <= 1)
+		return NODE_FAILURE
+	..()
+	return NODE_FAILURE
 
 // ------------------------------------------------------------------------------
 // UTILITY ACTIONS
@@ -284,16 +316,16 @@
 /bt_action/find_food/evaluate(mob/living/user, mob/living/target, list/blackboard)
 	if(!user.ai_root) return NODE_FAILURE
 	var/mob/living/simple_animal/SA = user
-	if(!istype(SA) || !SA.food_type) return NODE_FAILURE
-	
+	if(!istype(SA) || !length(SA.food_type)) return NODE_FAILURE
+
 	var/atom/current_food = blackboard[AIBLK_FOOD_TARGET]
 	if(current_food && !QDELETED(current_food) && get_dist(user, current_food) <= search_range)
 		if(current_food.loc) return NODE_SUCCESS
-		
-	blackboard[AIBLK_FOOD_TARGET] = null
-	for(var/atom/movable/A in view(search_range, user))
-		if(SA.food_type && is_type_in_list(A, SA.food_type))
-			blackboard[AIBLK_FOOD_TARGET] = A
+
+	blackboard -= AIBLK_FOOD_TARGET
+	for(var/obj/item/F in view(search_range, user))
+		if(is_type_in_list(F, SA.food_type))
+			blackboard[AIBLK_FOOD_TARGET] = F
 			return NODE_SUCCESS
 	return NODE_FAILURE
 
@@ -301,34 +333,35 @@
 	if(!user.ai_root) return NODE_FAILURE
 	var/atom/movable/food = blackboard[AIBLK_FOOD_TARGET]
 	if(!food || QDELETED(food)) return NODE_FAILURE
-	
+
 	if(get_dist(user, food) > 1)
 		user.ai_root.move_destination = food
 		return NODE_FAILURE
-		
-	user.visible_message(span_notice("[user] eats [food]."))
-	playsound(user, 'sound/misc/eat.ogg', 50, TRUE)
+
+	user.face_atom(food)
+	playsound(user, 'sound/misc/eat.ogg', rand(30,60), TRUE)
 	qdel(food)
-	blackboard[AIBLK_FOOD_TARGET] = null
-	blackboard[AIBLK_NEXT_HUNGER_CHECK] = world.time + rand(60 SECONDS, 120 SECONDS)
-	
+	blackboard -= AIBLK_FOOD_TARGET
+
 	if(istype(user, /mob/living/simple_animal))
 		var/mob/living/simple_animal/SA = user
-		SA.food = min(SA.food + 30, 100)
-		SA.adjustHealth(-5)
-		
+		SA.food = max(SA.food + 30, 100)
+
 	return NODE_SUCCESS
 
 /bt_action/check_hunger
-	var/hunger_key = "next_hunger_check"
 /bt_action/check_hunger/evaluate(mob/living/user, mob/living/target, list/blackboard)
-	if(!user.ai_root) return NODE_FAILURE
-	var/next_eat = blackboard[hunger_key]
-	if(!next_eat)
-		next_eat = world.time + rand(0, 30 SECONDS)
-		blackboard[hunger_key] = next_eat
-		
-	if(world.time < next_eat) return NODE_FAILURE
+	var/mob/living/simple_animal/SA = user
+	if(!istype(SA) || !length(SA.food_type)) return NODE_FAILURE
+	if(SA.stat) return NODE_FAILURE
+	var/threshold = 50
+	if(istype(SA, /mob/living/simple_animal/hostile/retaliate/rogue))
+		var/mob/living/simple_animal/hostile/retaliate/rogue/R = SA
+		if(R.eat_forever)
+			return NODE_SUCCESS
+		threshold = R.food_max
+	if(SA.food > threshold)
+		return NODE_FAILURE
 	return NODE_SUCCESS
 
 /bt_action/clear_target
@@ -344,9 +377,16 @@
 
 /bt_action/has_valid_target
 /bt_action/has_valid_target/evaluate(mob/living/user, mob/living/target, list/blackboard)
-	if(target && target.stat != DEAD)
-		return NODE_SUCCESS
-	return NODE_FAILURE
+	if(!target || target.stat == DEAD)
+		return NODE_FAILURE
+	var/mob/living/simple_animal/hostile/H = user
+	if(istype(H))
+		if(H.robust_searching)
+			if(target.stat > H.stat_attack)
+				return NODE_FAILURE
+		else if(target.stat)
+			return NODE_FAILURE
+	return NODE_SUCCESS
 
 
 // ==============================================================================
@@ -389,18 +429,79 @@
 	if(target && get_dist(user, target) <= range) return NODE_SUCCESS
 	return NODE_FAILURE
 
+/bt_action/target_in_range/reach2
+	range = 2
+
 /bt_action/move_to_target/evaluate(mob/living/user, mob/living/target, list/blackboard)
 	if(!target) return NODE_FAILURE
-	if(get_dist(user, target) <= 1 && user.Adjacent(target)) return NODE_SUCCESS
+	var/stop_dist = 1
+	var/mob/living/simple_animal/hostile/H = user
+	if(istype(H) && H.minimum_distance > 1)
+		stop_dist = H.minimum_distance
+	if(stop_dist > 1)
+		if(get_dist(user, target) <= stop_dist) return NODE_SUCCESS
+	else if(get_dist(user, target) <= 1 && user.Adjacent(target))
+		return NODE_SUCCESS
 	if(user.set_ai_path_to(target)) return NODE_RUNNING
 	return NODE_FAILURE
+
+/mob/living/simple_animal/proc/handle_automated_speech()
+	if(!ai_root)
+		return
+	if(world.time < ai_root.next_chatter_tick)
+		return
+	ai_root.next_chatter_tick = world.time + 2 SECONDS
+	if(!speak_chance || !prob(speak_chance))
+		return
+	if(speak && speak.len)
+		if((emote_hear && emote_hear.len) || (emote_see && emote_see.len))
+			var/total = speak.len
+			if(emote_hear && emote_hear.len)
+				total += emote_hear.len
+			if(emote_see && emote_see.len)
+				total += emote_see.len
+			var/randomValue = rand(1, total)
+			if(randomValue <= speak.len)
+				say(pick(speak))
+			else
+				randomValue -= speak.len
+				if(emote_see && randomValue <= emote_see.len)
+					emote("me", 1, pick(emote_see))
+				else
+					emote("me", 2, pick(emote_hear))
+		else
+			say(pick(speak))
+	else
+		if(!(emote_hear && emote_hear.len) && (emote_see && emote_see.len))
+			emote("me", 1, pick(emote_see))
+		if((emote_hear && emote_hear.len) && !(emote_see && emote_see.len))
+			emote("me", 2, pick(emote_hear))
+		if((emote_hear && emote_hear.len) && (emote_see && emote_see.len))
+			var/total = emote_hear.len + emote_see.len
+			var/pickv = rand(1, total)
+			if(pickv <= emote_see.len)
+				emote("me", 1, pick(emote_see))
+			else
+				emote("me", 2, pick(emote_hear))
+
+/bt_action/idle_chatter
+/bt_action/idle_chatter/evaluate(mob/living/user, mob/living/target, list/blackboard)
+	var/mob/living/simple_animal/SA = user
+	if(istype(SA))
+		SA.handle_automated_speech()
+	return NODE_SUCCESS
 
 /bt_action/idle_wander/evaluate(mob/living/user, mob/living/target, list/blackboard)
 	var/mob/living/simple_animal/SA = user
 	if(!istype(SA)) return NODE_FAILURE
 
-	if(!SA.wander || !prob(15))
+	if(!SA.wander || SA.stop_automated_movement || SA.doing)
 		return NODE_FAILURE
+	if(SA.stop_automated_movement_when_pulled && SA.pulledby)
+		return NODE_FAILURE
+	if(world.time < user.ai_root.next_wander_tick)
+		return NODE_FAILURE
+	user.ai_root.next_wander_tick = world.time + max(1, SA.turns_per_move) * 2 SECONDS
 
 	if(world.time >= user.ai_root.next_move_tick)
 		var/turf/T = get_step(user, pick(GLOB.cardinals))
@@ -417,13 +518,54 @@
 /bt_action/dreamfiend_blink
 	var/blink_range = 5
 /bt_action/dreamfiend_blink/evaluate(mob/living/user, mob/living/target, list/blackboard)
-	if(!target || get_dist(user, target) > blink_range) return NODE_FAILURE
-	var/turf/T = get_step(target, get_dir(target, user)) 
-	if(!T || T.density) T = get_turf(target)
-	if(T)
-		do_teleport(user, T, 0, asoundin = 'sound/magic/blink.ogg', channel = TELEPORT_CHANNEL_MAGIC)
+	var/mob/living/simple_animal/hostile/rogue/dreamfiend/D = user
+	if(!istype(D) || !target) return NODE_FAILURE
+	if(get_dist(user, target) <= blink_range) return NODE_FAILURE
+	if(D.blink_to_target(target))
 		return NODE_SUCCESS
 	return NODE_FAILURE
+
+/bt_action/dreamfiend_kick
+	var/kick_cooldown = 20 SECONDS
+	var/next_kick = 0
+/bt_action/dreamfiend_kick/evaluate(mob/living/user, mob/living/target, list/blackboard)
+	var/mob/living/simple_animal/hostile/rogue/dreamfiend/ancient/A = user
+	if(!istype(A) || !target || !ishuman(target)) return NODE_FAILURE
+	if(get_dist(user, target) > 1) return NODE_FAILURE
+	if(world.time < next_kick) return NODE_FAILURE
+	next_kick = world.time + kick_cooldown
+	var/mob/living/carbon/human/H = target
+	user.face_atom(H)
+	user.visible_message(span_danger("[user] kicks [H]!"))
+	var/turf/shove_turf = get_step(H, get_dir(user, H))
+	if(shove_turf && !shove_turf.density && H.Move(shove_turf, get_dir(user, H)))
+		H.Knockdown(20)
+	else
+		H.Knockdown(40)
+	H.apply_damage(50, BRUTE, BODY_ZONE_CHEST)
+	return NODE_SUCCESS
+
+/bt_action/dreamfiend_desummon
+	var/idle_grace = 3 SECONDS
+	var/idle_since = 0
+	var/desummon_started = FALSE
+/bt_action/dreamfiend_desummon/evaluate(mob/living/user, mob/living/target, list/blackboard)
+	var/mob/living/simple_animal/hostile/rogue/dreamfiend/D = user
+	if(!istype(D) || !D.desummons_when_idle) return NODE_FAILURE
+	if(desummon_started) return NODE_FAILURE
+	var/list/aggressors = blackboard[AIBLK_AGGRESSORS]
+	if(target || (aggressors && length(aggressors)))
+		idle_since = 0
+		desummon_started = FALSE
+		return NODE_FAILURE
+	if(!idle_since)
+		idle_since = world.time
+		return NODE_FAILURE
+	if(world.time - idle_since < idle_grace)
+		return NODE_FAILURE
+	desummon_started = TRUE
+	INVOKE_ASYNC(D, TYPE_PROC_REF(/mob/living/simple_animal/hostile/rogue/dreamfiend, return_to_abyssor))
+	return NODE_SUCCESS
 
 /bt_action/escape_confinement/evaluate(mob/living/user, mob/living/target, list/blackboard)
 	var/mob/living/simple_animal/hostile/H = user
@@ -438,10 +580,14 @@
 		return NODE_SUCCESS
 	return NODE_FAILURE
 
+/bt_action/destroy_path
+	var/next_smash = 0
 /bt_action/destroy_path/evaluate(mob/living/user, mob/living/target, list/blackboard)
 	var/mob/living/simple_animal/hostile/H = user
 	if(!istype(H) || !target) return NODE_FAILURE
 	if(!H.environment_smash) return NODE_FAILURE
+	if(world.time < next_smash) return NODE_FAILURE
+	next_smash = world.time + 2 SECONDS
 	var/dir_to_target = get_dir(H.targets_from, target)
 	var/turf/V = get_turf(H)
 	for (var/obj/structure/O in V.contents)
@@ -501,6 +647,38 @@
 	var/turf/best_dest = get_ranged_target_turf(user, get_dir(target, user), run_distance)
 	if(user.set_ai_path_to(best_dest)) return NODE_RUNNING
 	return NODE_FAILURE
+
+/bt_action/flee_target/injured
+	var/flee_duration = 6 SECONDS
+	var/reflee_cooldown = 60 SECONDS
+	var/stop_health_fraction = 0.75
+/bt_action/flee_target/injured/evaluate(mob/living/user, mob/living/target, list/blackboard)
+	var/mob/living/simple_animal/SA = user
+	if(!istype(SA)) return NODE_FAILURE
+
+	var/flee_until = blackboard[AIBLK_FLEE_UNTIL]
+	if(!flee_until)
+		if(SA.health >= SA.maxHealth * stop_health_fraction) return NODE_FAILURE
+		var/next_allowed = blackboard[AIBLK_NEXT_FLEE_ALLOWED]
+		if(next_allowed && world.time < next_allowed) return NODE_FAILURE
+		if(!target) return NODE_FAILURE
+		blackboard[AIBLK_FLEE_FROM] = get_turf(target)
+		blackboard[AIBLK_NEXT_FLEE_ALLOWED] = world.time + reflee_cooldown
+		flee_until = world.time + flee_duration
+		blackboard[AIBLK_FLEE_UNTIL] = flee_until
+		user.LoseTarget()
+
+	if(SA.health >= SA.maxHealth * stop_health_fraction || world.time >= flee_until)
+		blackboard -= AIBLK_FLEE_UNTIL
+		blackboard -= AIBLK_FLEE_FROM
+		user.set_ai_path_to(null)
+		return NODE_SUCCESS
+
+	var/turf/away_from = blackboard[AIBLK_FLEE_FROM]
+	if(away_from)
+		var/turf/best_dest = get_ranged_target_turf(user, get_dir(away_from, user), run_distance)
+		user.set_ai_path_to(best_dest)
+	return NODE_RUNNING
 
 /bt_action/set_move_target_key
 	var/blackboard_key
@@ -570,18 +748,33 @@
 		return NODE_SUCCESS
 	return NODE_FAILURE
 
+/bt_action/follow_target
+	var/max_follow_dist = 0
+	var/stop_if_leader_has_target = FALSE
 /bt_action/follow_target/evaluate(mob/living/user, mob/living/target, list/blackboard)
-	var/atom/movable/follow_target = user.ai_root.blackboard[AIBLK_FOLLOW_TARGET]
-	if(!follow_target || get_dist(user, follow_target) > user.client?.view || 7)
-		user.ai_root.blackboard -= AIBLK_FOLLOW_TARGET
+	var/atom/movable/follow_target = blackboard[AIBLK_FOLLOW_TARGET]
+	if(!follow_target || QDELETED(follow_target))
+		blackboard -= AIBLK_FOLLOW_TARGET
+		return NODE_FAILURE
+	var/limit = max_follow_dist || user.client?.view || 7
+	if(get_dist(user, follow_target) > limit)
+		blackboard -= AIBLK_FOLLOW_TARGET
 		return NODE_FAILURE
 	if(istype(follow_target, /mob/living) && (follow_target:stat == DEAD))
-		user.ai_root.blackboard -= AIBLK_FOLLOW_TARGET
+		blackboard -= AIBLK_FOLLOW_TARGET
 		return NODE_SUCCESS
+	if(stop_if_leader_has_target && isliving(follow_target))
+		var/mob/living/leader = follow_target
+		if(leader.ai_root && leader.ai_root.target)
+			return NODE_FAILURE
 	if(get_dist(user, follow_target) <= 1) return NODE_SUCCESS
 	if(user.set_ai_path_to(follow_target))
 		return NODE_RUNNING
 	return NODE_FAILURE
+
+/bt_action/follow_target/mirespider
+	max_follow_dist = 12
+	stop_if_leader_has_target = TRUE
 
 /bt_action/perform_emote
 	var/emote_id
@@ -694,6 +887,22 @@
 			return NODE_SUCCESS
 	return NODE_FAILURE
 
+/bt_action/keep_distance
+/bt_action/keep_distance/evaluate(mob/living/user, mob/living/target, list/blackboard)
+	if(!target) return NODE_FAILURE
+	var/mob/living/simple_animal/hostile/H = user
+	if(!istype(H) || !H.retreat_distance) return NODE_FAILURE
+	if(get_dist(user, target) >= H.retreat_distance)
+		return NODE_FAILURE
+	user.face_atom(target)
+	var/turf/T = get_ranged_target_turf(user, get_dir(target, user), 3)
+	if(T && !T.density && user.set_ai_path_to(T))
+		return NODE_RUNNING
+	T = get_step_away(user, target)
+	if(T && !T.is_blocked_turf(exclude_mobs = TRUE) && user.set_ai_path_to(T))
+		return NODE_RUNNING
+	return NODE_FAILURE
+
 /bt_action/maintain_distance
 	var/min_dist = 2
 	var/max_dist = 4
@@ -711,28 +920,90 @@
 		if(user.set_ai_path_to(target)) return NODE_RUNNING
 	return NODE_SUCCESS
 
+/bt_action/maintain_distance/hold2
+	min_dist = 2
+	max_dist = 2
+
+/bt_action/find_dead_body
+	var/search_range = 9
+/bt_action/find_dead_body/evaluate(mob/living/user, mob/living/target, list/blackboard)
+	if(!user.ai_root) return NODE_FAILURE
+	if(istype(user, /mob/living/simple_animal/hostile/retaliate/rogue))
+		var/mob/living/simple_animal/hostile/retaliate/rogue/R = user
+		if(R.food >= R.food_max && !R.eat_forever)
+			return NODE_FAILURE
+	var/mob/living/current = blackboard[AIBLK_CORPSE_TARGET]
+	if(current && !QDELETED(current) && current.stat == DEAD && current.loc && get_dist(user, current) <= search_range)
+		return NODE_SUCCESS
+	blackboard -= AIBLK_CORPSE_TARGET
+	for(var/mob/living/L in oview(search_range, user))
+		if(L.stat != DEAD)
+			continue
+		if(L.ckey || L.mind)
+			continue
+		if(iscarbon(L))
+			var/mob/living/carbon/C = L
+			if(C.last_mind)
+				continue
+		blackboard[AIBLK_CORPSE_TARGET] = L
+		return NODE_SUCCESS
+	return NODE_FAILURE
+
 /bt_action/eat_dead_body
-	var/action_cooldown = 1.5 SECONDS
 /bt_action/eat_dead_body/evaluate(mob/living/user, mob/living/target, list/blackboard)
-	if(!user.ai_root || !target || target.stat != DEAD) return NODE_FAILURE
-	if(target.ckey || target.mind) return NODE_FAILURE
-	if(get_dist(user, target) > 1)
-		if(user.set_ai_path_to(target))
+	if(!user.ai_root) return NODE_FAILURE
+	var/mob/living/body = blackboard[AIBLK_CORPSE_TARGET]
+	if(!body || QDELETED(body))
+		body = target
+	if(!body || QDELETED(body) || body.stat != DEAD || !body.loc)
+		blackboard -= AIBLK_CORPSE_TARGET
+		blackboard -= AIBLK_EATING_BODY
+		return NODE_FAILURE
+	if(body.ckey || body.mind)
+		blackboard -= AIBLK_CORPSE_TARGET
+		return NODE_FAILURE
+	if(get_dist(user, body) > 1)
+		blackboard -= AIBLK_EATING_BODY
+		if(user.set_ai_path_to(body))
 			return NODE_RUNNING
 		return NODE_FAILURE
-	if(!user.ai_root.blackboard[AIBLK_EATING_BODY])
-		user.visible_message(span_danger("[user] starts to rip apart [target]!"))
-		user.ai_root.blackboard[AIBLK_EATING_BODY] = world.time
+	if(!blackboard[AIBLK_EATING_BODY])
+		user.face_atom(body)
+		var/mob/living/simple_animal/SA = user
+		if(istype(SA) && SA.attack_sound)
+			playsound(user, pick(SA.attack_sound), 100, TRUE, -1)
+		user.visible_message(span_danger("[user] starts to rip apart [body]!"))
+		blackboard[AIBLK_EATING_BODY] = world.time
 		return NODE_RUNNING
-	if(world.time - user.ai_root.blackboard[AIBLK_EATING_BODY] >= 100)
-		target.gib()
-		user.ai_root.blackboard -= AIBLK_EATING_BODY
+	if(world.time - blackboard[AIBLK_EATING_BODY] >= 10 SECONDS)
+		blackboard -= AIBLK_EATING_BODY
+		blackboard -= AIBLK_CORPSE_TARGET
+		if(iscarbon(body))
+			var/mob/living/carbon/C = body
+			var/obj/item/bodypart/limb
+			for(var/zone in list(BODY_ZONE_L_ARM, BODY_ZONE_R_ARM, BODY_ZONE_L_LEG, BODY_ZONE_R_LEG))
+				limb = C.get_bodypart(zone)
+				if(limb)
+					limb.dismember()
+					return NODE_SUCCESS
+			limb = C.get_bodypart(BODY_ZONE_HEAD)
+			if(limb)
+				limb.dismember()
+				return NODE_SUCCESS
+			limb = C.get_bodypart(BODY_ZONE_CHEST)
+			if(limb)
+				if(!limb.dismember())
+					C.gib()
+				return NODE_SUCCESS
+			C.gib()
+			return NODE_SUCCESS
+		body.gib()
 		return NODE_SUCCESS
 	return NODE_RUNNING
 
 /bt_action/deadite_migrate
-	var/path_key = "deadite_migration_path"
-	var/target_key = "deadite_migration_target"
+	var/path_key = AIBLK_DEADITE_MIGRATION_PATH
+	var/target_key = AIBLK_DEADITE_MIGRATION_TARGET
 /bt_action/deadite_migrate/evaluate(mob/living/user, mob/living/target, list/blackboard)
 	var/list/path = blackboard[path_key]
 	if(!length(path)) return NODE_FAILURE
@@ -867,3 +1138,67 @@
 			return NODE_RUNNING
 		return NODE_FAILURE
 	return NODE_FAILURE
+
+/bt_action/find_cocoon_target
+	var/search_range = 6
+	var/next_scan = 0
+/bt_action/find_cocoon_target/evaluate(mob/living/user, mob/living/target, list/blackboard)
+	var/mob/living/carbon/current = blackboard[AIBLK_COCOON_TARGET]
+	if(current && !QDELETED(current))
+		return NODE_SUCCESS
+	blackboard -= AIBLK_COCOON_TARGET
+	if(world.time < next_scan) return NODE_FAILURE
+	next_scan = world.time + 20 SECONDS
+	var/list/candidates = list()
+	for(var/mob/living/carbon/C in oview(search_range, user))
+		if(C.stat == DEAD || C.stat == CONSCIOUS) continue
+		if(istype(C.loc, /obj/structure/spider/cocoon)) continue
+		candidates += C
+	if(!length(candidates)) return NODE_FAILURE
+	blackboard[AIBLK_COCOON_TARGET] = pick(candidates)
+	return NODE_SUCCESS
+
+/bt_action/mark_cocoon_target/evaluate(mob/living/user, mob/living/target, list/blackboard)
+	if(!target || !iscarbon(target)) return NODE_FAILURE
+	var/mob/living/carbon/C = target
+	if(!((C.stat && C.stat != DEAD) || C.getBruteLoss() > 500)) return NODE_FAILURE
+	blackboard[AIBLK_COCOON_TARGET] = C
+	return NODE_SUCCESS
+
+/bt_action/cocoon_target
+	var/channel_time = 5 SECONDS
+/bt_action/cocoon_target/evaluate(mob/living/user, mob/living/target, list/blackboard)
+	var/mob/living/carbon/victim = blackboard[AIBLK_COCOON_TARGET]
+	if(!victim || QDELETED(victim))
+		blackboard -= AIBLK_COCOON_TARGET
+		blackboard -= AIBLK_COCOON_CHANNEL_START
+		return NODE_FAILURE
+	if(istype(victim.loc, /obj/structure/spider/cocoon))
+		blackboard -= AIBLK_COCOON_TARGET
+		blackboard -= AIBLK_COCOON_CHANNEL_START
+		return NODE_SUCCESS
+	if(get_dist(user, victim) > 1)
+		blackboard -= AIBLK_COCOON_CHANNEL_START
+		if(user.set_ai_path_to(victim))
+			return NODE_RUNNING
+		return NODE_FAILURE
+	if(!victim.stat || victim.stat == DEAD)
+		blackboard -= AIBLK_COCOON_TARGET
+		blackboard -= AIBLK_COCOON_CHANNEL_START
+		return NODE_FAILURE
+	var/channel_start = blackboard[AIBLK_COCOON_CHANNEL_START]
+	if(!channel_start)
+		user.face_atom(victim)
+		blackboard[AIBLK_COCOON_CHANNEL_START] = world.time
+		return NODE_RUNNING
+	if(world.time - channel_start < channel_time)
+		return NODE_RUNNING
+	blackboard -= AIBLK_COCOON_CHANNEL_START
+	blackboard -= AIBLK_COCOON_TARGET
+	if(istype(victim.loc, /obj/structure/spider/cocoon))
+		return NODE_SUCCESS
+	var/turf/T = get_turf(victim)
+	var/obj/structure/spider/cocoon/cocoon = new(T)
+	victim.forceMove(cocoon)
+	victim.apply_status_effect(/datum/status_effect/buff/healing/spider_cocoon, 0.25)
+	return NODE_SUCCESS

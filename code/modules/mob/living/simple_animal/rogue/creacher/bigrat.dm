@@ -11,7 +11,7 @@
 	speak_chance = 1
 	turns_per_move = 3
 	see_in_dark = 6
-	move_to_delay = 5
+	move_to_delay = RAT_MOVEMENT_SPEED
 	pixel_x = -16
 	pixel_y = -8
 	vision_range = 5
@@ -89,7 +89,7 @@
 	update_icon()
 	
 	// NEW AI SYSTEM
-	init_ai_root(/datum/behavior_tree/node/selector/generic_hungry_hostile_tree)
+	init_ai_root(/datum/behavior_tree/node/selector/bigrat_tree)
 	ai_root.next_move_delay = 5
 	ai_root.next_attack_delay = RAT_ATTACK_SPEED
 

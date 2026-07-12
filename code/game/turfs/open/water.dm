@@ -464,7 +464,7 @@
 
 		river_bottom.cell.flow_dir = dir
 
-		SSliquid.update_fluidsum(river_bottom, FALSE)
+		SSliquid.update_fluidsum(river_bottom)
 		SSliquid.cell_index[river_bottom] = TRUE
 
 /turf/open/floor/rogue/riverbot
@@ -479,12 +479,16 @@
 
 /turf/open/floor/rogue/riverbot/Initialize()
 	. = ..()
+	if(!cell)
+		cell = new /cell(src)
+		cell.InitLiquids()
 	var/datum/liquid/water_fluid = cell.get_fluid_datum(WATER)
 	if(water_fluid)
 		cell.fluid_volume[water_fluid] = MAX_FLUID_VOLUME
 	cell.make_liquid_source(10)
-	SSliquid.update_fluidsum(src, FALSE)
+	SSliquid.update_fluidsum(src)
 	SSliquid.cell_index[src] = TRUE
+	ensure_liquid_overlay()
 	liquid_overlay.layer = ABOVE_MOB_LAYER
 	liquid_overlay.plane = GAME_PLANE_HIGHEST
 
@@ -500,12 +504,16 @@
 
 /turf/open/floor/rogue/lakebed/Initialize()
 	. = ..()
+	if(!cell)
+		cell = new /cell(src)
+		cell.InitLiquids()
 	var/datum/liquid/water_fluid = cell.get_fluid_datum(WATER)
 	if(water_fluid)
 		cell.fluid_volume[water_fluid] = MAX_FLUID_VOLUME
 	cell.make_liquid_source(10)
-	SSliquid.update_fluidsum(src, FALSE)
+	SSliquid.update_fluidsum(src)
 	SSliquid.cell_index[src] = TRUE
+	ensure_liquid_overlay()
 	liquid_overlay.layer = ABOVE_MOB_LAYER
 	liquid_overlay.plane = GAME_PLANE_HIGHEST
 
@@ -578,5 +586,5 @@
 		var/datum/liquid/below_water = below.cell.get_fluid_datum(WATER)
 		if(below_water)
 			below.cell.fluid_volume[below_water] = 100
-		SSliquid.update_fluidsum(below, FALSE)
+		SSliquid.update_fluidsum(below)
 		SSliquid.cell_index[below] = TRUE

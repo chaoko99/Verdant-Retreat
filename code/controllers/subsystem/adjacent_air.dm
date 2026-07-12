@@ -131,6 +131,7 @@ SUBSYSTEM_DEF(adjacent_air)
 	T?.air_update_turf(command)
 
 /turf/air_update_turf(command = 0)
+	vn_mark_dirty(src)
 	if(command)
 		ImmediateCalculateAdjacentTurfs()
 

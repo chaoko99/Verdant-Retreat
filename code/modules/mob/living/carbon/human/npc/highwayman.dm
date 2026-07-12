@@ -16,14 +16,14 @@ GLOBAL_LIST_INIT(highwayman_aggro, world.file2list("strings/rt/highwaymanaggroli
 	wander = FALSE
 
 /mob/living/carbon/human/species/human/northern/highwayman/retaliate(mob/living/L)
-	var/newtarg = target
+	var/newtarg = ai_root.target
 	.=..()
-	if(target)
+	if(ai_root.target)
 		aggressive=1
 		wander = TRUE
-		if(!is_silent && target != newtarg)
+		if(!is_silent && ai_root.target != newtarg)
 			say(pick(GLOB.highwayman_aggro))
-			pointed(target)
+			pointed(ai_root.target)
 
 /mob/living/carbon/human/species/human/northern/highwayman/should_target(mob/living/L)
 	if(L.stat != CONSCIOUS)

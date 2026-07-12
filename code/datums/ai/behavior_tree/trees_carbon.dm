@@ -108,15 +108,25 @@
 
 /datum/behavior_tree/node/selector/hostile_humanoid_logic
 	my_nodes = list(
+		/datum/behavior_tree/node/action/carbon_deadite_idle_noise, // Free action, never consumes the turn
+		/datum/behavior_tree/node/selector/humanoid_self_recovery, // Resist restraints/fire, stand back up
 		/datum/behavior_tree/node/decorator/observer/pain_crit/flee_response, // React to pain
 		/datum/behavior_tree/node/sequence/humanoid_combat,
 		/datum/behavior_tree/node/sequence/humanoid_idle
 	)
 
+/datum/behavior_tree/node/selector/humanoid_self_recovery
+	my_nodes = list(
+		/datum/behavior_tree/node/action/carbon_resist,
+		/datum/behavior_tree/node/action/carbon_stand
+	)
+
 /datum/behavior_tree/node/decorator/observer/pain_crit/flee_response
+	reaction = TRUE
 	child = /datum/behavior_tree/node/sequence/humanoid_flee_sequence
 
 /datum/behavior_tree/node/decorator/observer/self_preservation/flee_response
+	reaction = TRUE
 	child = /datum/behavior_tree/node/sequence/humanoid_flee_sequence
 
 /datum/behavior_tree/node/sequence/humanoid_combat
@@ -192,6 +202,7 @@
 
 /datum/behavior_tree/node/selector/goblin_logic
 	my_nodes = list(
+		/datum/behavior_tree/node/selector/humanoid_self_recovery, // Resist restraints/fire, stand back up
 		/datum/behavior_tree/node/decorator/observer/pain_crit/flee_response,
 		/datum/behavior_tree/node/sequence/goblin_combat,
 		/datum/behavior_tree/node/sequence/humanoid_idle
@@ -339,6 +350,7 @@
 
 /datum/behavior_tree/node/sequence/humanoid_idle
 	my_nodes = list(
+		/datum/behavior_tree/node/action/carbon_check_deaggro_despawn,
 		/datum/behavior_tree/node/action/carbon_idle_wander
 	)
 
@@ -406,6 +418,18 @@
 
 /datum/behavior_tree/node/action/carbon_search_area
 	my_action = /bt_action/carbon_search_area
+
+/datum/behavior_tree/node/action/carbon_resist
+	my_action = /bt_action/carbon_resist
+
+/datum/behavior_tree/node/action/carbon_stand
+	my_action = /bt_action/carbon_stand
+
+/datum/behavior_tree/node/action/carbon_check_deaggro_despawn
+	my_action = /bt_action/carbon_check_deaggro_despawn
+
+/datum/behavior_tree/node/action/carbon_deadite_idle_noise
+	my_action = /bt_action/carbon_deadite_idle_noise
 
 // ------------------------------------------------------------------------------
 // GOBLIN SQUAD TACTICS

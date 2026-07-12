@@ -1,64 +1,58 @@
 // ==============================================================================
-// PATHFINDING SUBSYSYSTEM
+// PATHFINDING SUBSYSTEM
 // ==============================================================================
-
-//================================================================
-// PATHFINDING SUBSYSYSTEM
-//================================================================
-// This subsystem provides a high-performance, globally accessible A*
-// pathfinding service. It should be drastically more performant than
-// the previous version.
-//
-// Same usage as before - to use from anywhere in the code, simply call:
-//      var/list/path = A_Star(mob.loc, target_loc)
-//
-// It uses a job pooling model to avoid runtime memory allocations and
-// prevent garbage collection from lagging the server to death.
-//================================================================
+// A globally accessible A* pathfinding service, computed by verdant_native
+// over its grid mirror on a worker thread. To use from anywhere in the code:
+//      var/list/path = A_Star(mob, start_turf, end_turf)
+// The await call sleeps the calling proc, so only request paths from contexts
+// that may sleep (AI think handlers are INVOKE_ASYNC'd and qualify).
 
 SUBSYSTEM_DEF(pathfinding)
 	name = "Pathfinding"
 	priority = SS_PRIORITY_AI
 	init_order = INIT_ORDER_AI
 	runlevels = RUNLEVELS_DEFAULT
-	flags = SS_NO_FIRE
-	// This subsystem doesn't tick, so we don't need to give it a wait.
+	flags = SS_NO_FIRE // on-demand service; nothing to tick
 
-	// This is our pool of reusable job objects.
-	var/list/job_pool
 	var/list/patrol_nodes
+	var/paths_served = 0
+	var/paths_failed = 0
 
 /datum/controller/subsystem/pathfinding/Initialize()
 	NEW_SS_GLOBAL(SSpathfinding)
-
-	job_pool = new
-	patrol_nodes = new // This has to be manually populated by placing patrol points on the map, otherwise it just won't be used, which is also fine.
-
-	for(var/i = 1; i <= 10; i++) // Preinitialize a few job datums to avoid first-tick latency
-		job_pool += new /pathfinding_job()
-
-	..	()
-
+	patrol_nodes = new // Manually populated by placing patrol points on the map; unused is fine.
+	..()
 
 /datum/controller/subsystem/pathfinding/proc/FindPath(mob/living/mover, turf/start, turf/end)
-	var/pathfinding_job/job = GetJob()
-	var/list/path = job.Run(mover, start, end)
-	RecycleJob(job)
+	if(!(VN_OK && SSnative?.mirror_loaded))
+		return null
+	start = get_turf(start)
+	end = get_turf(end)
+	if(!start || !end)
+		return null
+
+	var/prof = mover ? mover.vn_path_profile() : 0
+	var/raw
+	if(start.z == end.z && get_dist(start, end) <= 30)
+		raw = vn_path_find_sync(start.x, start.y, start.z, end.x, end.y, end.z, 0, prof)
+	else
+		raw = vn_path_find(start.x, start.y, start.z, end.x, end.y, end.z, 0, prof)
+	if(!islist(raw))
+		vn_check_result(raw, "path_find")
+		paths_failed++
+		return null
+	if(!length(raw))
+		return null // no route
+	var/list/path = list()
+	for(var/i = 1, i + 2 <= length(raw), i += 3)
+		var/turf/T = locate(raw[i], raw[i + 1], raw[i + 2])
+		if(!T)
+			paths_failed++
+			return null
+		path += T
+	paths_served++
 	return path
 
-	// Retrieves a job from the pool or creates one if needed.
-/datum/controller/subsystem/pathfinding/proc/GetJob() as /pathfinding_job
-	if(length(job_pool))
-		var/pathfinding_job/job = job_pool[length(job_pool)]
-		job_pool.len--
-		return job
-	else
-		return new /pathfinding_job()
-
-	// Resets a job and returns it to the pool for reuse.
-/datum/controller/subsystem/pathfinding/proc/RecycleJob(pathfinding_job/job)
-	if(length(job_pool) < MAX_POOLED_PATHING_JOBS) // This is to make sure we don't end up with *too* many of these if there's a ton of pathfinding requests at once for whatever reason.
-		job.Reset()
-		job_pool += job
-	else
-		qdel(job) // If this does end up happening somehow, don't worry - it'll just try again until there's a free request.
+/datum/controller/subsystem/pathfinding/stat_entry(msg)
+	msg += "served:[paths_served]|failed:[paths_failed]"
+	return ..()

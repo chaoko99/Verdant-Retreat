@@ -18,7 +18,7 @@
 
 	turns_per_move = 2
 	see_in_dark = 10
-	move_to_delay = 7
+	move_to_delay = TROLL_MOVEMENT_SPEED
 	vision_range = 6
 	aggro_vision_range = 6
 	botched_butcher_results = list (

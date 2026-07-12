@@ -18,14 +18,14 @@ GLOBAL_LIST_INIT(bum_aggro, world.file2list("strings/rt/bumaggrolines.txt"))
 	wander = TRUE
 
 /mob/living/carbon/human/species/human/northern/bum/retaliate(mob/living/L)
-	var/newtarg = target
+	var/newtarg = ai_root.target
 	.=..()
-	if(target)
+	if(ai_root.target)
 		aggressive=1
 		wander = TRUE
-		if(target != newtarg)
+		if(ai_root.target != newtarg)
 			say(pick(GLOB.bum_aggro))
-			pointed(target)
+			pointed(ai_root.target)
 
 /mob/living/carbon/human/species/human/northern/bum/should_target(mob/living/L)
 	if(L.stat != CONSCIOUS)

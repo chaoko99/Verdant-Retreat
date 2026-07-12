@@ -723,6 +723,8 @@
 			span_notice("I lock [src]."))
 		playsound(src, locksound, 100)
 		locked = 1
+	if(isturf(loc))
+		vn_mark_dirty(loc)
 
 /obj/structure/mineral_door/setAnchored(anchorvalue) //called in default_unfasten_wrench() chain
 	. = ..()
@@ -741,6 +743,8 @@
 		density = FALSE
 		opacity = FALSE
 		brokenstate = TRUE
+		if(isturf(loc))
+			vn_mark_dirty(loc)
 	..()
 
 /obj/structure/mineral_door/OnCrafted(dirin, user)

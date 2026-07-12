@@ -38,7 +38,8 @@ GLOBAL_DATUM_INIT(liquid_manager, /datum/liquid_manager, new)
 
 	// Update subsystem tracking
 	SSliquid.cell_index[target_turf] = TRUE
-	SSliquid.update_fluidsum(target_turf, FALSE)
+	SSliquid.update_fluidsum(target_turf)
+	vn_fluid_queue(VN_FLUID_OP_SET, target_turf, vn_fluid_mat_id(fluid_instance), target_turf.cell.fluid_volume[fluid_instance])
 
 	return clamped_amount
 
@@ -58,7 +59,8 @@ GLOBAL_DATUM_INIT(liquid_manager, /datum/liquid_manager, new)
 	target_turf.cell.fluid_volume[fluid_instance] -= remove_amount
 
 	// Update subsystem tracking
-	SSliquid.update_fluidsum(target_turf, FALSE)
+	SSliquid.update_fluidsum(target_turf)
+	vn_fluid_queue(VN_FLUID_OP_SET, target_turf, vn_fluid_mat_id(fluid_instance), target_turf.cell.fluid_volume[fluid_instance])
 
 	return remove_amount
 
@@ -115,7 +117,7 @@ GLOBAL_DATUM_INIT(liquid_manager, /datum/liquid_manager, new)
 	target_turf.cell.fluid_volume[fluid_instance] += transfer_amount
 	container.reagents.remove_reagent(reagent_type, transfer_amount)
 
-	SSliquid.update_fluidsum(target_turf, FALSE)
+	SSliquid.update_fluidsum(target_turf)
 	SSliquid.update_cell_image(target_turf)
 	SSliquid.cell_index[target_turf] = TRUE
 
@@ -146,7 +148,7 @@ GLOBAL_DATUM_INIT(liquid_manager, /datum/liquid_manager, new)
 	source_turf.cell.fluid_volume[fluid_instance] -= transfer_amount
 	container.reagents.add_reagent(fluid_type.reagent, transfer_amount)
 
-	SSliquid.update_fluidsum(source_turf, FALSE)
+	SSliquid.update_fluidsum(source_turf)
 	SSliquid.update_cell_image(source_turf)
 
 	return transfer_amount
@@ -162,7 +164,6 @@ GLOBAL_DATUM_INIT(liquid_manager, /datum/liquid_manager, new)
 		if(instance.reagent)
 			instance.color = initial(instance.reagent:color)
 		target_turf.cell.fluid_volume[instance] = 0
-		target_turf.cell.new_volume[instance] = 0
 
 	return instance
 
@@ -177,6 +178,7 @@ GLOBAL_DATUM_INIT(liquid_manager, /datum/liquid_manager, new)
 	if(!target_turf?.cell || !fluid_instance || !isnum(amount))
 		return FALSE
 	target_turf.cell.fluid_volume[fluid_instance] = amount
+	vn_fluid_queue(VN_FLUID_OP_SET, target_turf, vn_fluid_mat_id(fluid_instance), amount)
 	return TRUE
 
 /datum/liquid_manager/proc/get_dominant_fluid(turf/target_turf)
@@ -206,7 +208,8 @@ GLOBAL_DATUM_INIT(liquid_manager, /datum/liquid_manager, new)
 	for(var/datum/liquid/fluid in target_turf.cell.fluid_volume)
 		target_turf.cell.fluid_volume[fluid] = 0
 
-	SSliquid.update_fluidsum(target_turf, FALSE)
+	SSliquid.update_fluidsum(target_turf)
 	SSliquid.update_cell_image(target_turf)
+	vn_fluid_queue(VN_FLUID_OP_CLEAR, target_turf)
 
 	return TRUE

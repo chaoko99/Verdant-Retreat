@@ -26,6 +26,7 @@
 	var/sound1 = 'modular_azurepeak/sound/mobs/abyssal/abyssal_idle.ogg'
 	var/sound2 = 'modular_azurepeak/sound/mobs/abyssal/abyssal_teleport.ogg'
 	var/desummon_timer = 8 SECONDS
+	var/desummons_when_idle = TRUE
 
 /mob/living/simple_animal/hostile/rogue/dreamfiend/major
 	icon = 'modular_hearthstone/icons/mob/abyssal_medium.dmi'
@@ -82,9 +83,9 @@
 	ADD_TRAIT(src, TRAIT_KNEESTINGER_IMMUNITY, INNATE_TRAIT)
 
 	// Initialize behavior tree
-	init_ai_root(/datum/behavior_tree/node/selector/generic_hostile_tree)
+	init_ai_root(/datum/behavior_tree/node/selector/dreamfiend_tree)
 	ai_root.next_move_delay = move_to_delay
-	ai_root.next_attack_delay = CLICK_CD_MELEE
+	ai_root.next_attack_delay = melee_cooldown
 
 	. = ..()
 
@@ -163,12 +164,11 @@
 	if(prob(1))
 		new /obj/item/rogueweapon/greataxe/dreamscape(loc)
 	new /obj/effect/decal/cleanable/dreamfiend_ichor/large(loc)
-	var/main_target = null
-	if(ai_root && ai_root.blackboard)
-		for(var/i in 1 to 2)
-			var/mob/living/simple_animal/hostile/rogue/dreamfiend/F = new(loc)
-			if(F.ai_root && F.ai_root.blackboard && main_target)
-				F.GiveTarget(main_target)
+	var/mob/living/main_target = ai_root?.target
+	for(var/i in 1 to 2)
+		var/mob/living/simple_animal/hostile/rogue/dreamfiend/F = new(loc)
+		if(main_target)
+			F.GiveTarget(main_target)
 	if(main_target)
 		src.visible_message(span_notice("some dreamfiends split forth from the body of the [src] following after [main_target]... countless teeth bared with hostility!"))
 	qdel(src)
@@ -212,9 +212,11 @@
 // EVENT mobs and mappable mobs. (USE SPARINGLY)
 /mob/living/simple_animal/hostile/rogue/dreamfiend/unbound
 	attack_sound = list('modular_azurepeak/sound/mobs/abyssal/abyssal_attack.ogg','modular_azurepeak/sound/mobs/abyssal/abyssal_attack2.ogg')
+	desummons_when_idle = FALSE
 
 /mob/living/simple_animal/hostile/rogue/dreamfiend/major/unbound
 	attack_sound = list('modular_azurepeak/sound/mobs/abyssal/abyssal_attack.ogg','modular_azurepeak/sound/mobs/abyssal/abyssal_attack2.ogg')
+	desummons_when_idle = FALSE
 
 /mob/living/simple_animal/hostile/rogue/dreamfiend/major/unbound/death()
 	if(prob(1))
@@ -227,3 +229,4 @@
 
 /mob/living/simple_animal/hostile/rogue/dreamfiend/ancient/unbound
 	attack_sound = list('modular_azurepeak/sound/mobs/abyssal/abyssal_attack.ogg','modular_azurepeak/sound/mobs/abyssal/abyssal_attack2.ogg')
+	desummons_when_idle = FALSE

@@ -18,6 +18,8 @@
 	if (!armor)
 		armor = ARMOR_STRUCTURE
 	. = ..()
+	if(isturf(loc))
+		vn_mark_dirty(loc)
 	if(smooth)
 		queue_smooth(src)
 		queue_smooth_neighbors(src)
@@ -65,6 +67,7 @@
 
 /obj/structure/Destroy()
 	if(isturf(loc))
+		vn_mark_dirty(loc)
 		for(var/mob/living/user in loc)
 			if(climb_offset)
 				user.reset_offsets("structure_climb")

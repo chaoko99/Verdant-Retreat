@@ -33,7 +33,7 @@
 	gold_core_spawnable = FRIENDLY_SPAWN
 	
 
-	aggressive = 1
+	aggressive = 0
 	desc = "A mudcrab. It wants you dead."
 	
 /mob/living/simple_animal/hostile/retaliate/rogue/mudcrab/Initialize()

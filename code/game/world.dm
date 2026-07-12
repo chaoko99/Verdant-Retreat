@@ -283,6 +283,7 @@ GLOBAL_VAR(restart_counter)
 		thing << sound(round_end_sound)
 
 	to_chat(world, "Please be patient as the server restarts. You will be automatically reconnected in about 60 seconds.")
+	vn_world_shutdown()	// drain the native sim thread before the world goes away
 	Master.Shutdown()	//run SS shutdowns? rtchange
 
 	TgsReboot()
@@ -474,8 +475,10 @@ GLOBAL_VAR(restart_counter)
 		enable_debugging()
 
 /world/Del()
+	vn_world_shutdown()
+
 	var/dll = GetConfig("env", "AUXTOOLS_DEBUG_DLL")
 	if (dll)
 		call_ext(dll, "auxtools_shutdown")()
-	
+
 	. = ..()

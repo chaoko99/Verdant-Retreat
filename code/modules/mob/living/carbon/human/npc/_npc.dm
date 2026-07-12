@@ -9,6 +9,7 @@
 	var/rude = FALSE
 	var/tree_climber = FALSE
 	var/find_targets_above = TRUE
+	var/next_stand_attempt = 0
 
 	// LEAPING
 	var/npc_jump_chance = 5
@@ -183,6 +184,21 @@
 	if(!ai_root) return
 	if((W.force) && (!ai_root.target) && (W.damtype != STAMINA) )
 		retaliate(user)
+
+/mob/living/carbon/human/proc/npc_should_resist(ignore_grab = FALSE)
+	if(mind?.has_antag_datum(/datum/antagonist/zombie) && !check_mouth_grabbed())
+		ignore_grab ||= TRUE
+	if(on_fire || buckled || restrained(ignore_grab = ignore_grab))
+		return TRUE
+	return FALSE
+
+/mob/living/carbon/human/proc/npc_stand()
+	if(world.time < next_stand_attempt)
+		return
+	if(stand_up())
+		next_stand_attempt = world.time
+	else
+		next_stand_attempt = world.time + rand(1 SECONDS, 3 SECONDS)
 
 /mob/living/proc/npc_detect_sneak(mob/living/target, extra_prob = 0)
 	if (target.alpha > 0 || !target.rogue_sneaking)

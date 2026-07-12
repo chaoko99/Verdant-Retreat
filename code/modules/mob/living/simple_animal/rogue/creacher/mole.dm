@@ -10,7 +10,7 @@
 	speak_chance = 1
 	turns_per_move = 2
 	see_in_dark = 6
-	move_to_delay = 5
+	move_to_delay = MOLE_MOVEMENT_SPEED
 	base_intents = list(/datum/intent/simple/claw/mole)
 	botched_butcher_results = list(/obj/item/reagent_containers/food/snacks/rogue/meat/steak = 2, /obj/item/alch/viscera = 1)
 	butcher_results = list(/obj/item/reagent_containers/food/snacks/rogue/meat/steak = 3,
@@ -35,7 +35,7 @@
 	maxHealth = MOLE_HEALTH
 	melee_damage_lower = 19
 	melee_damage_upper = 29
-	vision_range = 7
+	vision_range = 9
 	aggro_vision_range = 9
 	environment_smash = ENVIRONMENT_SMASH_STRUCTURES
 	retreat_distance = 0

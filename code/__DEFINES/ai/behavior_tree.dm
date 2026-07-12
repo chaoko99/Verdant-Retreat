@@ -43,7 +43,7 @@
 #define AI_FLAG_FEARLESS 0x2
 #define AI_FLAG_PERSISTENT 0x4 // For mobs that don't sleep.
 #define AI_FLAG_ASSUMEDIRECTCONTROL 0x8 // Used to prevent NPCs that are being controlled by an admin using AI commander from going back to sleep if there are no players around.
-#define AI_FLAG_FORCESLEEP 0x16 // Forces the mob to skip processing, used for certain status effects etc.
+#define AI_FLAG_FORCESLEEP 0x10 // Forces the mob to skip processing, used for certain status effects etc.
 
 // Defines for AI states tracked by the AI commander module
 #define AI_CMD_STATE_MOVE 0
@@ -145,6 +145,7 @@
 #define AIBLK_CHECK_TARGET 13039401
 #define AIBLK_CHOSEN_TARGET 8146123
 #define AIBLK_COMMAND_MODE 2016872
+#define AIBLK_CORPSE_TARGET 9959671
 #define AIBLK_DEFENDING_FROM_INTERRUPT 9948968
 #define AIBLK_EATING_BODY 1702666
 #define AIBLK_FOLLOW_TARGET 902462
@@ -168,6 +169,12 @@
 #define AIBLK_PERFORM_SPEECH_TEXT 1289723
 #define AIBLK_TARGETED_ACTION 10774546
 #define AIBLK_DEADITE_MIGRATION_PATH 15186154
+#define AIBLK_DEADITE_MIGRATION_TARGET 863844
+#define AIBLK_FLEE_UNTIL 3401612
+#define AIBLK_NEXT_FLEE_ALLOWED 1141830
+#define AIBLK_FLEE_FROM 12278228
+#define AIBLK_COCOON_TARGET 8225004
+#define AIBLK_COCOON_CHANNEL_START 9050315
 
 // Defines related to squad behavior, all of these except for the "AIBLK_SQUAD_DATUM" reference (which should be set on the mob's blackboard) are generally stored in a shared blackboard for the squad's ai_squad datum.
 #define AIBLK_SQUAD_DATUM 2957725

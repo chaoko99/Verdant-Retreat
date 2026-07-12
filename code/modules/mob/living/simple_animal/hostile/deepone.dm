@@ -9,7 +9,7 @@
 	mob_biotypes = MOB_ORGANIC|MOB_HUMANOID
 	robust_searching = 1
 	turns_per_move = 2
-	move_to_delay = 3
+	move_to_delay = DEEPONE_MOVEMENT_SPEED
 	STACON = 11
 	STASTR = 13
 	STASPD = 9
@@ -19,7 +19,7 @@
 	harm_intent_damage = 20
 	melee_damage_lower = 10
 	melee_damage_upper = 25
-	vision_range = 7
+	vision_range = 9
 	aggro_vision_range = 9
 	retreat_distance = 0
 	minimum_distance = 0

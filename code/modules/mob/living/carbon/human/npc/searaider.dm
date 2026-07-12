@@ -17,14 +17,14 @@ GLOBAL_LIST_INIT(searaider_aggro, world.file2list("strings/rt/searaideraggroline
 	wander = TRUE
 
 /mob/living/carbon/human/species/human/northern/searaider/retaliate(mob/living/L)
-	var/newtarg = target
+	var/newtarg = ai_root.target
 	.=..()
-	if(target)
+	if(ai_root.target)
 		aggressive=1
 		wander = TRUE
-		if(!is_silent && target != newtarg)
+		if(!is_silent && ai_root.target != newtarg)
 			say(pick(GLOB.searaider_aggro))
-			pointed(target)
+			pointed(ai_root.target)
 
 /mob/living/carbon/human/species/human/northern/searaider/should_target(mob/living/L)
 	if(L.stat != CONSCIOUS)

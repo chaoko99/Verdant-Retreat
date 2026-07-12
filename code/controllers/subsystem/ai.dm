@@ -14,10 +14,10 @@ PROCESSING_SUBSYSTEM_DEF(ai)
 	wait = 1 // Process every tick to check for thonk delays. This is insanely fast anyway compared to the other subsystems.
 
 	// Using associative lists for performance. Checking for a key is much faster than searching a list. We learned this from liquids, lads.
-	var/list/active_mobs
-	var/list/sleeping_mobs
-	var/list/unregister_queue
-	var/list/sleep_queue
+	var/list/active_mobs = list()
+	var/list/sleeping_mobs = list()
+	var/list/unregister_queue = list()
+	var/list/sleep_queue = list()
 	#ifdef AI_SQUADS
 	var/list/squads
 	var/list/squads_to_remove
@@ -26,6 +26,17 @@ PROCESSING_SUBSYSTEM_DEF(ai)
 
 	// Pathfinding reservation system - maps turf hash to claiming mob
 	var/alist/claimed_turfs
+
+	// Native behavior-tree offload (GLOB.vn_bt_native)
+	var/vn_next_id = 0
+	var/list/vn_mobs = list()			// "[vn_id]" -> mob
+	var/list/vn_signal_queue = list()	// flat [vn_id, slot]
+	var/list/vn_report_queue = list()	// flat [vn_id, node_id, status]
+	var/list/vn_tick_ids				// per-fire batch (rebuilt each fire)
+	var/list/vn_sync_batch
+	var/vn_intents_dispatched = 0
+	var/vn_next_target_token = 0
+	var/list/vn_target_tokens = list()	// "[REF(atom)]" -> stable token
 
 /datum/controller/subsystem/processing/ai/Initialize()
 	..()
@@ -61,8 +72,15 @@ PROCESSING_SUBSYSTEM_DEF(ai)
 
 /datum/controller/subsystem/processing/ai/proc/Unregister(mob/living/M)
 	if(!M) return
-	
-	else if(!M.ai_root) 
+	if(GLOB.ai_init_queue)
+		GLOB.ai_init_queue -= M
+
+	if(M.ai_root?.vn_id)
+		vn_mobs -= "[M.ai_root.vn_id]"
+		vn_bt_mob_remove(M.ai_root.vn_id)
+		M.ai_root.vn_id = 0
+
+	if(!M.ai_root)
 		active_mobs -= M
 		sleeping_mobs -= M
 		GLOB.npc_list -= M
@@ -106,6 +124,12 @@ PROCESSING_SUBSYSTEM_DEF(ai)
 /datum/controller/subsystem/processing/ai/fire(var/time_delta)
 	var/current_time = world.time
 
+	var/vn_native = GLOB.vn_bt_native && VN_OK && SSnative?.mirror_loaded
+	if(vn_native)
+		VN_Collect()
+		vn_tick_ids = list()
+		vn_sync_batch = list()
+
 	for(var/mob/living/M in active_mobs)
 		if(!M || M.stat == DEAD || M.client)
 			unregister_queue |= M
@@ -134,7 +158,13 @@ PROCESSING_SUBSYSTEM_DEF(ai)
 					if(M.ai_root.blackboard && M.ai_root.blackboard[AIBLK_HIBERNATION_TIMER])
 						M.ai_root.blackboard -= AIBLK_HIBERNATION_TIMER
 			
-			INVOKE_ASYNC(M, TYPE_PROC_REF(/mob/living, RunAI))
+			if(vn_native)
+				VN_Think(M, current_time)
+			else
+				INVOKE_ASYNC(M, TYPE_PROC_REF(/mob/living, RunAI))
+
+	if(vn_native)
+		VN_FlushTick(current_time)
 
 	for(var/mob/living/M as anything in unregister_queue)
 #ifdef AI_SQUADS
@@ -186,6 +216,108 @@ PROCESSING_SUBSYSTEM_DEF(ai)
 	for(var/ai_squad/squad as anything in squads_to_remove)
 		squads -= squad
 		qdel(squad)
+
+// ==============================================================================
+// NATIVE BEHAVIOR-TREE OFFLOAD
+// ==============================================================================
+
+/datum/controller/subsystem/processing/ai/proc/vn_queue_signal(vid, slot)
+	if(!vid)
+		return
+	vn_signal_queue += vid
+	vn_signal_queue += slot
+
+/datum/controller/subsystem/processing/ai/proc/vn_queue_report(vid, node_id, status)
+	if(!vid)
+		return
+	vn_report_queue += vid
+	vn_report_queue += node_id
+	vn_report_queue += status
+
+/// Stable identity token for target-change detection in the VM.
+/datum/controller/subsystem/processing/ai/proc/VN_TargetToken(atom/tgt)
+	if(!tgt)
+		return 0
+	var/key = "[REF(tgt)]"
+	var/tok = vn_target_tokens[key]
+	if(!tok)
+		tok = ++vn_next_target_token
+		vn_target_tokens[key] = tok
+	return tok
+
+/// Dispatches the previous tick's intents to their mobs.
+/datum/controller/subsystem/processing/ai/proc/VN_Collect()
+	var/list/res = vn_bt_tick_collect()
+	if(!islist(res))
+		vn_check_result(res, "bt_collect")
+		return
+	if(!length(res))
+		return
+	var/cur = 1
+	var/n = res[cur++]
+	for(var/i in 1 to n)
+		var/vid = res[cur++]
+		var/node_id = res[cur++]
+		var/kind = res[cur++]
+		cur++ // param, unused
+		var/mob/living/M = vn_mobs["[vid]"]
+		if(!M || QDELETED(M) || !M.ai_root)
+			continue
+		INVOKE_ASYNC(M, TYPE_PROC_REF(/mob/living, vn_execute_intent), node_id, kind)
+		vn_intents_dispatched++
+
+/// The native replacement for INVOKE_ASYNC(M, RunAI): the movement subtree
+/// keeps its DM cadence; a think-eligible mob joins the VM tick batch.
+/// Falls back to the DM evaluator for unsupported trees.
+/datum/controller/subsystem/processing/ai/proc/VN_Think(mob/living/M, current_time)
+	var/datum/behavior_tree/node/parallel/root/root = M.ai_root
+	// root.evaluate() always fires the movement subtree async
+	INVOKE_ASYNC(root.move_node, TYPE_PROC_REF(/datum/behavior_tree/node, evaluate), M, root.target, root.blackboard)
+
+	// think gate, replicating bt_action/check_think_valid
+	if(M.stat == DEAD || current_time < root.next_think_tick || M.incapacitated(ignore_restraints = 1))
+		return
+	if(!root.vn_id && !root.vn_register(M))
+		INVOKE_ASYNC(M, TYPE_PROC_REF(/mob/living, RunAI)) // unsupported tree
+		return
+	root.next_think_tick = current_time + root.next_think_delay
+
+	vn_tick_ids += root.vn_id
+	var/turf/T = get_turf(M)
+	vn_sync_batch += root.vn_id
+	vn_sync_batch += T.x
+	vn_sync_batch += T.y
+	vn_sync_batch += T.z
+	vn_sync_batch += round(1000 * M.health / max(1, M.maxHealth))
+	var/pain_pct = 0
+	if(iscarbon(M))
+		var/mob/living/carbon/C = M
+		pain_pct = round(1000 * C.get_complex_pain() / max(1, C.STAEND * 10))
+	vn_sync_batch += pain_pct
+	var/food = 100
+	if(istype(M, /mob/living/simple_animal))
+		var/mob/living/simple_animal/SA = M
+		food = SA.food
+	vn_sync_batch += food
+	var/atom/tgt = root.target
+	var/turf/TT = tgt ? get_turf(tgt) : null
+	vn_sync_batch += VN_TargetToken(tgt)
+	vn_sync_batch += TT ? TT.x : 0
+	vn_sync_batch += TT ? TT.y : 0
+	vn_sync_batch += TT ? TT.z : 0
+
+/// Ships this fire's mirrors to the VM and kicks the evaluation.
+/datum/controller/subsystem/processing/ai/proc/VN_FlushTick(current_time)
+	if(length(vn_report_queue))
+		vn_check_result(vn_bt_report(vn_report_queue), "bt_report")
+		vn_report_queue = list()
+	if(length(vn_signal_queue))
+		vn_check_result(vn_bt_signal(vn_signal_queue), "bt_signal")
+		vn_signal_queue = list()
+	if(length(vn_sync_batch))
+		vn_check_result(vn_bt_sync(vn_sync_batch), "bt_sync")
+	if(length(vn_tick_ids))
+		vn_check_result(vn_bt_tick_begin(current_time, vn_tick_ids), "bt_begin")
 
 /datum/controller/subsystem/processing/ai/proc/MakeSquad(var/mob/living/leader, special_squad_type)
 	var/ai_squad/squad = special_squad_type ? new special_squad_type(leader) : new /ai_squad(leader)

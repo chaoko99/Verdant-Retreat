@@ -17,6 +17,7 @@
 		return FALSE
 	if(ismob(target))
 		ai_root.target = target
+		src.target = target
 		SEND_SIGNAL(src, COMSIG_AI_TARGET_CHANGED, target)
 	else if(isturf(target) || isobj(target))
 		ai_root.obj_target = target
@@ -33,6 +34,7 @@
 				ai_root.blackboard -= AIBLK_AGGRESSORS
 
 		ai_root.target = null
+		target = null
 		SEND_SIGNAL(src, COMSIG_AI_TARGET_CHANGED, null)
 
 /mob/living/proc/RunAI()

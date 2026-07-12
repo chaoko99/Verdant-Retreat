@@ -38,6 +38,7 @@
         gold_core_spawnable = FRIENDLY_SPAWN
         obj_damage = 0
         environment_smash = ENVIRONMENT_SMASH_NONE
+        wanted_prey = list(/mob/living/simple_animal/mouse)
 
 /mob/living/simple_animal/hostile/retaliate/poison/snake/AttackingTarget()
         if(istype(target, /mob/living/simple_animal/mouse))

@@ -91,7 +91,7 @@ GLOBAL_VAR_INIT(mobids, 1)
 	update_movespeed(TRUE)
 	// By putting this here, we can track even ghosts for a variety of shenanigans
 	if(!isdead(src) && !isobserver(src)) // Yes I know this sucks, but overriding the entire initialize chain is too much of a hassle
-		qt_range = RECT(x, y, AI_HIBERNATION_RANGE, AI_HIBERNATION_RANGE)
+		qt_range = RECT(x, y, AI_HIBERNATION_RANGE * 2, AI_HIBERNATION_RANGE * 2)
 		SSquadtree.RegisterMob(src)
 
 /**

@@ -41,6 +41,7 @@
 	var/search_objects_timer_id //Timer for regaining our old search_objects value after being attacked
 	var/search_objects_regain_time = 30 //the delay between being attacked and gaining our old search_objects value back
 	var/list/wanted_objects = list() //A typecache of objects types that will be checked against to attack, should we have search_objects enabled
+	var/list/wanted_prey = list()
 	var/stat_attack = CONSCIOUS //Mobs with stat_attack to UNCONSCIOUS will attempt to attack things that are unconscious, Mobs with stat_attack set to DEAD will attempt to attack the dead.
 	var/stat_exclusive = FALSE //Mobs with this set to TRUE will exclusively attack things defined by stat_attack, stat_attack DEAD means they will only attack corpses
 	var/attack_same = 0 //Set us to 1 to allow us to attack our own faction
@@ -68,12 +69,13 @@
 	if(!targets_from)
 		targets_from = src
 	wanted_objects = typecacheof(wanted_objects)
-	
-	// If we still have the default idiot tree from simple_animal, upgrade to generic hostile
-	if(istype(ai_root, /datum/behavior_tree/node/selector/generic_friendly_tree) || !ai_root)
+	wanted_prey = typecacheof(wanted_prey)
+
+	if(!ai_root || ai_root.tree_typepath == /datum/behavior_tree/node/selector/generic_friendly_tree)
 		init_ai_root(/datum/behavior_tree/node/selector/generic_hostile_tree)
-		// Initialize the new tree properties if needed
-		ai_root.next_move_delay = move_to_delay
+
+/mob/living/simple_animal/hostile/configure_ai_root()
+	ai_root.next_move_delay = move_to_delay
 
 
 /mob/living/simple_animal/hostile/Destroy()
@@ -238,12 +240,11 @@
 	taunt_chance = initial(taunt_chance)
 
 /mob/living/simple_animal/hostile/LoseTarget()
-	if(ai_root)
-		ai_root.target = null
-		ai_root.obj_target = null
-
 	if(target)
 		last_aggro_loss = world.time
+	..()
+	if(ai_root)
+		ai_root.obj_target = null
 	target = null
 	approaching_target = FALSE
 	in_melee = FALSE

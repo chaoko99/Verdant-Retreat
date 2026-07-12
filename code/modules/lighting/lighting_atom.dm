@@ -127,9 +127,12 @@
 		return
 
 	opacity = new_opacity
+	if(isturf(src))
+		vn_mark_dirty(src)
 	var/turf/T = loc
 	if (!isturf(T))
 		return
+	vn_mark_dirty(T)
 
 	if (new_opacity == TRUE)
 		T.has_opaque_atom = TRUE

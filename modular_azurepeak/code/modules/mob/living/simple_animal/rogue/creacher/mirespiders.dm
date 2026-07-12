@@ -54,7 +54,7 @@
 	ADD_TRAIT(src, TRAIT_KNEESTINGER_IMMUNITY, INNATE_TRAIT)
 
 	// Initialize behavior tree
-	init_ai_root(/datum/behavior_tree/node/selector/generic_hungry_hostile_tree)
+	init_ai_root(/datum/behavior_tree/node/selector/mirespider_tree)
 	ai_root.next_move_delay = move_to_delay
 	ai_root.next_attack_delay = MIRESPIDER_ATTACK_SPEED
 
@@ -69,7 +69,7 @@
 	}
 
 	if(lurker && ai_root)
-		ai_root.blackboard[BB_FOLLOW_TARGET] = lurker
+		ai_root.blackboard[AIBLK_FOLLOW_TARGET] = lurker
 
 /mob/living/simple_animal/hostile/retaliate/rogue/mirespider/death(gibbed)
 	..()
@@ -197,10 +197,9 @@
 	ADD_TRAIT(src, TRAIT_KNEESTINGER_IMMUNITY, INNATE_TRAIT)
 
 	// Initialize behavior tree for ranged combat
-	init_ai_root(/datum/behavior_tree/node/selector/deepone_ranged_tree)
+	init_ai_root(/datum/behavior_tree/node/selector/mirespider_lurker_tree)
 	ai_root.next_move_delay = move_to_delay
 	ai_root.next_attack_delay = MIRESPIDER_LURKER_ATTACK_SPEED
-	// I'll replace this with something better later. Stopgap for now to make killing them more than just a nuisance.
 
 /mob/living/simple_animal/hostile/rogue/mirespider_lurker/death(gibbed)
 	..()
@@ -223,10 +222,7 @@
 
 	for (var/mob/living/simple_animal/hostile/retaliate/rogue/mirespider/follower in followers)
 		if(follower.ai_root && follower.ai_root.blackboard)
-			follower.ai_root.blackboard -= BB_FOLLOW_TARGET
-			follower.ai_root.blackboard -= BB_TRAVEL_DESTINATION
-			follower.ai_root.blackboard -= BB_BASIC_MOB_CURRENT_TARGET
-			follower.ai_root.blackboard -= BB_BASIC_MOB_RETALIATE_LIST
+			follower.ai_root.blackboard -= AIBLK_FOLLOW_TARGET
 	followers.Cut()
 
 /mob/living/simple_animal/hostile/rogue/mirespider_paralytic
@@ -270,7 +266,7 @@
 	. = ..()
 
 	// Initialize behavior tree
-	init_ai_root(/datum/behavior_tree/node/selector/generic_hungry_hostile_tree)
+	init_ai_root(/datum/behavior_tree/node/selector/mirespider_paralytic_tree)
 	ai_root.next_move_delay = move_to_delay
 	ai_root.next_attack_delay = ARAGN_ATTACK_SPEED
 

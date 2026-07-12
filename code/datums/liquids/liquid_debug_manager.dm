@@ -284,7 +284,8 @@ GLOBAL_DATUM_INIT(liquid_debug_manager, /datum/liquid_debug_manager, new)
     if(!T?.cell)
         return null
 
-    var/pool_root = GLOB.pool_manager.dsu.find(T)
+    var/list/pool_for_root = GLOB.pool_manager.get_pool(T)
+    var/turf/pool_root = length(pool_for_root) ? pool_for_root[1] : T
     var/pool_size = GLOB.pool_manager.get_pool_size(T)
 
     var/list/cell_data = list(
@@ -345,7 +346,8 @@ GLOBAL_DATUM_INIT(liquid_debug_manager, /datum/liquid_debug_manager, new)
     var/list/info = list()
     info += "Coordinates: ([T.x], [T.y], [T.z])"
     info += "Total Fluid: [T.cell.fluidsum]"
-    var/root = GLOB.pool_manager.dsu.find(T)
+    var/list/pool_for_root = GLOB.pool_manager.get_pool(T)
+    var/turf/root = length(pool_for_root) ? pool_for_root[1] : T
     info += "Pool Root: [root]"
     info += "Pool Size: [GLOB.pool_manager.get_pool_size(T)]"
     info += "Fluid Flags: [T.cell.fluid_flags]"
@@ -376,11 +378,6 @@ GLOBAL_DATUM_INIT(liquid_debug_manager, /datum/liquid_debug_manager, new)
         errors += "ERROR: Liquid subsystem not found"
     else
         // Validate state tracking from Phase 1 implementation
-        if(SSliquid.cells_in_processing && length(SSliquid.cells_in_processing) > 0)
-            for(var/turf/T in SSliquid.cells_in_processing)
-                if(!T?.cell)
-                    errors += "Invalid turf in cells_in_processing: [T]"
-
         // cells_pending_sync validation removed - no longer used with direct volume sync
 
     // Validate pool manager state
@@ -783,7 +780,6 @@ GLOBAL_DATUM_INIT(liquid_debug_manager, /datum/liquid_debug_manager, new)
         "subsystem_status" = SSliquid ? "Running" : "Stopped",
         "pool_manager_status" = GLOB.pool_manager ? "Active" : "Missing",
         "liquid_registry_status" = GLOB.liquid_registry ? "Active" : "Missing",
-        "cells_in_processing" = SSliquid ? length(SSliquid.cells_in_processing) : 0
     )
 
     // Recent performance snapshot
@@ -814,7 +810,7 @@ GLOBAL_DATUM_INIT(liquid_debug_manager, /datum/liquid_debug_manager, new)
         var/pool_cell_count = length(turf_list)
         if(pool_cell_count == 0) continue
 
-        var/turf/root_turf = GLOB.pool_manager.dsu.find(turf_list[1])
+        var/turf/root_turf = turf_list[1]
         var/avg_fluid = GLOB.pool_manager.get_pool_avg_fluid(turf_list)
 
         // Apply filters
@@ -971,9 +967,6 @@ GLOBAL_DATUM_INIT(liquid_debug_manager, /datum/liquid_debug_manager, new)
     if(current_debug_memory > debug_memory_limit * 0.8)
         alerts += "High debug memory usage ([current_debug_memory]/[debug_memory_limit] bytes)"
 
-    if(SSliquid && length(SSliquid.cells_in_processing) > 50)
-        alerts += "Many cells stuck in processing ([length(SSliquid.cells_in_processing)] cells)"
-
     return alerts
 
 /**
@@ -1001,11 +994,11 @@ GLOBAL_DATUM_INIT(liquid_debug_manager, /datum/liquid_debug_manager, new)
 
     if(GLOB.pool_manager)
         var/pool_size = GLOB.pool_manager.get_pool_size(T)
-        var/pool_root = GLOB.pool_manager.dsu.find(T)
+        var/list/pool_for_root = GLOB.pool_manager.get_pool(T)
+        var/turf/pool_root = length(pool_for_root) ? pool_for_root[1] : T
 
         context["pool_size"] = pool_size
         context["pool_root"] = "[pool_root]"
-        context["is_processing"] = (T in SSliquid.cells_in_processing)
 
     return context
 
@@ -1245,10 +1238,6 @@ GLOBAL_DATUM_INIT(liquid_debug_manager, /datum/liquid_debug_manager, new)
 
     if(current_debug_memory > debug_memory_limit)
         system_alerts += "Debug memory limit exceeded"
-        system_health_status = "warning"
-
-    if(length(SSliquid.cells_in_processing) > 100)
-        system_alerts += "Many cells stuck in processing"
         system_health_status = "warning"
 
     // Set health status

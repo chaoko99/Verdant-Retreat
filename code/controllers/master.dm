@@ -217,7 +217,10 @@ GLOBAL_REAL(Master, /datum/controller/master) = new
 	world.change_fps(CONFIG_GET(number/fps))
 	var/initialized_tod = REALTIMEOFDAY
 
-	if(sleep_offline_after_initializations)
+	// The resume flag must be checked before sleeping or a world with no clients
+	// connected will suspend at the sleep(1) below forever, this matters for running
+	// headless server tests and making sure the server initializes right away.
+	if(sleep_offline_after_initializations && !CONFIG_GET(flag/resume_after_initializations))
 		world.sleep_offline = TRUE
 	sleep(1)
 

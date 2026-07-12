@@ -15,6 +15,7 @@
 	#endif
 
 /datum/behavior_tree/node/parallel/root
+	var/tree_typepath
 	var/list/path // This should always be instantiated if we're creating a mob that has one of these anyways, but still do it in InitAI, not in a node definition.
 	var/atom/move_destination // This is where we're going.
 	var/atom/target // And this is who we're KILLING.
@@ -35,6 +36,7 @@
 
 	var/next_think_tick = 0 // The world.time when this mob can think again.
 	var/next_chatter_tick = 0
+	var/next_wander_tick = 0
 	var/next_emote_tick = 0
 	var/next_attack_tick = 0
 	var/next_move_tick = 0
@@ -72,11 +74,18 @@
 	var/list/goap_actions_cache
 */
 /mob/living/proc/init_ai_root(typepath)
-	if(ai_root) return
+	if(ai_root)
+		if(ai_root.tree_typepath == typepath)
+			return
+		SSai.Unregister(src)
 
 	ai_root = new /datum/behavior_tree/node/parallel/root(typepath, src)
 	ai_root.blackboard = new
+	configure_ai_root()
 	SSai.Register(src)
+
+/mob/living/proc/configure_ai_root()
+	return
 
 
 // =============================================================================
@@ -683,6 +692,7 @@
 /datum/behavior_tree/node/decorator/observer
 	var/observed_signal
 	var/triggered = FALSE
+	var/reaction = FALSE
 	var/datum/weakref/registered_to // weakref of what we registered to
 
 /datum/behavior_tree/node/decorator/observer/New(signal_id)
@@ -710,10 +720,16 @@
 /datum/behavior_tree/node/decorator/observer/evaluate(mob/living/npc, atom/target, list/blackboard)
 	register_signal_ref(npc) // Ensure registered
 
+	if(reaction)
+		if(!triggered)
+			return NODE_FAILURE
+		triggered = FALSE
+		return child.evaluate(npc, target, blackboard)
+
 	if(triggered)
 		triggered = FALSE
 		return NODE_FAILURE
-	
+
 	return child.evaluate(npc, target, blackboard)
 
 /datum/behavior_tree/node/decorator/observer/Destroy()
@@ -819,6 +835,9 @@
 // Triggered when hunger is high
 /datum/behavior_tree/node/decorator/observer/hungry
 	observed_signal = COMSIG_AI_HUNGRY
+
+/datum/behavior_tree/node/decorator/observer/path_blocked
+	observed_signal = COMSIG_AI_PATH_BLOCKED
 
 // TARGET DEATH OBSERVER
 // Monitors ai_root.target - aborts if target dies

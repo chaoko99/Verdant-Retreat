@@ -48,9 +48,10 @@
 			blackboard[AIBLK_LAST_KNOWN_TARGET_LOC] = get_turf(target)
 			return NODE_SUCCESS
 		return NODE_SUCCESS
-	
+
 	if(user.ai_root)
 		user.ai_root.target = null
+		user.last_aggro_loss = world.time
 		user.back_to_idle()
 	return NODE_FAILURE
 
@@ -268,15 +269,28 @@
 	return NODE_FAILURE
 
 /bt_action/carbon_idle_wander/evaluate(mob/living/carbon/human/user, mob/living/target, list/blackboard)
-	if(!user.wander || !prob(15))
+	if(prob(3))
+		user.emote("idle")
+
+	if(!prob(15))
 		return NODE_FAILURE
 
-	if(world.time >= user.ai_root.next_move_tick)
-		var/turf/T = get_step(user, pick(GLOB.cardinals))
-		if(T && !T.density)
-			if(user.Move(T, get_dir(user, T)))
+	if(user.wander)
+		if(world.time < user.ai_root.next_move_tick)
+			return NODE_FAILURE
+		if(prob(50))
+			var/turf/T = get_step(user, pick(GLOB.cardinals))
+			if(T && T.can_traverse_safely(user) && user.Move(T, get_dir(user, T)))
 				user.ai_root.next_move_tick = world.time + user.ai_root.next_move_delay
 				return NODE_SUCCESS
+			return NODE_FAILURE
+		user.setDir(turn(user.dir, pick(90, -90)))
+		return NODE_SUCCESS
+
+	if(prob(10))
+		user.setDir(turn(user.dir, pick(90, -90)))
+		return NODE_SUCCESS
+
 	return NODE_FAILURE
 
 /bt_action/carbon_attack_melee/evaluate(mob/living/carbon/human/user, mob/living/target, list/blackboard)
@@ -287,29 +301,91 @@
 		return NODE_FAILURE
 
 	user.face_atom(target)
+
+	if(user.mind?.has_antag_datum(/datum/antagonist/zombie))
+		if(user.do_deadite_attack(target))
+			user.ai_root.next_attack_tick = world.time + (user.ai_root.next_attack_delay || 10)
+			return NODE_SUCCESS
+
+	user.npc_choose_attack_zone(target)
 	npc_click_on(user, target)
 	user.ai_root.next_attack_tick = world.time + (user.ai_root.next_attack_delay || 10)
 	return NODE_SUCCESS
 
 /bt_action/carbon_equip_weapon/evaluate(mob/living/carbon/human/user, mob/living/target, list/blackboard)
 	var/obj/item/held = user.get_active_held_item()
-	if(held) 
-		if(user.equip_best_weapon_for_damage_type(GLOB.crush_bclasses))
-			return NODE_SUCCESS
-	
+	if(held)
+		user.equip_best_weapon_for_damage_type(GLOB.crush_bclasses)
+		return NODE_SUCCESS
+
 	for(var/obj/item/I in range(1, user))
-		if(I.force > 7 && user.equip_item(I)) return NODE_SUCCESS
-	return NODE_FAILURE
+		if(I.force > 7 && user.equip_item(I))
+			return NODE_SUCCESS
+
+	return NODE_SUCCESS
 
 /bt_action/carbon_should_flee/evaluate(mob/living/carbon/human/user, mob/living/target, list/blackboard)
+	if(!user.flee_in_pain) return NODE_FAILURE
+	if(!target || target.stat != CONSCIOUS) return NODE_FAILURE
 	if(user.get_complex_pain() >= ((user.STAEND * 10) * 0.9)) return NODE_SUCCESS
 	return NODE_FAILURE
 
 /bt_action/carbon_flee/evaluate(mob/living/carbon/human/user, mob/living/target, list/blackboard)
+	if(!target) return NODE_FAILURE
+
+	if(get_dist(user, target) >= 8)
+		if(user.ai_root)
+			user.ai_root.target = null
+			user.last_aggro_loss = world.time
+			user.back_to_idle()
+		return NODE_SUCCESS
+
 	var/turf/flee_turf = get_ranged_target_turf(user, get_dir(target, user), 8)
 	if(flee_turf && user.set_ai_path_to(flee_turf)) return NODE_RUNNING
 	return NODE_FAILURE
 
+// ------------------------------------------------------------------------------
+// SELF-RECOVERY (RESIST / STAND)
+// ------------------------------------------------------------------------------
+
+/bt_action/carbon_resist/evaluate(mob/living/carbon/human/user, mob/living/target, list/blackboard)
+	if(!user.npc_should_resist()) return NODE_FAILURE
+	user.resist()
+	return NODE_SUCCESS
+
+/bt_action/carbon_stand/evaluate(mob/living/carbon/human/user, mob/living/target, list/blackboard)
+	if((user.mobility_flags & MOBILITY_CANSTAND) && !(user.mobility_flags & MOBILITY_STAND))
+		user.npc_stand()
+		return NODE_SUCCESS
+	return NODE_FAILURE
+
+// ------------------------------------------------------------------------------
+// AMBUSH DESPAWN
+// ------------------------------------------------------------------------------
+
+/bt_action/carbon_check_deaggro_despawn/evaluate(mob/living/carbon/human/user, mob/living/target, list/blackboard)
+	if(!user.ai_root) return NODE_SUCCESS
+	if(!user.del_on_deaggro || !user.last_aggro_loss) return NODE_SUCCESS
+	if(world.time < user.last_aggro_loss + user.del_on_deaggro) return NODE_SUCCESS
+
+	if(user.aggressive)
+		for(var/mob/living/L in view(3, user))
+			if(L == user || !user.should_target(L) || L.stat == DEAD) continue
+			user.retaliate(L)
+			return NODE_SUCCESS
+
+	if(!user.ai_root.target)
+		qdel(user)
+	return NODE_SUCCESS
+
+// ------------------------------------------------------------------------------
+// DEADITE FLAVOR
+// ------------------------------------------------------------------------------
+
+/bt_action/carbon_deadite_idle_noise/evaluate(mob/living/carbon/human/user, mob/living/target, list/blackboard)
+	if(user.mind?.has_antag_datum(/datum/antagonist/zombie))
+		user.try_do_deadite_idle()
+	return NODE_FAILURE
 
 /bt_action/carbon_pursue_last_known/evaluate(mob/living/carbon/human/user, mob/living/target, list/blackboard)
 	if(!ishuman(user) || !user.ai_root) return NODE_FAILURE

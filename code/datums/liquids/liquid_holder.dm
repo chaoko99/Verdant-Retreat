@@ -4,14 +4,15 @@ GLOBAL_LIST_EMPTY(liquid_types)
 
 	var/pressure_mask = 0 // Bitmask tracking flow directions: NORTH=1, SOUTH=2, EAST=4, WEST=8
 
+	// The simulation buffers live in verdant_native; this list is a read
+	// cache kept in sync from the engine's per-tick deltas.
 	var/list/fluid_volume // Associative list mapping fluid datums to integer amounts
-	var/list/new_volume // Buffer for calculating next tick's fluid amounts
 	var/fluidsum = 0 // Total amount of fluid from all types
-	var/new_fluidsum = 0 // Buffer for calculating next tick's total
 
 	var/flow_dir = 0 // Direction bitmask for flow modification (rivers, currents)
 	var/is_liquid_source = FALSE // Make this TRUE to make a turf spawn fluid.
 	var/production_rate = 0 // Amount of the fluid produced each processing loop.
+	var/source_fluid_type = WATER // The fluid type a source produces. Sources produce exactly one type.
 	var/is_liquid_sink = FALSE // Make this TRUE to make a turf despawn fluid.
 	var/absorption_rate = 0 // Amount of fluid deleted per processing loop by the sink.
 	var/last_fluid_level = 0 // Tracks the amount of fluid in the last processing loop. So we know if we need to update the icon or not.
@@ -41,14 +42,12 @@ GLOBAL_LIST_EMPTY(liquid_types)
 
 /cell/proc/InitLiquids()
 	fluid_volume = list()
-	new_volume = list()
 	fluid_flags = 0
 	for(var/fluid in GLOB.liquid_types)
 		var/datum/liquid/newfluid = new fluid
 		if(newfluid.reagent)
 			newfluid.color = initial(newfluid.reagent:color)
 		fluid_volume[newfluid] = 0
-		new_volume[newfluid] = 0
 
 /cell/proc/InitFireSmoke()
 	// Initialize fire and smoke variables with default values
@@ -125,37 +124,48 @@ GLOBAL_LIST_EMPTY(liquid_types)
 	// Flow direction methods
 /cell/proc/set_flow_dir(new_dir)
 	flow_dir = new_dir
+	vn_fluid_queue(VN_FLUID_OP_SET_FLOW_DIR, get_turf_from_cell(), new_dir)
 
 /cell/proc/clear_flow_dir()
 	flow_dir = 0
+	vn_fluid_queue(VN_FLUID_OP_SET_FLOW_DIR, get_turf_from_cell(), 0)
 
 /cell/proc/has_flow_modification()
 	return flow_dir != 0
 
 	// Source/sink management
-/cell/proc/make_liquid_source(rate = 1)
+/cell/proc/make_liquid_source(rate = 1, fluid_type = WATER)
 	is_liquid_source = TRUE
 	production_rate = rate
-	if(get_turf_from_cell())
-		SSliquid.liquid_sources += get_turf_from_cell()
+	source_fluid_type = fluid_type
+	var/turf/T = get_turf_from_cell()
+	if(T)
+		SSliquid.liquid_sources += T
+		vn_fluid_queue(VN_FLUID_OP_SET_SOURCE, T, vn_fluid_mat_id(fluid_type), rate)
 
 /cell/proc/make_liquid_sink(rate = 1)
 	is_liquid_sink = TRUE
 	absorption_rate = rate
-	if(get_turf_from_cell())
-		SSliquid.liquid_sinks += get_turf_from_cell()
+	var/turf/T = get_turf_from_cell()
+	if(T)
+		SSliquid.liquid_sinks += T
+		vn_fluid_queue(VN_FLUID_OP_SET_SINK, T, 0, rate)
 
 /cell/proc/remove_liquid_source()
 	is_liquid_source = FALSE
 	production_rate = 0
-	if(get_turf_from_cell())
-		SSliquid.liquid_sources -= get_turf_from_cell()
+	var/turf/T = get_turf_from_cell()
+	if(T)
+		SSliquid.liquid_sources -= T
+		vn_fluid_queue(VN_FLUID_OP_CLEAR_SOURCE, T)
 
 /cell/proc/remove_liquid_sink()
 	is_liquid_sink = FALSE
 	absorption_rate = 0
-	if(get_turf_from_cell())
-		SSliquid.liquid_sinks -= get_turf_from_cell()
+	var/turf/T = get_turf_from_cell()
+	if(T)
+		SSliquid.liquid_sinks -= T
+		vn_fluid_queue(VN_FLUID_OP_CLEAR_SINK, T)
 
 	// Fluid level tracking
 /cell/proc/update_last_fluid_level()
@@ -167,6 +177,3 @@ GLOBAL_LIST_EMPTY(liquid_types)
 	// Direct access discouraged methods
 /cell/proc/get_raw_fluid_volume()
 	return fluid_volume
-
-/cell/proc/get_raw_new_volume()
-	return new_volume

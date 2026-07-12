@@ -103,6 +103,8 @@ GLOBAL_LIST_INIT(blacklisted_automated_baseturfs, typecacheof(list(
 	qdel(src)	//Just get the side effects and call Destroy
 	var/turf/W = new path(src)
 
+	vn_mark_dirty(W)
+
 	for(var/i in transferring_comps)
 		W.TakeComponent(i)
 

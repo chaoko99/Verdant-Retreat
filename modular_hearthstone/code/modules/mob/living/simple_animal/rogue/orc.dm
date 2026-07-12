@@ -46,7 +46,7 @@
 /mob/living/simple_animal/hostile/retaliate/rogue/orc/Initialize()
 	. = ..()
 	// Initialize behavior tree
-	init_ai_root(/datum/behavior_tree/node/selector/generic_hostile_tree)
+	init_ai_root(/datum/behavior_tree/node/selector/orc_tree)
 	ai_root.next_move_delay = move_to_delay
 	ai_root.next_attack_delay = ORC_ATTACK_SPEED
 
@@ -72,6 +72,12 @@
 	loot = list(/obj/effect/mob_spawn/human/orc/corpse/orcmarauder,
 			/obj/item/rogueweapon/sword/iron/messer,
 			/obj/effect/decal/cleanable/blood)
+
+/mob/living/simple_animal/hostile/retaliate/rogue/orc/orc_marauder/Initialize()
+	. = ..()
+	init_ai_root(/datum/behavior_tree/node/selector/orc_spear_tree)
+	ai_root.next_move_delay = move_to_delay
+	ai_root.next_attack_delay = ORC_ATTACK_SPEED
 
 /mob/living/simple_animal/hostile/retaliate/rogue/orc/orc_marauder/spear
 	icon_state = "orcmarauder_spear"
@@ -113,6 +119,12 @@
 
 	footstep_type = FOOTSTEP_MOB_BAREFOOT
 
+/mob/living/simple_animal/hostile/retaliate/rogue/orc/spear/Initialize()
+	. = ..()
+	init_ai_root(/datum/behavior_tree/node/selector/orc_spear_tree)
+	ai_root.next_move_delay = move_to_delay
+	ai_root.next_attack_delay = ORC_ATTACK_SPEED
+
 /mob/living/simple_animal/hostile/retaliate/rogue/orc/spear2
 	icon_state = "savageorc_spear2"
 	icon_living = "savageorc_spear2"
@@ -121,6 +133,12 @@
 	loot = list(/obj/effect/mob_spawn/human/orc/corpse/savageorc2,
 			/obj/item/rogueweapon/spear/bonespear,
 			/obj/effect/decal/cleanable/blood)
+
+/mob/living/simple_animal/hostile/retaliate/rogue/orc/spear2/Initialize()
+	. = ..()
+	init_ai_root(/datum/behavior_tree/node/selector/orc_spear_tree)
+	ai_root.next_move_delay = move_to_delay
+	ai_root.next_attack_delay = ORC_ATTACK_SPEED
 
 /datum/intent/simple/axe/orc
 	clickcd = ORC_ATTACK_SPEED

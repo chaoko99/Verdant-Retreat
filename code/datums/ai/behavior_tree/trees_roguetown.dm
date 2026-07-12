@@ -82,6 +82,15 @@
 
 	my_action = /bt_action/idle_wander
 
+/datum/behavior_tree/node/action/idle_chatter
+	my_action = /bt_action/idle_chatter
+
+/datum/behavior_tree/node/action/try_ranged_attack
+	my_action = /bt_action/do_ranged_attack/passthrough
+
+/datum/behavior_tree/node/action/keep_distance
+	my_action = /bt_action/keep_distance
+
 
 
 /datum/behavior_tree/node/action/move_to_target
@@ -118,6 +127,18 @@
 
 	my_action = /bt_action/eat_dead_body
 
+
+
+/datum/behavior_tree/node/action/find_dead_body
+
+	my_action = /bt_action/find_dead_body
+
+
+
+/datum/behavior_tree/node/action/destroy_path
+
+	my_action = /bt_action/destroy_path
+
 // ------------------------------------------------------------------------------
 // SERVICES & OBSERVERS
 // ------------------------------------------------------------------------------
@@ -136,6 +157,25 @@
 	observed_signal = COMSIG_AI_ATTACKED
 
 /datum/behavior_tree/node/decorator/observer/pain_crit
+
+/datum/behavior_tree/node/action/flee_while_injured
+	my_action = /bt_action/flee_target/injured
+
+/datum/behavior_tree/node/decorator/observer/self_preservation/injury_flee_wrapper
+	reaction = TRUE
+	child = /datum/behavior_tree/node/action/flee_while_injured
+
+/datum/behavior_tree/node/decorator/service/lamia_sneak
+	interval = 3 SECONDS
+
+/datum/behavior_tree/node/decorator/service/lamia_sneak/service_tick(mob/living/npc, list/blackboard)
+	var/mob/living/simple_animal/hostile/retaliate/rogue/lamia/L = npc
+	if(!istype(L)) return
+	if(L.sneaking || world.time < L.sneak_cooldown) return
+	var/turf/T = get_turf(L)
+	if(!T) return
+	if(T.get_lumcount() < SHADOW_SPECIES_LIGHT_THRESHOLD)
+		L.sneak_now()
 
 // ------------------------------------------------------------------------------
 // SUB-TREES (SEQUENCES & SELECTORS)
@@ -164,7 +204,9 @@
 // ENGAGE TARGET
 /datum/behavior_tree/node/selector/engage_target
 	my_nodes = list(
+		/datum/behavior_tree/node/action/keep_distance,
 		/datum/behavior_tree/node/sequence/attack_sequence,
+		/datum/behavior_tree/node/action/try_ranged_attack,
 		/datum/behavior_tree/node/action/move_to_target,
 		/datum/behavior_tree/node/sequence/simple_pursue_search
 	)
@@ -200,6 +242,7 @@
 // IDLE LOOP
 /datum/behavior_tree/node/sequence/idle
 	my_nodes = list(
+		/datum/behavior_tree/node/action/idle_chatter,
 		/datum/behavior_tree/node/action/idle_wander
 	)
 
@@ -209,6 +252,12 @@
 		/datum/behavior_tree/node/action/check_hunger,
 		/datum/behavior_tree/node/action/find_food,
 		/datum/behavior_tree/node/action/eat_food
+	)
+
+/datum/behavior_tree/node/sequence/corpse_scavenge
+	my_nodes = list(
+		/datum/behavior_tree/node/action/find_dead_body,
+		/datum/behavior_tree/node/action/eat_dead_body
 	)
 
 // ------------------------------------------------------------------------------
@@ -330,6 +379,7 @@
 /datum/behavior_tree/node/selector/engage_target_dreamfiend
 	my_nodes = list(
 		/datum/behavior_tree/node/action/dreamfiend_blink,
+		/datum/behavior_tree/node/action/dreamfiend_kick,
 		/datum/behavior_tree/node/sequence/attack_sequence,
 		/datum/behavior_tree/node/action/move_to_target
 	)
@@ -343,14 +393,26 @@
 /datum/behavior_tree/node/decorator/observer/target_death/engage_dreamfiend_wrapped
 	child = /datum/behavior_tree/node/selector/engage_target_dreamfiend
 
+/datum/behavior_tree/node/action/maintain_distance_hold2
+	my_action = /bt_action/maintain_distance/hold2
+
+/datum/behavior_tree/node/action/target_in_range_reach2
+	my_action = /bt_action/target_in_range/reach2
+
 /datum/behavior_tree/node/sequence/attack_sequence_spacing
 	my_nodes = list(
-		/datum/behavior_tree/node/action/maintain_distance,
-		/datum/behavior_tree/node/action/target_in_range,
+		/datum/behavior_tree/node/action/maintain_distance_hold2,
+		/datum/behavior_tree/node/action/target_in_range_reach2,
 		/datum/behavior_tree/node/action/do_melee_attack
 	)
 
 /datum/behavior_tree/node/selector/engage_target_skeleton
+	my_nodes = list(
+		/datum/behavior_tree/node/sequence/attack_sequence,
+		/datum/behavior_tree/node/action/move_to_target
+	)
+
+/datum/behavior_tree/node/selector/engage_target_skeleton_spear
 	my_nodes = list(
 		/datum/behavior_tree/node/sequence/attack_sequence_spacing,
 		/datum/behavior_tree/node/action/move_to_target
@@ -365,9 +427,18 @@
 /datum/behavior_tree/node/decorator/observer/target_death/engage_skeleton_wrapped
 	child = /datum/behavior_tree/node/selector/engage_target_skeleton
 
+/datum/behavior_tree/node/sequence/combat_skeleton_spear
+	my_nodes = list(
+		/datum/behavior_tree/node/selector/acquire_target,
+		/datum/behavior_tree/node/decorator/observer/target_death/engage_skeleton_spear_wrapped
+	)
+
+/datum/behavior_tree/node/decorator/observer/target_death/engage_skeleton_spear_wrapped
+	child = /datum/behavior_tree/node/selector/engage_target_skeleton_spear
+
 /datum/behavior_tree/node/selector/engage_target_orc
 	my_nodes = list(
-		/datum/behavior_tree/node/sequence/attack_sequence_spacing,
+		/datum/behavior_tree/node/sequence/attack_sequence,
 		/datum/behavior_tree/node/action/move_to_target
 	)
 
@@ -381,12 +452,31 @@
 /datum/behavior_tree/node/decorator/observer/target_death/engage_orc_wrapped
 	child = /datum/behavior_tree/node/selector/engage_target_orc
 
+/datum/behavior_tree/node/selector/engage_target_orc_spear
+	my_nodes = list(
+		/datum/behavior_tree/node/sequence/attack_sequence_spacing,
+		/datum/behavior_tree/node/action/move_to_target
+	)
+
+/datum/behavior_tree/node/sequence/combat_orc_spear
+	my_nodes = list(
+		/datum/behavior_tree/node/selector/acquire_target,
+		/datum/behavior_tree/node/decorator/observer/target_death/engage_orc_spear_wrapped
+	)
+
+/datum/behavior_tree/node/decorator/observer/target_death/engage_orc_spear_wrapped
+	child = /datum/behavior_tree/node/selector/engage_target_orc_spear
+
 /datum/behavior_tree/node/sequence/combat_volf
 	my_nodes = list(
 		/datum/behavior_tree/node/selector/acquire_target,
-		/datum/behavior_tree/node/action/call_reinforcements,
+		/datum/behavior_tree/node/decorator/cooldown/call_reinforcements_wrapper,
 		/datum/behavior_tree/node/decorator/observer/target_death/engage_volf_wrapped
 	)
+
+/datum/behavior_tree/node/decorator/cooldown/call_reinforcements_wrapper
+	child = /datum/behavior_tree/node/action/call_reinforcements
+	cooldown_time = 2 SECONDS
 
 /datum/behavior_tree/node/decorator/observer/target_death/engage_volf_wrapped
 	child = /datum/behavior_tree/node/selector/engage_target
@@ -401,22 +491,33 @@
 	child = /datum/behavior_tree/node/decorator/service/aggressor_manager/hostile_wrapper
 
 /datum/behavior_tree/node/decorator/service/aggressor_manager/hostile_wrapper
+	child = /datum/behavior_tree/node/decorator/service/chatter/hostile_chatter
+
+/datum/behavior_tree/node/decorator/service/chatter/hostile_chatter
 	child = /datum/behavior_tree/node/selector/generic_hostile_tree_logic
 
 /datum/behavior_tree/node/selector/generic_hostile_tree_logic
 	my_nodes = list(
 		/datum/behavior_tree/node/decorator/observer/aggressor_reaction/reaction_wrapper,
 		/datum/behavior_tree/node/decorator/observer/self_preservation/flee_wrapper,
+		/datum/behavior_tree/node/decorator/observer/path_blocked/smash_wrapper,
 		/datum/behavior_tree/node/sequence/combat,
 		/datum/behavior_tree/node/decorator/retry/move_to_dest_retry,
+		/datum/behavior_tree/node/sequence/scavenge,
 		/datum/behavior_tree/node/sequence/idle
 	)
 
 /datum/behavior_tree/node/decorator/observer/aggressor_reaction/reaction_wrapper
+	reaction = TRUE
 	child = /datum/behavior_tree/node/action/clear_target // Force re-eval
 
 /datum/behavior_tree/node/decorator/observer/self_preservation/flee_wrapper
+	reaction = TRUE
 	child = /datum/behavior_tree/node/action/flee_target // Run away!
+
+/datum/behavior_tree/node/decorator/observer/path_blocked/smash_wrapper
+	reaction = TRUE
+	child = /datum/behavior_tree/node/action/destroy_path
 
 // GENERIC HUNGRY HOSTILE
 /datum/behavior_tree/node/selector/generic_hungry_hostile_tree
@@ -424,14 +525,19 @@
 	child = /datum/behavior_tree/node/decorator/service/aggressor_manager/hungry_wrapper
 
 /datum/behavior_tree/node/decorator/service/aggressor_manager/hungry_wrapper
+	child = /datum/behavior_tree/node/decorator/service/chatter/hungry_chatter
+
+/datum/behavior_tree/node/decorator/service/chatter/hungry_chatter
 	child = /datum/behavior_tree/node/selector/generic_hungry_logic
 
 /datum/behavior_tree/node/selector/generic_hungry_logic
 	my_nodes = list(
 		/datum/behavior_tree/node/decorator/observer/aggressor_reaction/reaction_wrapper,
+		/datum/behavior_tree/node/decorator/observer/path_blocked/smash_wrapper,
 		/datum/behavior_tree/node/sequence/combat,
 		/datum/behavior_tree/node/decorator/retry/move_to_dest_retry,
 		/datum/behavior_tree/node/sequence/scavenge,
+		/datum/behavior_tree/node/sequence/corpse_scavenge,
 		/datum/behavior_tree/node/sequence/idle
 	)
 
@@ -442,6 +548,9 @@
 	child = /datum/behavior_tree/node/decorator/service/aggressor_manager/friendly_wrapper
 
 /datum/behavior_tree/node/decorator/service/aggressor_manager/friendly_wrapper
+	child = /datum/behavior_tree/node/decorator/service/chatter/friendly_chatter
+
+/datum/behavior_tree/node/decorator/service/chatter/friendly_chatter
 	child = /datum/behavior_tree/node/selector/generic_friendly_logic
 
 /datum/behavior_tree/node/selector/generic_friendly_logic
@@ -538,12 +647,18 @@
 	child = /datum/behavior_tree/node/decorator/service/aggressor_manager/dreamfiend_wrapper
 
 /datum/behavior_tree/node/decorator/service/aggressor_manager/dreamfiend_wrapper
+	child = /datum/behavior_tree/node/decorator/service/chatter/dreamfiend_chatter
+
+/datum/behavior_tree/node/decorator/service/chatter/dreamfiend_chatter
 	child = /datum/behavior_tree/node/selector/dreamfiend_logic
 
 /datum/behavior_tree/node/selector/dreamfiend_logic
 	my_nodes = list(
+		/datum/behavior_tree/node/decorator/observer/aggressor_reaction/reaction_wrapper,
+		/datum/behavior_tree/node/decorator/observer/path_blocked/smash_wrapper,
 		/datum/behavior_tree/node/sequence/combat_dreamfiend,
 		/datum/behavior_tree/node/decorator/retry/move_to_dest_retry,
+		/datum/behavior_tree/node/action/dreamfiend_desummon,
 		/datum/behavior_tree/node/sequence/idle
 	)
 
@@ -558,7 +673,27 @@
 /datum/behavior_tree/node/selector/skeleton_logic
 	my_nodes = list(
 		/datum/behavior_tree/node/action/minion_follow,
+		/datum/behavior_tree/node/decorator/observer/aggressor_reaction/reaction_wrapper,
+		/datum/behavior_tree/node/decorator/observer/path_blocked/smash_wrapper,
 		/datum/behavior_tree/node/sequence/combat_skeleton,
+		/datum/behavior_tree/node/decorator/retry/move_to_dest_retry,
+		/datum/behavior_tree/node/sequence/idle
+	)
+
+// SKELETON SPEAR
+/datum/behavior_tree/node/selector/skeleton_spear_tree
+	parent_type = /datum/behavior_tree/node/decorator/service/target_scanner/hostile
+	child = /datum/behavior_tree/node/decorator/service/aggressor_manager/skeleton_spear_wrapper
+
+/datum/behavior_tree/node/decorator/service/aggressor_manager/skeleton_spear_wrapper
+	child = /datum/behavior_tree/node/selector/skeleton_spear_logic
+
+/datum/behavior_tree/node/selector/skeleton_spear_logic
+	my_nodes = list(
+		/datum/behavior_tree/node/action/minion_follow,
+		/datum/behavior_tree/node/decorator/observer/aggressor_reaction/reaction_wrapper,
+		/datum/behavior_tree/node/decorator/observer/path_blocked/smash_wrapper,
+		/datum/behavior_tree/node/sequence/combat_skeleton_spear,
 		/datum/behavior_tree/node/decorator/retry/move_to_dest_retry,
 		/datum/behavior_tree/node/sequence/idle
 	)
@@ -569,11 +704,36 @@
 	child = /datum/behavior_tree/node/decorator/service/aggressor_manager/orc_wrapper
 
 /datum/behavior_tree/node/decorator/service/aggressor_manager/orc_wrapper
+	child = /datum/behavior_tree/node/decorator/service/chatter/orc_chatter
+
+/datum/behavior_tree/node/decorator/service/chatter/orc_chatter
 	child = /datum/behavior_tree/node/selector/orc_logic
 
 /datum/behavior_tree/node/selector/orc_logic
 	my_nodes = list(
+		/datum/behavior_tree/node/decorator/observer/aggressor_reaction/reaction_wrapper,
+		/datum/behavior_tree/node/decorator/observer/path_blocked/smash_wrapper,
 		/datum/behavior_tree/node/sequence/combat_orc,
+		/datum/behavior_tree/node/decorator/retry/move_to_dest_retry,
+		/datum/behavior_tree/node/sequence/idle
+	)
+
+// ORC SPEAR/ELITE
+/datum/behavior_tree/node/selector/orc_spear_tree
+	parent_type = /datum/behavior_tree/node/decorator/service/target_scanner/hostile
+	child = /datum/behavior_tree/node/decorator/service/aggressor_manager/orc_spear_wrapper
+
+/datum/behavior_tree/node/decorator/service/aggressor_manager/orc_spear_wrapper
+	child = /datum/behavior_tree/node/decorator/service/chatter/orc_spear_chatter
+
+/datum/behavior_tree/node/decorator/service/chatter/orc_spear_chatter
+	child = /datum/behavior_tree/node/selector/orc_spear_logic
+
+/datum/behavior_tree/node/selector/orc_spear_logic
+	my_nodes = list(
+		/datum/behavior_tree/node/decorator/observer/aggressor_reaction/reaction_wrapper,
+		/datum/behavior_tree/node/decorator/observer/path_blocked/smash_wrapper,
+		/datum/behavior_tree/node/sequence/combat_orc_spear,
 		/datum/behavior_tree/node/decorator/retry/move_to_dest_retry,
 		/datum/behavior_tree/node/sequence/idle
 	)
@@ -584,12 +744,51 @@
 	child = /datum/behavior_tree/node/decorator/service/aggressor_manager/volf_wrapper
 
 /datum/behavior_tree/node/decorator/service/aggressor_manager/volf_wrapper
+	child = /datum/behavior_tree/node/decorator/service/health_monitor/volf_health_wrapper
+
+/datum/behavior_tree/node/decorator/service/health_monitor/volf_health_wrapper
+	threshold = 0.4
+	child = /datum/behavior_tree/node/decorator/service/chatter/volf_chatter
+
+/datum/behavior_tree/node/decorator/service/chatter/volf_chatter
 	child = /datum/behavior_tree/node/selector/volf_logic
 
 /datum/behavior_tree/node/selector/volf_logic
 	my_nodes = list(
+		/datum/behavior_tree/node/decorator/observer/aggressor_reaction/reaction_wrapper,
+		/datum/behavior_tree/node/decorator/observer/self_preservation/injury_flee_wrapper,
+		/datum/behavior_tree/node/decorator/observer/path_blocked/smash_wrapper,
 		/datum/behavior_tree/node/sequence/combat_volf,
 		/datum/behavior_tree/node/decorator/retry/move_to_dest_retry,
+		/datum/behavior_tree/node/sequence/scavenge,
+		/datum/behavior_tree/node/sequence/corpse_scavenge,
+		/datum/behavior_tree/node/sequence/idle
+	)
+
+// BIGRAT
+/datum/behavior_tree/node/selector/bigrat_tree
+	parent_type = /datum/behavior_tree/node/decorator/service/target_scanner/hungry
+	child = /datum/behavior_tree/node/decorator/service/aggressor_manager/bigrat_wrapper
+
+/datum/behavior_tree/node/decorator/service/aggressor_manager/bigrat_wrapper
+	child = /datum/behavior_tree/node/decorator/service/health_monitor/bigrat_health_wrapper
+
+/datum/behavior_tree/node/decorator/service/health_monitor/bigrat_health_wrapper
+	threshold = 0.3
+	child = /datum/behavior_tree/node/decorator/service/chatter/bigrat_chatter
+
+/datum/behavior_tree/node/decorator/service/chatter/bigrat_chatter
+	child = /datum/behavior_tree/node/selector/bigrat_logic
+
+/datum/behavior_tree/node/selector/bigrat_logic
+	my_nodes = list(
+		/datum/behavior_tree/node/decorator/observer/aggressor_reaction/reaction_wrapper,
+		/datum/behavior_tree/node/decorator/observer/self_preservation/injury_flee_wrapper,
+		/datum/behavior_tree/node/decorator/observer/path_blocked/smash_wrapper,
+		/datum/behavior_tree/node/sequence/combat,
+		/datum/behavior_tree/node/decorator/retry/move_to_dest_retry,
+		/datum/behavior_tree/node/sequence/scavenge,
+		/datum/behavior_tree/node/sequence/corpse_scavenge,
 		/datum/behavior_tree/node/sequence/idle
 	)
 
@@ -751,12 +950,110 @@
 	child = /datum/behavior_tree/node/decorator/service/aggressor_manager/mirespider_wrapper
 
 /datum/behavior_tree/node/decorator/service/aggressor_manager/mirespider_wrapper
+	child = /datum/behavior_tree/node/decorator/service/chatter/mirespider_chatter
+
+/datum/behavior_tree/node/decorator/service/chatter/mirespider_chatter
 	child = /datum/behavior_tree/node/selector/mirespider_logic
+
+/datum/behavior_tree/node/action/follow_lurker
+	my_action = /bt_action/follow_target/mirespider
 
 /datum/behavior_tree/node/selector/mirespider_logic
 	my_nodes = list(
-		/datum/behavior_tree/node/action/minion_follow,
+		/datum/behavior_tree/node/decorator/observer/aggressor_reaction/reaction_wrapper,
+		/datum/behavior_tree/node/decorator/observer/path_blocked/smash_wrapper,
 		/datum/behavior_tree/node/sequence/combat,
+		/datum/behavior_tree/node/decorator/retry/move_to_dest_retry,
+		/datum/behavior_tree/node/sequence/scavenge,
+		/datum/behavior_tree/node/action/follow_lurker,
+		/datum/behavior_tree/node/sequence/idle
+	)
+
+// MIRESPIDER LURKER
+/datum/behavior_tree/node/action/find_cocoon_target
+	my_action = /bt_action/find_cocoon_target
+
+/datum/behavior_tree/node/action/mark_cocoon_target
+	my_action = /bt_action/mark_cocoon_target
+
+/datum/behavior_tree/node/action/cocoon_target
+	my_action = /bt_action/cocoon_target
+
+/datum/behavior_tree/node/sequence/cocoon_current_target_sequence
+	my_nodes = list(
+		/datum/behavior_tree/node/action/mark_cocoon_target,
+		/datum/behavior_tree/node/action/cocoon_target
+	)
+
+/datum/behavior_tree/node/sequence/cocoon_sequence
+	my_nodes = list(
+		/datum/behavior_tree/node/action/find_cocoon_target,
+		/datum/behavior_tree/node/action/cocoon_target
+	)
+
+/datum/behavior_tree/node/selector/engage_target_mirespider_lurker
+	my_nodes = list(
+		/datum/behavior_tree/node/sequence/cocoon_current_target_sequence,
+		/datum/behavior_tree/node/action/do_ranged_attack,
+		/datum/behavior_tree/node/sequence/attack_sequence,
+		/datum/behavior_tree/node/action/move_to_target
+	)
+
+/datum/behavior_tree/node/sequence/combat_mirespider_lurker
+	my_nodes = list(
+		/datum/behavior_tree/node/selector/acquire_target,
+		/datum/behavior_tree/node/decorator/observer/target_death/engage_mirespider_lurker_wrapped
+	)
+
+/datum/behavior_tree/node/decorator/observer/target_death/engage_mirespider_lurker_wrapped
+	child = /datum/behavior_tree/node/selector/engage_target_mirespider_lurker
+
+/datum/behavior_tree/node/decorator/service/lurker_clear_followers
+	interval = 2 SECONDS
+
+/datum/behavior_tree/node/decorator/service/lurker_clear_followers/service_tick(mob/living/npc, list/blackboard)
+	var/mob/living/simple_animal/hostile/rogue/mirespider_lurker/L = npc
+	if(!istype(L)) return
+	if(npc.ai_root.target)
+		L.clear_followers_if_any()
+
+/datum/behavior_tree/node/selector/mirespider_lurker_tree
+	parent_type = /datum/behavior_tree/node/decorator/service/target_scanner/hostile
+	child = /datum/behavior_tree/node/decorator/service/aggressor_manager/mirespider_lurker_wrapper
+
+/datum/behavior_tree/node/decorator/service/aggressor_manager/mirespider_lurker_wrapper
+	child = /datum/behavior_tree/node/decorator/service/chatter/mirespider_lurker_chatter
+
+/datum/behavior_tree/node/decorator/service/chatter/mirespider_lurker_chatter
+	child = /datum/behavior_tree/node/decorator/service/lurker_clear_followers/mirespider_lurker_clear_wrapper
+
+/datum/behavior_tree/node/decorator/service/lurker_clear_followers/mirespider_lurker_clear_wrapper
+	child = /datum/behavior_tree/node/selector/mirespider_lurker_logic
+
+/datum/behavior_tree/node/selector/mirespider_lurker_logic
+	my_nodes = list(
+		/datum/behavior_tree/node/decorator/observer/aggressor_reaction/reaction_wrapper,
+		/datum/behavior_tree/node/sequence/cocoon_sequence,
+		/datum/behavior_tree/node/sequence/combat_mirespider_lurker,
+		/datum/behavior_tree/node/decorator/retry/move_to_dest_retry,
+		/datum/behavior_tree/node/sequence/idle
+	)
+
+// MIRESPIDER PARALYTIC
+/datum/behavior_tree/node/selector/mirespider_paralytic_tree
+	parent_type = /datum/behavior_tree/node/decorator/service/target_scanner/hungry
+	child = /datum/behavior_tree/node/decorator/service/aggressor_manager/mirespider_paralytic_wrapper
+
+/datum/behavior_tree/node/decorator/service/aggressor_manager/mirespider_paralytic_wrapper
+	child = /datum/behavior_tree/node/decorator/service/chatter/mirespider_paralytic_chatter
+
+/datum/behavior_tree/node/decorator/service/chatter/mirespider_paralytic_chatter
+	child = /datum/behavior_tree/node/selector/mirespider_paralytic_logic
+
+/datum/behavior_tree/node/selector/mirespider_paralytic_logic
+	my_nodes = list(
+		/datum/behavior_tree/node/decorator/observer/path_blocked/smash_wrapper,
+		/datum/behavior_tree/node/sequence/cocoon_sequence,
 		/datum/behavior_tree/node/decorator/retry/move_to_dest_retry,
 		/datum/behavior_tree/node/sequence/idle
 	)
@@ -767,13 +1064,19 @@
 	child = /datum/behavior_tree/node/decorator/service/aggressor_manager/mossback_wrapper
 
 /datum/behavior_tree/node/decorator/service/aggressor_manager/mossback_wrapper
+	child = /datum/behavior_tree/node/decorator/service/chatter/mossback_chatter
+
+/datum/behavior_tree/node/decorator/service/chatter/mossback_chatter
 	child = /datum/behavior_tree/node/selector/mossback_logic
 
 /datum/behavior_tree/node/selector/mossback_logic
 	my_nodes = list(
 		/datum/behavior_tree/node/action/minion_follow,
+		/datum/behavior_tree/node/decorator/observer/aggressor_reaction/reaction_wrapper,
+		/datum/behavior_tree/node/decorator/observer/path_blocked/smash_wrapper,
 		/datum/behavior_tree/node/sequence/combat,
 		/datum/behavior_tree/node/decorator/retry/move_to_dest_retry,
+		/datum/behavior_tree/node/sequence/scavenge,
 		/datum/behavior_tree/node/sequence/idle
 	)
 
@@ -792,6 +1095,20 @@
 		/datum/behavior_tree/node/decorator/retry/move_to_dest_retry,
 		/datum/behavior_tree/node/sequence/idle
 	)
+
+// LAMIA
+/datum/behavior_tree/node/selector/lamia_tree
+	parent_type = /datum/behavior_tree/node/decorator/service/target_scanner/hostile
+	child = /datum/behavior_tree/node/decorator/service/aggressor_manager/lamia_wrapper
+
+/datum/behavior_tree/node/decorator/service/aggressor_manager/lamia_wrapper
+	child = /datum/behavior_tree/node/decorator/service/chatter/lamia_chatter
+
+/datum/behavior_tree/node/decorator/service/chatter/lamia_chatter
+	child = /datum/behavior_tree/node/decorator/service/lamia_sneak/lamia_sneak_wrapper
+
+/datum/behavior_tree/node/decorator/service/lamia_sneak/lamia_sneak_wrapper
+	child = /datum/behavior_tree/node/selector/generic_hostile_tree_logic
 
 // INSANE CLOWN
 /datum/behavior_tree/node/selector/insane_clown_tree
@@ -866,6 +1183,12 @@
 
 /datum/behavior_tree/node/action/dreamfiend_blink
 	my_action = /bt_action/dreamfiend_blink
+
+/datum/behavior_tree/node/action/dreamfiend_kick
+	my_action = /bt_action/dreamfiend_kick
+
+/datum/behavior_tree/node/action/dreamfiend_desummon
+	my_action = /bt_action/dreamfiend_desummon
 
 /datum/behavior_tree/node/action/use_ability
 	my_action = /bt_action/use_ability

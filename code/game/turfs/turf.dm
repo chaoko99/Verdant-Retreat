@@ -61,22 +61,17 @@
 
 	vis_flags = VIS_INHERIT_PLANE|VIS_INHERIT_ID
 
-/obj/effect/liquid
-	var/datum/weakref/owner
-
-/obj/effect/liquid/Initialize(turf/T)
-	. = ..()
-	alpha = 0
-	T.vis_contents |= src
-	owner = WEAKREF(T)
-
 /obj/effect/liquid/Destroy()
-	var/turf/T = owner?.resolve()
-	if(!T)
-		return
-	T.vis_contents -= src
-	owner = null
+	for(var/direction in trims)
+		qdel(trims[direction])
+	trims = null
+	current_trim_dirs = null
 	return ..()
+
+/turf/proc/ensure_liquid_overlay()
+	if(!liquid_overlay)
+		liquid_overlay = new(src)
+	return liquid_overlay
 
 /turf/vv_edit_var(var_name, new_value)
 	var/static/list/banned_edits = list("x", "y", "z")
@@ -96,8 +91,6 @@
 
 	// by default, vis_contents is inherited from the turf that was here before
 	vis_contents.Cut()
-	
-	new liquid_overlay(src)
 
 	assemble_baseturfs()
 
@@ -153,6 +146,7 @@
 	if(T)
 		T.multiz_turf_del(src, UP)
 	STOP_PROCESSING(SSweather,src)
+	QDEL_NULL(liquid_overlay)
 	if(force)
 		..()
 		//this will completely wipe turf state

@@ -62,6 +62,7 @@
 		icon_state = "lamia"
 		icon_living = "lamia"
 	update_icon()
+	init_ai_root(/datum/behavior_tree/node/selector/lamia_tree)
 
 /mob/living/simple_animal/hostile/retaliate/rogue/lamia/AttackingTarget()
 	if(sneaking)

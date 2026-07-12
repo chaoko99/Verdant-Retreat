@@ -9,7 +9,7 @@
 	mob_biotypes = MOB_UNDEAD|MOB_HUMANOID
 	robust_searching = 1
 	turns_per_move = 1
-	move_to_delay = 3
+	move_to_delay = SKELETON_MOVEMENT_SPEED
 	STACON = 9
 	STASTR = 9
 	STASPD = 8
@@ -18,7 +18,7 @@
 	harm_intent_damage = 10
 	melee_damage_lower = 10
 	melee_damage_upper = 25
-	vision_range = 7
+	vision_range = 9
 	aggro_vision_range = 9
 	retreat_distance = 0
 	minimum_distance = 0
@@ -43,7 +43,7 @@
 
 /mob/living/simple_animal/hostile/rogue/skeleton/Initialize(mapload, mob/user, cabal_affine = FALSE, is_summoned = FALSE)
 	. = ..()
-	init_ai_root(/datum/behavior_tree/node/selector/generic_hostile_tree)
+	init_ai_root(/datum/behavior_tree/node/selector/skeleton_tree)
 	ai_root.next_move_delay = move_to_delay
 	ai_root.next_attack_delay = SKELETON_ATTACK_SPEED
 
@@ -219,15 +219,9 @@
 /mob/living/simple_animal/hostile/rogue/skeleton/bow/event
 	// Uses behavior tree from parent
 
-/mob/living/simple_animal/hostile/rogue/skeleton/axe/Initialize(mapload, mob/user, cabal_affine = FALSE, is_summoned = FALSE)
-    . = ..(mapload, user, cabal_affine, is_summoned)
-
 /mob/living/simple_animal/hostile/rogue/skeleton/spear/Initialize(mapload, mob/user, cabal_affine = FALSE, is_summoned = FALSE)
-    . = ..(mapload, user, cabal_affine, is_summoned)
-
-/mob/living/simple_animal/hostile/rogue/skeleton/guard/Initialize(mapload, mob/user, cabal_affine = FALSE, is_summoned = FALSE)
-    . = ..(mapload, user, cabal_affine, is_summoned)
-
-/mob/living/simple_animal/hostile/rogue/skeleton/bow/Initialize(mapload, mob/user, cabal_affine = FALSE, is_summoned = FALSE)
-    . = ..(mapload, user, cabal_affine, is_summoned)
+	. = ..(mapload, user, cabal_affine, is_summoned)
+	init_ai_root(/datum/behavior_tree/node/selector/skeleton_spear_tree)
+	ai_root.next_move_delay = move_to_delay
+	ai_root.next_attack_delay = SKELETON_ATTACK_SPEED
 

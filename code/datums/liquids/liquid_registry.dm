@@ -409,7 +409,7 @@ GLOBAL_DATUM_INIT(liquid_registry, /datum/liquid_registry, new)
 		return FALSE
 
 	// Create temporary reagent holder for the chemical effect
-	var/datum/reagents/temp_holder = new /datum/reagents(effect_amount, src)
+	var/datum/reagents/temp_holder = new /datum/reagents(effect_amount)
 	temp_holder.add_reagent(liquid_instance.reagent, effect_amount)
 
 	var/datum/reagent/reagent_instance = temp_holder.get_master_reagent()
@@ -586,7 +586,7 @@ GLOBAL_DATUM_INIT(liquid_registry, /datum/liquid_registry, new)
 	maintain_cache_health()
 
 	// Create a temporary reagent holder to simulate chemistry reactions
-	var/datum/reagents/temp_holder = new /datum/reagents(T.cell.fluidsum, src)
+	var/datum/reagents/temp_holder = new /datum/reagents(T.cell.fluidsum)
 
 	// Add all liquid reagents to the temporary holder
 	var/list/liquid_amounts = list()
@@ -622,7 +622,7 @@ GLOBAL_DATUM_INIT(liquid_registry, /datum/liquid_registry, new)
 				T.cell.fluid_volume[floor_liquid] = product.volume
 
 		// Update fluid sum and mark for processing
-		SSliquid.update_fluidsum(T, FALSE)
+		SSliquid.update_fluidsum(T)
 		T.cell.fluid_flags |= FLUID_MOVED
 		SSliquid.cell_index[T] = TRUE
 
