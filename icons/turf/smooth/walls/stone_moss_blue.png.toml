@@ -1,2 +1,2 @@
-output_name = "stone"
-template = "diagonal_32x32.toml"
+output_name = "stone_moss_blue"
+template = "cardinal_32x32.toml"

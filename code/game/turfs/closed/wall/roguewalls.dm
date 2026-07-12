@@ -73,7 +73,7 @@
 	name = "stone wall"
 	desc = "A durable wall made from specially-crafted stone."
 	icon = 'icons/turf/smooth/walls/stone_fancy.dmi'
-	icon_state = MAP_SWITCH("craftstone", "craftstone-0")
+	icon_state = MAP_SWITCH("stone_fancy", "stone_fancy-0")
 
 	blade_dulling = DULLING_BASH
 	max_integrity = 2200
@@ -472,13 +472,14 @@
 
 /turf/closed/wall/mineral/rogue/stone/blue_moss
 	icon = 'icons/turf/smooth/walls/stone_moss_blue.dmi'
-	
+	icon_state = MAP_SWITCH("stone", "stone_moss_blue")
 /turf/closed/wall/mineral/rogue/stone/window/blue_moss
 	icon = MAP_SWITCH('icons/turf/smooth/walls/stone_moss_blue.dmi', 'icons/turf/window.dmi')
 	icon_state = MAP_SWITCH("stone", "stone_moss_blue")
 
 /turf/closed/wall/mineral/rogue/stone/red_moss
-	icon = 'icons/turf/smooth/walls/stone_moss_red.dmi'
+	icon = MAP_SWITCH('icons/turf/smooth/walls/stone_moss_red.dmi', 'icons/turf/window.dmi')
+	icon_state = MAP_SWITCH("stone", "stone_moss_red")
 
 /turf/closed/wall/mineral/stone/window/moss/red
 	icon = MAP_SWITCH('icons/turf/smooth/walls/stone_moss_red.dmi', 'icons/turf/window.dmi')
@@ -489,31 +490,20 @@
 	desc = "There was much effort put into this wall a long time ago."
 	icon = 'icons/turf/smooth/walls/stone_d_moss.dmi'
 	climbdiff = 4
+	icon_state = MAP_SWITCH("stone", "stone_moss_blue")
 
-/turf/closed/wall/mineral/rogue/decostone/mossy/long
-	icon_state = "decostone-l-green"
-
-/turf/closed/wall/mineral/rogue/decostone/mossy/end
-	icon_state = "decostone-e-green"
 
 /turf/closed/wall/mineral/rogue/decostone/mossy/cand
 	icon_state = "decostone-cand-green"
 
-/turf/closed/wall/mineral/rogue/decostone/mossy/blue
-	icon_state = "decostone-b-blue"
-
-/turf/closed/wall/mineral/rogue/decostone/mossy/blue/long
-	icon_state = "decostone-l-blue"
-
-/turf/closed/wall/mineral/rogue/decostone/mossy/blue/end
-	icon_state = "decostone-e-blue"
 
 /turf/closed/wall/mineral/rogue/decostone/mossy/blue/cand
 	icon_state = "decostone-cand-blue"
 
 /turf/closed/wall/mineral/rogue/decostone/mossy/red
 	icon = 'icons/turf/smooth/walls/stone_d_moss_r.dmi'
-	icon_state = "decostone-b-red"
+	icon_state = MAP_SWITCH("stone-deco", "stone_moss_red")
+
 
 /turf/closed/wall/mineral/rogue/decostone/mossy/red/long
 	icon_state = "decostone-l-red"
@@ -526,3 +516,4 @@
 
 /turf/closed/wall/mineral/rogue/decostone/mossy/blue
 	icon = 'icons/turf/smooth/walls/stone_d_moss_b.dmi'
+	icon_state = MAP_SWITCH("stone-deco", "stone_moss_red")

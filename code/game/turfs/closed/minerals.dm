@@ -209,7 +209,7 @@
 	name = "rock"
 	desc = "Lichens and moss cling to the jagged contours of the rock face. It is slick with moisture and exudes the heavy odors of dirt, minerals, and petrichor."
 	icon = 'icons/turf/roguewall.dmi'
-	icon_state = "minrandbad"
+	icon_state = MAP_SWITCH("mineral", "rand_low")
 
 	wallclimb = TRUE
 	turf_type = /turf/open/floor/rogue/naturalstone
@@ -226,7 +226,7 @@
 
 
 /turf/closed/mineral/random/rogue/med
-	icon_state = "minrandmed"
+	icon_state = MAP_SWITCH("mineral", "rand_medium")
 	mineralChance = 10
 	mineralSpawnChanceList = list(
 	/turf/closed/mineral/rogue/salt = 5,
@@ -240,7 +240,7 @@
 	/turf/closed/mineral/rogue/gem = 1)
 
 /turf/closed/mineral/random/rogue/high
-	icon_state = "minrandhigh"
+	icon_state = MAP_SWITCH("mineral", "rand_high")
 	mineralChance = 33
 	mineralSpawnChanceList = list(
 	/turf/closed/mineral/rogue/salt = 5,
@@ -276,7 +276,7 @@
 
 /turf/closed/mineral/rogue/gold
 	icon = MAP_SWITCH('icons/turf/smooth/walls/mineral.dmi', 'icons/turf/mining.dmi')
-	icon_state = MAP_SWITCH("mineral", "mingold")
+	icon_state = MAP_SWITCH("mineral", "gold")
 	mineralType = /obj/item/rogueore/gold
 	rockType = /obj/item/natural/rock/gold
 	spreadChance = 5
@@ -292,7 +292,7 @@
 
 /turf/closed/mineral/rogue/salt
 	icon = MAP_SWITCH('icons/turf/smooth/walls/mineral.dmi', 'icons/turf/mining.dmi')
-	icon_state = MAP_SWITCH("mineral", "minsalt")
+	icon_state = MAP_SWITCH("mineral", "salt")
 	mineralType = /obj/item/reagent_containers/powder/salt
 	rockType = /obj/item/natural/rock/salt
 	spreadChance = 33
@@ -300,7 +300,7 @@
 
 /turf/closed/mineral/rogue/iron
 	icon = MAP_SWITCH('icons/turf/smooth/walls/mineral.dmi', 'icons/turf/mining.dmi')
-	icon_state = MAP_SWITCH("mineral", "miniron")
+	icon_state = MAP_SWITCH("mineral", "iron")
 	mineralType = /obj/item/rogueore/iron
 	rockType = /obj/item/natural/rock/iron
 	spreadChance = 23
@@ -308,7 +308,7 @@
 
 /turf/closed/mineral/rogue/copper
 	icon = MAP_SWITCH('icons/turf/smooth/walls/mineral.dmi', 'icons/turf/mining.dmi')
-	icon_state = MAP_SWITCH("mineral", "mincopper")
+	icon_state = MAP_SWITCH("mineral", "copper")
 	mineralType = /obj/item/rogueore/copper
 	rockType = /obj/item/natural/rock/copper
 	spreadChance = 27
@@ -316,7 +316,7 @@
 
 /turf/closed/mineral/rogue/tin
 	icon = MAP_SWITCH('icons/turf/smooth/walls/mineral.dmi', 'icons/turf/mining.dmi')
-	icon_state = MAP_SWITCH("mineral", "mintin")
+	icon_state = MAP_SWITCH("mineral", "tin")
 	mineralType = /obj/item/rogueore/tin
 	rockType = /obj/item/natural/rock/tin
 	spreadChance = 15
@@ -324,7 +324,7 @@
 
 /turf/closed/mineral/rogue/coal
 	icon = MAP_SWITCH('icons/turf/smooth/walls/mineral.dmi', 'icons/turf/mining.dmi')
-	icon_state = MAP_SWITCH("mineral", "mincoal")
+	icon_state = MAP_SWITCH("mineral", "coal")
 	mineralType = /obj/item/rogueore/coal
 	rockType = /obj/item/natural/rock/coal
 	spreadChance = 33
@@ -332,7 +332,7 @@
 
 /turf/closed/mineral/rogue/cinnabar
 	icon = MAP_SWITCH('icons/turf/smooth/walls/mineral.dmi', 'icons/turf/mining.dmi')
-	icon_state = MAP_SWITCH("mineral", "mincinna")
+	icon_state = MAP_SWITCH("mineral", "cinna")
 	mineralType = /obj/item/rogueore/cinnabar
 	rockType = /obj/item/natural/rock/cinnabar
 	spreadChance = 23
@@ -340,7 +340,7 @@
 
 /turf/closed/mineral/rogue/gem
 	icon = MAP_SWITCH('icons/turf/smooth/walls/mineral.dmi', 'icons/turf/mining.dmi')
-	icon_state = MAP_SWITCH("mineral", "mingold")
+	icon_state = MAP_SWITCH("mineral", "gold")
 	mineralType = /obj/item/roguegem/random
 	rockType = /obj/item/natural/rock/gem
 	spreadChance = 3
