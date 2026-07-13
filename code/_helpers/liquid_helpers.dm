@@ -86,11 +86,21 @@
 
 	return highest_fluid
 
-// Get fluid datum by type
+// Get fluid datum by type or instance. A dynamic /datum/liquid instance
+// (bare type, .reagent set) is matched by reagent, since locate-by-type
+// would alias every dynamic reagent liquid to whichever is first.
 /turf/proc/get_fluid_datum(fluid_type)
 	if(!cell || !cell.fluid_volume)
 		return null
 
+	if(!ispath(fluid_type) && istype(fluid_type, /datum/liquid))
+		var/datum/liquid/instance = fluid_type
+		if(instance.type == /datum/liquid && instance.reagent)
+			for(var/datum/liquid/existing as anything in cell.fluid_volume)
+				if(existing.type == /datum/liquid && existing.reagent == instance.reagent)
+					return existing
+			return null
+		fluid_type = instance.type
 	return locate(fluid_type) in cell.fluid_volume
 
 // Operator overload for adding fluid to turf (elegant syntax)
@@ -99,14 +109,14 @@
 		cell = new /cell(src)
 		cell.InitLiquids()
 
-	return cell.get_fluid_datum(fluid.type)
+	return cell.get_fluid_datum(fluid)
 
 // Operator overload for getting fluid amount from turf
 /turf/proc/operator[](datum/liquid/fluid)
 	if(!cell)
 		return 0
 
-	var/datum/liquid/instance = cell.get_fluid_datum(fluid.type)
+	var/datum/liquid/instance = cell.get_fluid_datum(fluid)
 	if(!instance)
 		return 0
 

@@ -211,17 +211,50 @@ GLOBAL_LIST_EMPTY(vn_bt_tree_ids)
 
 // Liquids are native-only: SSliquid drives the engine when enabled
 // (it ships with can_fire = FALSE).
-/// fluid typepath string -> native mat id
+/// static fluid typepath string, or dynamic reagent typepath string -> native mat id
 GLOBAL_LIST_EMPTY(vn_liquid_mats)
-/// "[mat id]" -> fluid typepath
+/// "[mat id]" -> static fluid typepath, or dynamic reagent typepath
 GLOBAL_LIST_EMPTY(vn_liquid_mat_paths)
+/// dynamic reagent typepath string -> TRUE once on-demand registration has
+/// failed for it (budget exhausted, etc.) - stops repeat attempts.
+GLOBAL_LIST_EMPTY(vn_liquid_mat_failed)
 
-/// Native mat id for a fluid datum/typepath; 0 when unmapped (e.g. dynamic
-/// reagent liquids, which all share /datum/liquid and cannot be keyed by
-/// typepath - those stay DM-only).
+/// Native mat id for a fluid datum/typepath. Static /datum/liquid subtypes
+/// are keyed by typepath and registered by NativeInit at boot; a miss just
+/// returns 0. Dynamic reagent liquids (bare /datum/liquid instances with
+/// .reagent set) are keyed by their reagent typepath and registered
+/// on-demand the first time an instance is seen.
 /proc/vn_fluid_mat_id(fluid_or_path)
-	var/path = ispath(fluid_or_path) ? fluid_or_path : fluid_or_path:type
+	var/datum/liquid/fluid = ispath(fluid_or_path) ? null : fluid_or_path
+	if(fluid && fluid.type == /datum/liquid && fluid.reagent)
+		return vn_fluid_dynamic_mat_id(fluid.reagent)
+	var/path = fluid ? fluid.type : fluid_or_path
 	return GLOB.vn_liquid_mats["[path]"] || 0
+
+/// Looks up (or registers) the native mat id for a dynamic reagent liquid,
+/// keyed by reagent typepath. Never registers before the native fluid
+/// engine is live. Returns 0 when unregistered: not live yet, budget
+/// exhausted, or a cached prior failure for this reagent.
+/proc/vn_fluid_dynamic_mat_id(reagent_path)
+	var/key = "[reagent_path]"
+	var/id = GLOB.vn_liquid_mats[key]
+	if(id)
+		return id
+	if(GLOB.vn_liquid_mat_failed[key])
+		return 0
+	if(!SSliquid?.vn_native_fluids_ready)
+		return 0
+
+	var/result = vn_fluid_register_mat(key)
+	if(!isnum(result))
+		vn_check_result(result, "fluid_register_mat_dynamic")
+		GLOB.vn_liquid_mat_failed[key] = TRUE
+		log_world("verdant_native: dynamic liquid mat registration failed for [key] - staying DM-only for this reagent")
+		return 0
+
+	GLOB.vn_liquid_mats[key] = result
+	GLOB.vn_liquid_mat_paths["[result]"] = key
+	return result
 
 /// Queues an edit for the native fluid engine; flushed by SSliquid's fire.
 /// No-op unless native fluids are live, so writers can call unconditionally.

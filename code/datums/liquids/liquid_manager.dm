@@ -157,10 +157,24 @@ GLOBAL_DATUM_INIT(liquid_manager, /datum/liquid_manager, new)
 	if(!target_turf?.cell || !fluid_type)
 		return null
 
-	var/datum/liquid/instance = locate(fluid_type.type) in target_turf.cell.fluid_volume
+	// dynamic reagent liquids all share exact type /datum/liquid, so locate()
+	// by type would alias different reagents to the first entry - match by
+	// .reagent instead. Statics keep the plain locate-by-type lookup.
+	var/is_dynamic = (fluid_type.type == /datum/liquid && fluid_type.reagent)
+	var/datum/liquid/instance
+	if(is_dynamic)
+		for(var/datum/liquid/existing as anything in target_turf.cell.fluid_volume)
+			if(existing.type == /datum/liquid && existing.reagent == fluid_type.reagent)
+				instance = existing
+				break
+	else
+		instance = locate(fluid_type.type) in target_turf.cell.fluid_volume
 
 	if(!instance && create_if_missing) // This is a fallback, mainly intended for when "dynamic liquids" is turned on.
 		instance = new fluid_type.type
+		if(is_dynamic)
+			instance.reagent = fluid_type.reagent
+			instance.name = fluid_type.name
 		if(instance.reagent)
 			instance.color = initial(instance.reagent:color)
 		target_turf.cell.fluid_volume[instance] = 0

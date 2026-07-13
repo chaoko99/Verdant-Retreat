@@ -94,8 +94,19 @@ GLOBAL_LIST_EMPTY(liquid_types)
 /cell/proc/get_turf_from_cell()
 	return locate(coords.x_pos, coords.y_pos, coords.z_pos)
 
-	// Helper to get existing fluid datum by type - eliminates verbose locate() calls!
+	// Helper to get existing fluid datum by type or instance - eliminates
+	// verbose locate() calls! A dynamic /datum/liquid instance (bare type,
+	// .reagent set) is matched by reagent instead of aliasing to whichever
+	// dynamic instance happens to be first via locate().
 /cell/proc/get_fluid_datum(fluid_type)
+	if(!ispath(fluid_type) && istype(fluid_type, /datum/liquid))
+		var/datum/liquid/instance = fluid_type
+		if(instance.type == /datum/liquid && instance.reagent)
+			for(var/datum/liquid/existing as anything in fluid_volume)
+				if(existing.type == /datum/liquid && existing.reagent == instance.reagent)
+					return existing
+			return null
+		fluid_type = instance.type
 	return locate(fluid_type) in fluid_volume
 
 	// Fluid flag management methods
