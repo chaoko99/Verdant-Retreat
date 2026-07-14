@@ -11,8 +11,8 @@ SUBSYSTEM_DEF(mobs)
 	var/static/list/cubemonkeys = list()
 	var/alive_mobs = 0
 
-	// Change-driven Life() work skipping (GLOB.life_slim)
-	var/life_slim_next_id = 0
+	// Change-driven Life() work skipping
+	var/life_work_next_id = 0
 
 
 /datum/controller/subsystem/mobs/stat_entry()
@@ -45,8 +45,6 @@ SUBSYSTEM_DEF(mobs)
 		src.currentrun = GLOB.mob_living_list.Copy()
 		alive_mobs = 0
 
-	var/slim = GLOB.life_slim
-
 	//cache for sanic speed (lists are references anyways)
 	var/list/currentrun = src.currentrun
 	var/times_fired = src.times_fired
@@ -57,15 +55,15 @@ SUBSYSTEM_DEF(mobs)
 			GLOB.mob_living_list.Remove(L)
 			continue
 		if(L.stat != DEAD)
-			L.Life(seconds, times_fired, slim)
+			L.Life(seconds, times_fired)
 			alive_mobs++
 		if (MC_TICK_CHECK)
 			return
 
-/datum/controller/subsystem/mobs/proc/LifeSlimRegister(mob/living/M)
-	if(!M.life_slim_id)
-		M.life_slim_id = ++life_slim_next_id
-	return M.life_slim_id
+/datum/controller/subsystem/mobs/proc/LifeWorkRegister(mob/living/M)
+	if(!M.life_work_id)
+		M.life_work_id = ++life_work_next_id
+	return M.life_work_id
 
 SUBSYSTEM_DEF(mobs_dead)
 	name = "Mobs (Dead)"
@@ -98,12 +96,3 @@ SUBSYSTEM_DEF(mobs_dead)
 		
 /datum/controller/subsystem/mobs_dead/stat_entry(msg)
 	..("C:[dead_mobs]")
-
-/client/proc/life_slim_toggle()
-	set name = "Mob Life Slim Toggle"
-	set category = "Debug"
-	if(!holder)
-		return
-	GLOB.life_slim = !GLOB.life_slim
-	log_admin("[key_name(usr)] set slim mob life to [GLOB.life_slim]")
-	to_chat(usr, "slim mob life: [GLOB.life_slim ? "ON" : "OFF"]")

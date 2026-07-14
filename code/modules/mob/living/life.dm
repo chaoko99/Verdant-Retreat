@@ -1,4 +1,4 @@
-/mob/living/proc/Life(seconds, times_fired, slim = -1)
+/mob/living/proc/Life(seconds, times_fired)
 	set waitfor = FALSE
 
 	SEND_SIGNAL(src, COMSIG_LIVING_LIFE, seconds, times_fired)
@@ -16,15 +16,12 @@
 	if(!loc)
 		return
 
-	if(slim == -1)
-		slim = LIFE_SLIM_ACTIVE
-	if(slim)
-		life_slim_upkeep(times_fired)
+	life_work_upkeep(times_fired)
 
 	//Breathing, if applicable - CURRENTLY NOT IMPLEMENTED
 	//handle_breathing(times_fired)
 
-	if(!slim || (life_work & LIFEWORK_WOUNDS))
+	if(life_work & LIFEWORK_WOUNDS)
 		if(HAS_TRAIT(src, TRAIT_SIMPLE_WOUNDS))
 			handle_wounds()
 			handle_embedded_objects()
@@ -36,19 +33,18 @@
 			// with a 60% bonus if they're not completely bled out.
 			// this is a strict replacement for two whole-ass block iteration things that did the same thing (or nothing at all)
 			heal_wounds(heal_amount)
-		if(slim && life_wounds_settled())
+		if(life_wounds_settled())
 			life_work &= ~LIFEWORK_WOUNDS
 
 	if (QDELETED(src)) // diseases can qdel the mob via transformations
 		return
 
-	if(!slim || (life_work & (LIFEWORK_TEMP|LIFEWORK_FIRE_WATER)))
+	if(life_work & (LIFEWORK_TEMP|LIFEWORK_FIRE_WATER))
 		handle_environment()
-		if(slim)
-			if(life_temp_settled())
-				life_work &= ~LIFEWORK_TEMP
-			if(life_fire_water_settled())
-				life_work &= ~LIFEWORK_FIRE_WATER
+		if(life_temp_settled())
+			life_work &= ~LIFEWORK_TEMP
+		if(life_fire_water_settled())
+			life_work &= ~LIFEWORK_FIRE_WATER
 
 	//Random events (vomiting etc)
 	handle_random_events()
@@ -56,12 +52,12 @@
 	handle_gravity()
 
 	handle_traits() // eye, ear, brain damages
-	if(!slim || (life_work & LIFEWORK_STATUS))
+	if(life_work & LIFEWORK_STATUS)
 		handle_status_effects() //all special effects, stun, knockdown, jitteryness, hallucination, sleeping, etc
-		if(slim && life_status_settled())
+		if(life_status_settled())
 			life_work &= ~LIFEWORK_STATUS
 
-	if(!slim || rogue_sneaking || m_intent == MOVE_INTENT_SNEAK || world.time < mob_timers[MT_INVISIBILITY])
+	if(rogue_sneaking || m_intent == MOVE_INTENT_SNEAK || world.time < mob_timers[MT_INVISIBILITY])
 		update_sneak_invis()
 
 	if(machine)
@@ -211,21 +207,21 @@
 		adjustBruteLoss(min(grav_stregth,3))
 
 // ==============================================================================
-// CHANGE-DRIVEN LIFE() WORK SKIPPING (GLOB.life_slim)
+// CHANGE-DRIVEN LIFE() WORK SKIPPING
 // ==============================================================================
 
 /mob/living/proc/life_extras(alive = TRUE)
 	return
 
 /mob/living/var/life_work = LIFEWORK_ALL
-/mob/living/var/life_slim_id = 0
+/mob/living/var/life_work_id = 0
 
-/mob/living/proc/life_slim_upkeep(times_fired)
-	if(!life_slim_id)
-		life_slim_id = SSmobs.LifeSlimRegister(src)
-	if((times_fired + life_slim_id) % 15 == 0)
+/mob/living/proc/life_work_upkeep(times_fired)
+	if(!life_work_id)
+		life_work_id = SSmobs.LifeWorkRegister(src)
+	if((times_fired + life_work_id) % 15 == 0)
 		life_work |= LIFEWORK_STATUS
-	if((times_fired + life_slim_id) % 30 == 0)
+	if((times_fired + life_work_id) % 30 == 0)
 		life_work |= LIFEWORK_ALL
 
 /mob/living/proc/life_wounds_settled()

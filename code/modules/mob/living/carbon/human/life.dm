@@ -24,14 +24,11 @@
 	var/visible_name_dirty = TRUE
 	var/gas_mask_equipped = FALSE
 
-/mob/living/carbon/human/Life(seconds, times_fired, slim = -1)
+/mob/living/carbon/human/Life(seconds, times_fired)
 	if (notransform)
 		return
 
-	if(slim == -1)
-		slim = LIFE_SLIM_ACTIVE
-
-	. = ..(seconds, times_fired, slim)
+	. = ..(seconds, times_fired)
 
 	if (QDELETED(src))
 		return 0
@@ -90,11 +87,11 @@
 			dna.species.spec_life(src) // for mutantraces
 
 	//Update our name based on whether our face is obscured/disfigured
-	if(!slim || visible_name_dirty || (times_fired + life_slim_id) % 10 == 0)
+	if(visible_name_dirty || (times_fired + life_work_id) % 10 == 0)
 		name = get_visible_name()
 		visible_name_dirty = FALSE
 
-	if(!slim || gas_mask_equipped)
+	if(gas_mask_equipped)
 		handle_gas_mask_sound()
 
 	if(sexcon && client?.prefs?.sexable)

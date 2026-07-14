@@ -1,4 +1,4 @@
-/mob/living/carbon/Life(seconds, times_fired, slim = -1)
+/mob/living/carbon/Life(seconds, times_fired)
 	set invisibility = 0
 
 	if(notransform)
@@ -11,28 +11,24 @@
 		damageoverlaytemp = 0
 		update_damage_hud()
 
-	if(slim == -1)
-		slim = LIFE_SLIM_ACTIVE
-
 	//Reagent processing needs to come before breathing, to prevent edge cases.
-	if(!slim || (life_work & (LIFEWORK_REAGENTS|LIFEWORK_ORGANS)))
+	if(life_work & (LIFEWORK_REAGENTS|LIFEWORK_ORGANS))
 		handle_organs()
-		if(slim)
-			if(!reagents || !reagents.total_volume)
-				life_work &= ~LIFEWORK_REAGENTS
-			if(life_organs_settled())
-				life_work &= ~LIFEWORK_ORGANS
+		if(!reagents || !reagents.total_volume)
+			life_work &= ~LIFEWORK_REAGENTS
+		if(life_organs_settled())
+			life_work &= ~LIFEWORK_ORGANS
 
-	. = ..(seconds, times_fired, slim)
+	. = ..(seconds, times_fired)
 
 	if (QDELETED(src))
 		return
 
-	if(!slim || (life_work & LIFEWORK_WOUNDS))
+	if(life_work & LIFEWORK_WOUNDS)
 		handle_wounds()
 		handle_embedded_objects()
 		handle_blood()
-		if(slim && life_wounds_settled())
+		if(life_wounds_settled())
 			life_work &= ~LIFEWORK_WOUNDS
 	handle_roguebreath()
 	var/bprv = handle_bodyparts()
