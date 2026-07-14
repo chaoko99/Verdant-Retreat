@@ -10,6 +10,9 @@
 ///Set the jitter of a mob
 /mob/proc/Jitter(amount)
 	jitteriness = max(jitteriness,amount,0)
+	if(isliving(src))
+		var/mob/living/L = src
+		L.life_work |= LIFEWORK_STATUS
 
 /**
   * Set the dizzyness of a mob to a passed in amount
@@ -18,10 +21,16 @@
   */
 /mob/proc/Dizzy(amount)
 	dizziness = max(dizziness,amount,0)
+	if(isliving(src))
+		var/mob/living/L = src
+		L.life_work |= LIFEWORK_STATUS
 
 ///FOrce set the dizzyness of a mob
 /mob/proc/set_dizziness(amount)
 	dizziness = max(amount, 0)
+	if(isliving(src))
+		var/mob/living/L = src
+		L.life_work |= LIFEWORK_STATUS
 
 ///Blind a mobs eyes by amount
 /mob/proc/blind_eyes(amount)

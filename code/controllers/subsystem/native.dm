@@ -109,6 +109,8 @@ SUBSYSTEM_DEF(native)
 
 	mirror_loaded = TRUE
 	log_world("verdant_native: grid mirror loaded ([world.maxx]x[world.maxy]x[world.maxz])")
+	if(vn_check_result(vn_light_init(world.maxx, world.maxy, world.maxz), "light_init"))
+		GLOB.vn_light_inited_maxz = world.maxz
 	if(world.params["vn_test"] || world.GetConfig("env", "VN_TEST"))
 		spawn(20)
 			RunSelfTests()
@@ -363,6 +365,7 @@ SUBSYSTEM_DEF(native)
 	out += "pathfinding: served=[SSpathfinding.paths_served] failed=[SSpathfinding.paths_failed]"
 	out += "liquids: enabled=[SSliquid.can_fire] ready=[SSliquid.vn_native_fluids_ready] deltas=[SSliquid.vn_deltas_applied] events=[SSliquid.vn_events_applied] queued_edits=[length(SSliquid.vn_edit_queue) / 6] | [vn_fluid_status()]"
 	out += "behavior trees: native=[GLOB.vn_bt_native] intents=[SSai.vn_intents_dispatched] agents=[length(SSai.vn_mobs)] trees=[length(GLOB.vn_bt_tree_ids)] | [GLOB.vn_bt_native ? vn_bt_status() : "vm idle"]"
+	out += "corner lighting: native=[GLOB.vn_lighting_native] inited_maxz=[GLOB.vn_light_inited_maxz] sources=[length(GLOB.all_light_sources)] queued_events=[length(SSlighting.vn_light_events)]"
 	for(var/z in 1 to world.maxz)
 		out += "z[z] checksum: [vn_grid_checksum(z)]"
 	to_chat(usr, out.Join("\n"))
@@ -390,6 +393,22 @@ SUBSYSTEM_DEF(native)
 	GLOB.vn_bt_native = !GLOB.vn_bt_native
 	log_admin("[key_name(usr)] set native behavior trees to [GLOB.vn_bt_native]")
 	to_chat(usr, "native behavior trees: [GLOB.vn_bt_native ? "ON" : "OFF"] ([vn_bt_status()])")
+
+/client/proc/vn_native_lighting_toggle()
+	set name = "VN Corner Lighting Native Toggle"
+	set category = "Debug"
+	if(!holder)
+		return
+	GLOB.vn_lighting_native = !GLOB.vn_lighting_native
+	if(GLOB.vn_lighting_native)
+		if(vn_check_result(vn_light_init(world.maxx, world.maxy, world.maxz), "light_init"))
+			GLOB.vn_light_inited_maxz = world.maxz
+		for(var/datum/light_source/L as anything in GLOB.all_light_sources)
+			L.force_update()
+	else
+		SSlighting.vn_light_disable_native()
+	log_admin("[key_name(usr)] set native corner lighting to [GLOB.vn_lighting_native]")
+	to_chat(usr, "native corner lighting: [GLOB.vn_lighting_native ? "ON" : "OFF"] (sources=[length(GLOB.all_light_sources)])")
 
 /client/proc/vn_native_liquids_toggle()
 	set name = "VN Liquids Toggle"

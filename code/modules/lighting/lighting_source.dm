@@ -37,15 +37,19 @@
 	var/tmp/applied_lum_g
 	var/tmp/applied_lum_b
 
-	var/list/datum/lighting_corner/effect_str     // List used to store how much we're affecting corners.
+	var/list/datum/lighting_corner/effect_str     // List used to store how much we're affecting corners. Not maintained when native-applied.
 	var/list/turf/affecting_turfs
 
 	var/applied = FALSE // Whether we have applied our light yet or not.
 
 	var/needs_update = LIGHTING_NO_UPDATE    // Whether we are queued for an update.
 
+	var/vn_light_id = 0
+	var/tmp/vn_native_applied = FALSE // TRUE if our last update_corners() packed a native event instead of running the DM loops.
 
 /datum/light_source/New(atom/owner, atom/top)
+	vn_light_id = ++SSlighting.vn_next_light_id
+	GLOB.all_light_sources += src
 	source_atom = owner // Set our new owner.
 	add_to_light_sources(source_atom)
 	top_atom = top
@@ -67,6 +71,7 @@
 
 /datum/light_source/Destroy(force)
 	remove_lum()
+	GLOB.all_light_sources -= src
 	if (source_atom)
 		LAZYREMOVE(source_atom.light_sources, src)
 
@@ -190,6 +195,14 @@
 
 	affecting_turfs = null
 
+	if (vn_native_applied)
+		var/list/evt = SSlighting.vn_light_events
+		evt += VN_LIGHT_EVT_REMOVE
+		evt += vn_light_id
+		vn_native_applied = FALSE
+		effect_str = null
+		return
+
 	var/datum/lighting_corner/C
 	for (thing in effect_str)
 		C = thing
@@ -200,6 +213,11 @@
 	effect_str = null
 
 /datum/light_source/proc/recalc_corner(datum/lighting_corner/C)
+	if (vn_native_applied)
+		// native events carry active corners only; re-send the whole set so the newly active corner joins it
+		EFFECT_UPDATE(LIGHTING_FORCE_UPDATE)
+		return
+
 	LAZYINITLIST(effect_str)
 	if (effect_str[C]) // Already have one.
 		REMOVE_CORNER(C)
@@ -344,44 +362,90 @@
 		T = thing
 		LAZYREMOVE(T.affecting_lights, src)
 
-	LAZYINITLIST(effect_str)
-	if (needs_update == LIGHTING_VIS_UPDATE)
-		for (thing in  corners - effect_str) // New corners
+	var/native_ok = VN_OK && GLOB.vn_lighting_native
+	if (native_ok)
+		for (thing in corners) // z-growth guard: corners past the last vn_light_init are not native-managed, fall back to DM for this source
 			C = thing
-			LAZYADD(C.affecting, src)
+			if (C.z > GLOB.vn_light_inited_maxz)
+				native_ok = FALSE
+				break
+
+	if (native_ok)
+		if (!vn_native_applied && length(effect_str)) // taking over from DM application: zero our DM contribution first
+			for (thing in effect_str)
+				C = thing
+				REMOVE_CORNER(C)
+				LAZYREMOVE(C.affecting, src)
+		effect_str = null
+		var/list/ids = list()
+		for (thing in corners)
+			C = thing
 			if (!C.active)
-				effect_str[C] = 0
 				continue
-			APPLY_CORNER(C)
+			ids += C.vn_corner_id
+
+		var/list/evt = SSlighting.vn_light_events
+		evt += VN_LIGHT_EVT_ADD
+		evt += vn_light_id
+		evt += pixel_turf.x
+		evt += pixel_turf.y
+		evt += pixel_turf.z
+		evt += light_power
+		evt += light_inner_range
+		evt += light_outer_range
+		evt += light_falloff_curve
+		evt += lum_r
+		evt += lum_g
+		evt += lum_b
+		evt += length(ids)
+		evt += ids
+
+		vn_native_applied = TRUE
 	else
-		L = corners - effect_str
-		for (thing in L) // New corners
-			C = thing
-			LAZYADD(C.affecting, src)
-			if (!C.active)
-				effect_str[C] = 0
-				continue
-			APPLY_CORNER(C)
+		if (vn_native_applied) // taking over from native application: queue removal of its contribution
+			var/list/evt = SSlighting.vn_light_events
+			evt += VN_LIGHT_EVT_REMOVE
+			evt += vn_light_id
+			vn_native_applied = FALSE
+		LAZYINITLIST(effect_str)
+		if (needs_update == LIGHTING_VIS_UPDATE)
+			for (thing in  corners - effect_str) // New corners
+				C = thing
+				LAZYADD(C.affecting, src)
+				if (!C.active)
+					effect_str[C] = 0
+					continue
+				APPLY_CORNER(C)
+		else
+			L = corners - effect_str
+			for (thing in L) // New corners
+				C = thing
+				LAZYADD(C.affecting, src)
+				if (!C.active)
+					effect_str[C] = 0
+					continue
+				APPLY_CORNER(C)
 
-		for (thing in corners - L) // Existing corners
-			C = thing
-			if (!C.active)
-				effect_str[C] = 0
-				continue
-			APPLY_CORNER(C)
+			for (thing in corners - L) // Existing corners
+				C = thing
+				if (!C.active)
+					effect_str[C] = 0
+					continue
+				APPLY_CORNER(C)
 
-	L = effect_str - corners
-	for (thing in L) // Old, now gone, corners.
-		C = thing
-		REMOVE_CORNER(C)
-		LAZYREMOVE(C.affecting, src)
-	effect_str -= L
+		L = effect_str - corners
+		for (thing in L) // Old, now gone, corners.
+			C = thing
+			REMOVE_CORNER(C)
+			LAZYREMOVE(C.affecting, src)
+		effect_str -= L
+
+		UNSETEMPTY(effect_str)
 
 	applied_lum_r = lum_r
 	applied_lum_g = lum_g
 	applied_lum_b = lum_b
 
-	UNSETEMPTY(effect_str)
 	UNSETEMPTY(affecting_turfs)
 
 #undef EFFECT_UPDATE

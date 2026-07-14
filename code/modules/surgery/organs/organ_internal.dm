@@ -73,6 +73,7 @@
 	last_owner = M
 	M.internal_organs |= src
 	M.internal_organs_slot[slot] = src
+	M.life_work |= LIFEWORK_ORGANS
 	SEND_SIGNAL(M, COMSIG_MOB_ORGAN_INSERTED, src, special)
 	moveToNullspace()
 	for(var/X in actions)
@@ -93,6 +94,7 @@
 		M.internal_organs -= src
 		if(M.internal_organs_slot[slot] == src)
 			M.internal_organs_slot.Remove(slot)
+		M.life_work |= LIFEWORK_ORGANS
 		if((organ_flags & ORGAN_VITAL) && !special && !(M.status_flags & GODMODE))
 			M.death()
 	for(var/X in actions)
@@ -239,6 +241,8 @@
 		return
 	if(maximum < damage)
 		return
+	if(owner)
+		owner.life_work |= LIFEWORK_ORGANS
 	damage = CLAMP(damage + d, 0, maximum)
 //	var/mess = check_damage_thresholds(owner)
 	prev_damage = damage

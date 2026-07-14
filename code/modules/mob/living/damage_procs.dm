@@ -16,6 +16,7 @@
 	if(!damage || (!forced && hit_percent <= 0))
 		testing("faildam")
 		return 0
+	life_work |= (LIFEWORK_WOUNDS|LIFEWORK_MISC)
 	clear_typing_indicator()
 	var/damage_amount =  forced ? damage : damage * hit_percent
 	switch(damagetype)

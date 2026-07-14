@@ -14,6 +14,8 @@ GLOBAL_LIST_INIT(LIGHTING_CORNER_DIAGONAL, list(NORTHEAST, SOUTHEAST, SOUTHWEST,
 	var/y     = 0
 	var/z     = 0
 
+	var/vn_corner_id = 0
+
 	var/lum_r = 0
 	var/lum_g = 0
 	var/lum_b = 0
@@ -36,6 +38,9 @@ GLOBAL_LIST_INIT(LIGHTING_CORNER_DIAGONAL, list(NORTHEAST, SOUTHEAST, SOUTHWEST,
 
 	x = new_turf.x + (horizontal == EAST  ? 0.5 : -0.5)
 	y = new_turf.y + (vertical   == NORTH ? 0.5 : -0.5)
+
+	vn_corner_id = VN_LIGHT_CORNER_ID(src)
+	GLOB.vn_light_corners["[vn_corner_id]"] = src
 
 	// My initial plan was to make this loop through a list of all the dirs (horizontal, vertical, diagonal).
 	// Issue being that the only way I could think of doing it was very messy, slow and honestly overengineered.

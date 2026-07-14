@@ -82,9 +82,9 @@
 	targets_from = null
 	return ..()
 
-/mob/living/simple_animal/hostile/Life()
+/mob/living/simple_animal/hostile/life_extras(alive = TRUE)
 	. = ..()
-	if(!.) //dead
+	if(!alive)
 		walk(src, 0) //stops walking
 		return 0
 

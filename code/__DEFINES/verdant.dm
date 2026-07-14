@@ -207,6 +207,31 @@ GLOBAL_VAR_INIT(vn_bt_native, FALSE)
 /// tree root typepath string -> native tree id (0 = known-unsupported)
 GLOBAL_LIST_EMPTY(vn_bt_tree_ids)
 
+// --- corner lighting ---
+
+#define VN_LIGHT_EVT_ADD 1
+#define VN_LIGHT_EVT_REMOVE 2
+
+// corner datum x/y are the +-0.5 positions, so round(x*2) is exact.
+#define VN_LIGHT_CORNER_ID(C) (((C.z - 1) * (2 * world.maxx) * (2 * world.maxy)) + ((round(C.y * 2) - 1) * (2 * world.maxx)) + (round(C.x * 2) - 1))
+
+#define vn_light_init(maxx, maxy, maxz) call_ext(VERDANT_NATIVE, "byond:vn_light_init")(maxx, maxy, maxz)
+#define vn_light_reset call_ext(VERDANT_NATIVE, "byond:vn_light_reset")
+/// events: flat [1, source_id, sx,sy,sz, power, inner_range, outer_range, falloff_curve, lum_r, lum_g, lum_b, n, corner_id x n] for ADD/REPLACE, [2, source_id] for REMOVE, concatenated
+#define vn_light_tick_begin(events) call_ext(VERDANT_NATIVE, "byond:vn_light_tick_begin")(events)
+/// -> [n, (corner_id, delta_r, delta_g, delta_b) x n] or an empty list while the tick is still running
+#define vn_light_tick_collect call_ext(VERDANT_NATIVE, "byond:vn_light_tick_collect")
+
+/// Route light_source.update_corners()/SSlighting.fire() through the native engine.
+GLOBAL_VAR_INIT(vn_lighting_native, FALSE)
+/// world.maxz as of the last successful vn_light_init; corners on z beyond
+/// this are not native-managed (z-levels can be added at runtime).
+GLOBAL_VAR_INIT(vn_light_inited_maxz, 0)
+/// "[VN_LIGHT_CORNER_ID]" -> /datum/lighting_corner, registered in New()
+GLOBAL_LIST_EMPTY(vn_light_corners)
+/// All live /datum/light_source instances, maintained in New()/Destroy()
+GLOBAL_LIST_EMPTY(all_light_sources)
+
 // --- fluids ---
 
 // Liquids are native-only: SSliquid drives the engine when enabled

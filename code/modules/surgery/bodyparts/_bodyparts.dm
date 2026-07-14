@@ -407,6 +407,9 @@
 	if(!brute && !burn && !stamina)
 		return FALSE
 
+	if(owner)
+		owner.life_work |= (LIFEWORK_WOUNDS|LIFEWORK_MISC)
+
 	//cap at maxdamage
 	var/was_max_burn = (burn_dam >= max_damage)
 
