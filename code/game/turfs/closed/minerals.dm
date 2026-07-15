@@ -208,7 +208,7 @@
 //	layer = ABOVE_MOB_LAYER
 	name = "rock"
 	desc = "Lichens and moss cling to the jagged contours of the rock face. It is slick with moisture and exudes the heavy odors of dirt, minerals, and petrichor."
-	icon = 'icons/turf/roguewall.dmi'
+	icon =  MAP_SWITCH('icons/turf/smooth/walls/mineral_moss.dmi', 'icons/turf/mining.dmi')
 	icon_state = MAP_SWITCH("mineral", "rand_low")
 
 	wallclimb = TRUE
@@ -226,7 +226,7 @@
 
 
 /turf/closed/mineral/random/rogue/med
-	icon_state = MAP_SWITCH("mineral", "rand_medium")
+	icon_state = MAP_SWITCH("mineral", "rand_med")
 	mineralChance = 10
 	mineralSpawnChanceList = list(
 	/turf/closed/mineral/rogue/salt = 5,
@@ -260,7 +260,7 @@
 	name = "rock"
 	desc = "Lichens and moss cling to the jagged contours of the rock face. It is slick with moisture and exudes the heavy odors of dirt, minerals, and petrichor."
 	icon = 'icons/turf/roguewall.dmi'
-	icon = MAP_SWITCH('icons/turf/smooth/walls/mineral.dmi', 'icons/turf/mining.dmi')
+	icon = MAP_SWITCH('icons/turf/smooth/walls/mineral_moss.dmi', 'icons/turf/mining.dmi')
 	icon_state = MAP_SWITCH("mineral", "rand_low")
 	smoothing_flags = SMOOTH_BITMASK
 	smoothing_groups = SMOOTH_GROUP_CLOSED + SMOOTH_GROUP_MINERAL_WALLS
@@ -275,7 +275,6 @@
 	spread = 0
 
 /turf/closed/mineral/rogue/gold
-	icon = MAP_SWITCH('icons/turf/smooth/walls/mineral.dmi', 'icons/turf/mining.dmi')
 	icon_state = MAP_SWITCH("mineral", "gold")
 	mineralType = /obj/item/rogueore/gold
 	rockType = /obj/item/natural/rock/gold
@@ -283,7 +282,6 @@
 	spread = 1
 
 /turf/closed/mineral/rogue/silver
-	icon = MAP_SWITCH('icons/turf/smooth/walls/mineral.dmi', 'icons/turf/mining.dmi')
 	icon_state = MAP_SWITCH("mineral", "silver")
 	mineralType = /obj/item/rogueore/silver
 	rockType = /obj/item/natural/rock/silver
@@ -291,7 +289,6 @@
 	spread = 1
 
 /turf/closed/mineral/rogue/salt
-	icon = MAP_SWITCH('icons/turf/smooth/walls/mineral.dmi', 'icons/turf/mining.dmi')
 	icon_state = MAP_SWITCH("mineral", "salt")
 	mineralType = /obj/item/reagent_containers/powder/salt
 	rockType = /obj/item/natural/rock/salt
@@ -299,7 +296,6 @@
 	spread = 15
 
 /turf/closed/mineral/rogue/iron
-	icon = MAP_SWITCH('icons/turf/smooth/walls/mineral.dmi', 'icons/turf/mining.dmi')
 	icon_state = MAP_SWITCH("mineral", "iron")
 	mineralType = /obj/item/rogueore/iron
 	rockType = /obj/item/natural/rock/iron
@@ -307,7 +303,6 @@
 	spread = 5
 
 /turf/closed/mineral/rogue/copper
-	icon = MAP_SWITCH('icons/turf/smooth/walls/mineral.dmi', 'icons/turf/mining.dmi')
 	icon_state = MAP_SWITCH("mineral", "copper")
 	mineralType = /obj/item/rogueore/copper
 	rockType = /obj/item/natural/rock/copper
@@ -315,7 +310,6 @@
 	spread = 8
 
 /turf/closed/mineral/rogue/tin
-	icon = MAP_SWITCH('icons/turf/smooth/walls/mineral.dmi', 'icons/turf/mining.dmi')
 	icon_state = MAP_SWITCH("mineral", "tin")
 	mineralType = /obj/item/rogueore/tin
 	rockType = /obj/item/natural/rock/tin
@@ -323,7 +317,6 @@
 	spread = 5
 
 /turf/closed/mineral/rogue/coal
-	icon = MAP_SWITCH('icons/turf/smooth/walls/mineral.dmi', 'icons/turf/mining.dmi')
 	icon_state = MAP_SWITCH("mineral", "coal")
 	mineralType = /obj/item/rogueore/coal
 	rockType = /obj/item/natural/rock/coal
@@ -331,7 +324,6 @@
 	spread = 11
 
 /turf/closed/mineral/rogue/cinnabar
-	icon = MAP_SWITCH('icons/turf/smooth/walls/mineral.dmi', 'icons/turf/mining.dmi')
 	icon_state = MAP_SWITCH("mineral", "cinna")
 	mineralType = /obj/item/rogueore/cinnabar
 	rockType = /obj/item/natural/rock/cinnabar
@@ -339,8 +331,7 @@
 	spread = 5
 
 /turf/closed/mineral/rogue/gem
-	icon = MAP_SWITCH('icons/turf/smooth/walls/mineral.dmi', 'icons/turf/mining.dmi')
-	icon_state = MAP_SWITCH("mineral", "gold")
+	icon_state = MAP_SWITCH("mineral", "gem")
 	mineralType = /obj/item/roguegem/random
 	rockType = /obj/item/natural/rock/gem
 	spreadChance = 3
@@ -349,7 +340,7 @@
 /turf/closed/mineral/rogue/bedrock
 	name = "rock"
 	desc = "Seems barren and nigh-indestructable"
-	icon_state = "rockyashbed"
+	icon_state = MAP_SWITCH("mineral", "bedrock")
 //	smooth_icon = 'icons/turf/walls/hardrock.dmi'
 	max_integrity = 10000000
 	damage_deflection = 99999999

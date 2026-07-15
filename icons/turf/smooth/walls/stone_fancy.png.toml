@@ -1,2 +1,2 @@
-output_name = "stone_fancy"
-template = "cardinal_32x32.toml"
+output_name = "craftstone"
+template = "diagonal_32x32.toml"

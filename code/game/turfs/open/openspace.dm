@@ -13,15 +13,12 @@ GLOBAL_DATUM_INIT(openspace_backdrop_one_for_all, /atom/movable/openspace_backdr
 /turf/open/transparent/openspace
 	name = "open space"
 	desc = "My eyes can see far down below."
-	icon_state = MAP_SWITCH("openspace", "openspacemap")
+	icon_state = MAP_SWITCH("openspace", "noop")
 	baseturfs = /turf/open/transparent/openspace
 	CanAtmosPassVertical = ATMOS_PASS_YES
 	var/can_cover_up = TRUE
 	var/can_build_on = TRUE
 	dynamic_lighting = 1
-/turf/open/transparent/openspace/debug/update_multiz()
-	..()
-	return TRUE
 
 /turf/open/transparent/openspace/roguesmooth(adjacencies)
 	var/list/Yeah = ..()

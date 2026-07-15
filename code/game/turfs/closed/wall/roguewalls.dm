@@ -22,8 +22,8 @@
 /turf/closed/wall/mineral/rogue/stone
 	name = "stone wall"
 	desc = "A wall of smooth unyielding stone."
-	icon = MAP_SWITCH('icons/turf/smooth/walls/stone.dmi', 'icons/turf/window.dmi')
-	icon_state = "stone"
+	icon = 'icons/turf/smooth/walls/stone.dmi'
+	icon_state = MAP_SWITCH("stone", "stone-0")
 	blade_dulling = DULLING_BASH
 	max_integrity = 1800
 	sheet_type = /obj/item/natural/stone
@@ -62,18 +62,19 @@
 
 /turf/closed/wall/mineral/rogue/stone/moss
 	icon = 'icons/turf/smooth/walls/stone_moss.dmi'
+	icon_state = MAP_SWITCH("stone_moss", "stone_moss-0")
 	climbdiff = 4
 
 /turf/closed/wall/mineral/rogue/stone/window/moss
-	icon = MAP_SWITCH('icons/turf/smooth/walls/stone_moss.dmi', 'icons/turf/window.dmi')
-	icon_state = MAP_SWITCH("stone", "stone_moss")
+	icon = MAP_SWITCH( 'icons/turf/smooth/walls/stone_moss.dmi', 'icons/turf/window.dmi')
+	icon_state = MAP_SWITCH("stone_moss", "stone_moss")
 	climbdiff = 4
 
 /turf/closed/wall/mineral/rogue/craftstone
 	name = "stone wall"
 	desc = "A durable wall made from specially-crafted stone."
 	icon = 'icons/turf/smooth/walls/stone_fancy.dmi'
-	icon_state = MAP_SWITCH("stone_fancy", "stone_fancy-0")
+	icon_state = MAP_SWITCH("craftstone", "craftstone-0")
 
 	blade_dulling = DULLING_BASH
 	max_integrity = 2200
@@ -298,8 +299,8 @@
 /turf/closed/wall/mineral/rogue/decostone
 	name = "decorated stone wall"
 	desc = "The mason did an excellent job etching details into this wall."
-	icon = 'icons/turf/walls/decostone.dmi'
-	icon_state = "decostone-b"
+	icon = 'icons/turf/smooth/walls/stone_deco.dmi'
+	icon_state = MAP_SWITCH("stone_deco", "stone_deco-0")
 	smoothing_flags = SMOOTH_BITMASK
 	smoothing_groups = SMOOTH_GROUP_CLOSED_WALL + SMOOTH_GROUP_WALLS_STONE_DECO
 	smoothing_list = SMOOTH_GROUP_DOOR_SECRET + SMOOTH_GROUP_WALLS_STONE_DECO
@@ -313,45 +314,14 @@
 	neighborlay = "dirtedge"
 	climbdiff = 3
 
-/turf/closed/wall/mineral/rogue/decostone/long
-	icon_state = "decostone-l"
-
-/turf/closed/wall/mineral/rogue/decostone/long/east_west
-	dir = 1
-
-/obj/structure/thronething
-	name = "decorated stone wall" // what is thronething??
-	icon = 'icons/turf/roguewall.dmi'
-	max_integrity = 0
-	opacity = 0
-	icon_state = "decostone-l"
-
-/turf/closed/wall/mineral/rogue/decostone/center
-	icon_state = "decostone-c"
-
-/turf/closed/wall/mineral/rogue/decostone/end
-	icon_state = "decostone-e"
-
-/turf/closed/wall/mineral/rogue/decostone/end/north
-	dir = 1
-
-/turf/closed/wall/mineral/rogue/decostone/end/east
-	dir = 4
-
-/turf/closed/wall/mineral/rogue/decostone/end/west
-	dir = 8
-
 /turf/closed/wall/mineral/rogue/decostone/cand
 	icon_state = "decostone-cand"
-
-/turf/closed/wall/mineral/rogue/decostone/fluffstone
-	icon_state = "fluffstone"
 
 //Mildly better than stone-wall due to it being harder to make, plus not loose-stone cobbled together. Also higher climbing diff akin to stone-brick wall.
 /turf/closed/wall/mineral/rogue/brick
 	name = "brick wall"
 	desc = "Rows of overlapping bricks held together by mortar form a nigh-impenetrable wall of stone."
-	icon = 'icons/turf/walls/brick_wall.dmi'
+//	icon = 'icons/turf/walls/brick_wall.dmi'
 	icon_state = "brick"
 	smoothing_flags = SMOOTH_BITMASK
 	smoothing_groups = SMOOTH_GROUP_CLOSED_WALL + SMOOTH_GROUP_WALLS_STONE_BRICK
@@ -472,16 +442,17 @@
 
 /turf/closed/wall/mineral/rogue/stone/blue_moss
 	icon = 'icons/turf/smooth/walls/stone_moss_blue.dmi'
-	icon_state = MAP_SWITCH("stone", "stone_moss_blue")
+
+	icon_state = MAP_SWITCH("stone_moss_blue", "stone_moss_blue-0")
 /turf/closed/wall/mineral/rogue/stone/window/blue_moss
 	icon = MAP_SWITCH('icons/turf/smooth/walls/stone_moss_blue.dmi', 'icons/turf/window.dmi')
-	icon_state = MAP_SWITCH("stone", "stone_moss_blue")
+	icon_state = MAP_SWITCH("stone_moss_blue", "stone_moss_blue")
 
 /turf/closed/wall/mineral/rogue/stone/red_moss
 	icon = MAP_SWITCH('icons/turf/smooth/walls/stone_moss_red.dmi', 'icons/turf/window.dmi')
-	icon_state = MAP_SWITCH("stone", "stone_moss_red")
+	icon_state = MAP_SWITCH("stone_moss_red", "stone_moss_red-0")
 
-/turf/closed/wall/mineral/stone/window/moss/red
+/turf/closed/wall/mineral/rogue/stone/window/moss/red
 	icon = MAP_SWITCH('icons/turf/smooth/walls/stone_moss_red.dmi', 'icons/turf/window.dmi')
 	icon_state = MAP_SWITCH("stone", "stone_moss_red")
 
@@ -490,7 +461,7 @@
 	desc = "There was much effort put into this wall a long time ago."
 	icon = 'icons/turf/smooth/walls/stone_d_moss.dmi'
 	climbdiff = 4
-	icon_state = MAP_SWITCH("stone", "stone_moss_blue")
+	icon_state = MAP_SWITCH("stone_deco", "stone_deco-0")
 
 
 /turf/closed/wall/mineral/rogue/decostone/mossy/cand
@@ -502,7 +473,6 @@
 
 /turf/closed/wall/mineral/rogue/decostone/mossy/red
 	icon = 'icons/turf/smooth/walls/stone_d_moss_r.dmi'
-	icon_state = MAP_SWITCH("stone-deco", "stone_moss_red")
 
 
 /turf/closed/wall/mineral/rogue/decostone/mossy/red/long
@@ -516,4 +486,3 @@
 
 /turf/closed/wall/mineral/rogue/decostone/mossy/blue
 	icon = 'icons/turf/smooth/walls/stone_d_moss_b.dmi'
-	icon_state = MAP_SWITCH("stone-deco", "stone_moss_red")

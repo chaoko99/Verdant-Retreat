@@ -251,7 +251,7 @@
 	add_overlay(dent_decals)
 
 #undef MAX_DENT_DECALS
-
+/*
 /turf/closed/wall/churchpass
     name = "stone wall"
     desc = "A strange wall, faintly shimmering."
@@ -281,3 +281,4 @@
     opacity = TRUE
     icon_state = initial(icon_state)
     playsound(src, 'sound/misc/area.ogg', 10, FALSE)
+*/

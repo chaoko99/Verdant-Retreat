@@ -72,61 +72,61 @@ DEFINE_BITFIELD(smoothing_junction, list(
 	var/smooth_obj = (smoothing_flags & SMOOTH_OBJ)
 	var/smooth_edge = (smoothing_flags & SMOOTH_EDGE)
 
-	#define SET_ADJ_IN_DIR(direction, direction_flag) \
-		set_adj_in_dir: { \
-			do { \
-				var/turf/neighbor = get_step(src, direction); \
-				if(!neighbor) { \
-					if(smooth_border) { \
-						new_junction |= direction_flag; \
+#define SET_ADJ_IN_DIR(direction, direction_flag) \
+	set_adj_in_dir: { \
+		do { \
+			var/turf/neighbor = get_step(src, direction); \
+			if(!neighbor) { \
+				if(smooth_border) { \
+					new_junction |= direction_flag; \
+				}; \
+				break set_adj_in_dir; \
+			}; \
+			if(smooth_edge && type == neighbor.type) { \
+				break set_adj_in_dir; \
+			}; \
+			if(smooth_obj) { \
+				for(var/atom/movable/thing as anything in neighbor) { \
+					if(!thing.anchored) { \
+						continue; \
 					}; \
-					break set_adj_in_dir; \
-				}; \
-				if(smooth_edge && type == neighbor.type) { \
-					break set_adj_in_dir; \
-				}; \
-				if(smooth_obj) { \
-					for(var/atom/movable/thing as anything in neighbor) { \
-						if(!thing.anchored) { \
-							continue; \
+					if(!length(smoothing_list)) { \
+						if(type == thing.type) { \
+							new_junction |= direction_flag; \
+							break set_adj_in_dir; \
 						}; \
-						if(!smoothing_list) { \
-							if(type == thing.type) { \
-								new_junction |= direction_flag; \
-								break set_adj_in_dir; \
-							}; \
-							continue; \
-						}; \
-						var/thing_smoothing_groups = thing.smoothing_groups; \
-						if(!thing_smoothing_groups) { \
-							continue; \
-						}; \
-						for(var/target in smoothing_list) { \
-							if(smoothing_list[target] & thing_smoothing_groups[target]) { \
-								new_junction |= direction_flag; \
-								break set_adj_in_dir; \
-							}; \
-						}; \
+						continue; \
 					}; \
-				}; \
-				if(!smoothing_list) { \
-					if(type == neighbor.type) { \
-						new_junction |= direction_flag; \
+					var/thing_smoothing_groups = thing.smoothing_groups; \
+					if(!length(thing_smoothing_groups)) { \
+						continue; \
 					}; \
-					break set_adj_in_dir; \
-				}; \
-				var/neighbor_smoothing_groups = neighbor.smoothing_groups; \
-				if(neighbor_smoothing_groups) { \
-					for(var/target as anything in smoothing_list) { \
-						if(smoothing_list[target] & neighbor_smoothing_groups[target]) { \
+					for(var/target in smoothing_list) { \
+						if(smoothing_list[target] & thing_smoothing_groups[target]) { \
 							new_junction |= direction_flag; \
 							break set_adj_in_dir; \
 						}; \
 					}; \
 				}; \
+			}; \
+			if(!length(smoothing_list)) { \
+				if(type == neighbor.type) { \
+					new_junction |= direction_flag; \
+				}; \
 				break set_adj_in_dir; \
-			} while(FALSE) \
-		}
+			}; \
+			var/neighbor_smoothing_groups = neighbor.smoothing_groups; \
+			if(length(neighbor_smoothing_groups)) { \
+				for(var/target as anything in smoothing_list) { \
+					if(smoothing_list[target] & neighbor_smoothing_groups[target]) { \
+						new_junction |= direction_flag; \
+						break set_adj_in_dir; \
+					}; \
+				}; \
+			}; \
+			break set_adj_in_dir; \
+		} while(FALSE) \
+	}
 
 	for(var/direction as anything in GLOB.cardinals) //Cardinal case first.
 		SET_ADJ_IN_DIR(direction, direction)
@@ -182,6 +182,18 @@ DEFINE_BITFIELD(smoothing_junction, list(
 	if(new_junction & WEST)
 		handle_edge_icon(WEST)
 
+	if(new_junction & NORTHWEST)
+		handle_edge_icon(NORTHWEST)
+
+	if(new_junction & NORTHEAST)
+		handle_edge_icon(NORTHEAST)
+
+	if(new_junction & SOUTHEAST)
+		handle_edge_icon(SOUTHEAST)
+
+	if(new_junction & SOUTHWEST)
+		handle_edge_icon(SOUTHWEST)
+	testing("[src] has junction @ [x], [y], [z].")
 /turf/proc/handle_edge_icon(dir)
 	if(neighborlay_self)
 		add_neighborlay(dir, neighborlay_self)
@@ -206,6 +218,24 @@ DEFINE_BITFIELD(smoothing_junction, list(
 		if(WEST)
 			add = "[edgeicon]-w"
 			x = 32
+		if(NORTHWEST)
+			add = "[edgeicon]-nw"
+			y = -32
+			x = 32
+		if(SOUTHWEST)
+			add = "[edgeicon]-sw"
+			y = 32
+			x = 32
+		if(SOUTHEAST)
+			add = "[edgeicon]-se"
+			y = 32
+			x = -32
+		if(NORTHEAST)
+			add = "[edgeicon]-ne"
+			x = 32
+			y = -32
+
+
 
 	if(!add)
 		return
@@ -216,6 +246,8 @@ DEFINE_BITFIELD(smoothing_junction, list(
 	add_overlay(overlay)
 
 /turf/proc/remove_neighborlays()
+	if(!LAZYLEN(neighborlay_list))
+		return
 	for(var/key as anything in neighborlay_list)
 		cut_overlay(neighborlay_list[key])
 		qdel(neighborlay_list[key])

@@ -50,6 +50,8 @@
 	heavyfootstep = FOOTSTEP_GENERIC_HEAVY
 	landsound = 'sound/foley/jumpland/woodland.wav'
 	smoothing_groups = SMOOTH_GROUP_FLOOR_WOOD
+	smoothing_flags =  SMOOTH_EDGE  
+
 /turf/open/floor/rogue/wood/nosmooth //these are here so we can put wood floors next to each other but not have them smooth
 	name = "hardwood floorboards"
 	desc = "Polished dark floorboards gently stained by the years. This is what luxury looks like."
@@ -320,7 +322,10 @@
 	heavyfootstep = FOOTSTEP_GENERIC_HEAVY
 	landsound = 'sound/foley/jumpland/grassland.wav'
 	slowdown = 0
-	smoothing_groups = SMOOTH_GROUP_FLOOR_GRASS 
+	smoothing_flags = SMOOTH_EDGE
+	smoothing_groups = SMOOTH_GROUP_OPEN_FLOOR + SMOOTH_GROUP_FLOOR_GRASS
+	smoothing_list = SMOOTH_GROUP_FLOOR_DIRT_ROAD
+
 	neighborlay = "grass-green-trim"
 
 	spread_chance = 15

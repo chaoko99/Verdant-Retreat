@@ -274,15 +274,7 @@
 	to_be_destroyed = FALSE
 	return src
 
-/turf/closed/indestructible/sandstone
-	name = "sandstone wall"
-	desc = ""
-	icon = 'icons/turf/walls/sandstone_wall.dmi'
-	icon_state = "sandstone"
-	baseturfs = /turf/closed/indestructible/sandstone
 
-/turf/closed/indestructible/oldshuttle/corner
-	icon_state = "corner"
 
 /turf/closed/indestructible/splashscreen
 	name = ""
