@@ -6,8 +6,11 @@
 	icon = 'icons/turf/mining.dmi'
 	icon_state = "rock"
 	var/smooth_icon = 'icons/turf/smoothrocks.dmi'
-	smooth = SMOOTH_MORE|SMOOTH_BORDER
-	canSmoothWith = null
+	icon = 'icons/turf/smooth/walls/mineral.dmi'
+	icon_state = MAP_SWITCH("mineral", "mineral-0")
+	smoothing_flags = SMOOTH_BITMASK
+	smoothing_groups = SMOOTH_GROUP_CLOSED + SMOOTH_GROUP_MINERAL_WALLS
+	smoothing_list = SMOOTH_GROUP_MINERAL_WALLS
 	baseturfs = list(/turf/open/floor/rogue/naturalstone)
 	opacity = 1
 	density = TRUE
@@ -30,22 +33,13 @@
 	attacked_sound = list('sound/combat/hits/onrock/onrock (1).ogg', 'sound/combat/hits/onrock/onrock (2).ogg', 'sound/combat/hits/onrock/onrock (3).ogg', 'sound/combat/hits/onrock/onrock (4).ogg')
 	neighborlay = "dirtedge"
 
-/turf/closed/mineral/Initialize()
-	if (!canSmoothWith)
-		canSmoothWith = list(/turf/closed/mineral, /turf/closed/indestructible)
-//	var/matrix/M = new
-//	M.Translate(-4, -4)
-//	transform = M
-	icon = smooth_icon
-	. = ..()
-
 /turf/closed/mineral/Destroy()
 	. = ..()
 	lastminer = null
 
 /turf/closed/mineral/LateInitialize()
 	. = ..()
-	if (mineralType && mineralAmt && spread && spreadChance)
+	if(mineralType && mineralAmt && spread && spreadChance)
 		for(var/dir in GLOB.cardinals)
 			if(prob(spreadChance))
 				var/turf/T = get_step(src, dir)
@@ -110,7 +104,7 @@
 		var/obj/item/natural/rock/explo_rock = rockType
 		ScrapeAway()
 		GLOB.mined_resource_loc |= get_turf(src)
-		queue_smooth_neighbors(src)
+		QUEUE_SMOOTH_NEIGHBORS(src)
 		new /obj/item/natural/stone(src)
 		if(prob(30))
 			new /obj/item/natural/stone(src)
@@ -128,7 +122,7 @@
 	//		to_chat(lastminer, span_notice("Bonus ducks!"))
 			new mineralType(src)
 		gets_drilled(lastminer)
-		queue_smooth_neighbors(src)
+		QUEUE_SMOOTH_NEIGHBORS(src)
 	..()
 
 /turf/closed/mineral/proc/gets_drilled(mob/living/user, triggered_by_explosion = FALSE, give_exp = TRUE)
@@ -214,12 +208,10 @@
 //	layer = ABOVE_MOB_LAYER
 	name = "rock"
 	desc = "Lichens and moss cling to the jagged contours of the rock face. It is slick with moisture and exudes the heavy odors of dirt, minerals, and petrichor."
-	icon = 'icons/turf/roguewall.dmi'
-	icon_state = "minrandbad"
-	smooth = SMOOTH_TRUE | SMOOTH_MORE
-	smooth_icon = 'icons/turf/walls/cwall.dmi'
+	icon =  MAP_SWITCH('icons/turf/smooth/walls/mineral_moss.dmi', 'icons/turf/mining.dmi')
+	icon_state = MAP_SWITCH("mineral", "rand_low")
+
 	wallclimb = TRUE
-	canSmoothWith = list(/turf/closed/mineral/random/rogue, /turf/closed/mineral/rogue)
 	turf_type = /turf/open/floor/rogue/naturalstone
 	above_floor = /turf/open/floor/rogue/naturalstone
 	baseturfs = list(/turf/open/floor/rogue/naturalstone)
@@ -234,7 +226,7 @@
 
 
 /turf/closed/mineral/random/rogue/med
-	icon_state = "minrandmed"
+	icon_state = MAP_SWITCH("mineral", "rand_med")
 	mineralChance = 10
 	mineralSpawnChanceList = list(
 	/turf/closed/mineral/rogue/salt = 5,
@@ -248,7 +240,7 @@
 	/turf/closed/mineral/rogue/gem = 1)
 
 /turf/closed/mineral/random/rogue/high
-	icon_state = "minrandhigh"
+	icon_state = MAP_SWITCH("mineral", "rand_high")
 	mineralChance = 33
 	mineralSpawnChanceList = list(
 	/turf/closed/mineral/rogue/salt = 5,
@@ -268,11 +260,11 @@
 	name = "rock"
 	desc = "Lichens and moss cling to the jagged contours of the rock face. It is slick with moisture and exudes the heavy odors of dirt, minerals, and petrichor."
 	icon = 'icons/turf/roguewall.dmi'
-	icon_state = "rockyash"
-	smooth = SMOOTH_TRUE | SMOOTH_MORE
-	smooth_icon = 'icons/turf/walls/cwall.dmi'
-	wallclimb = TRUE
-	canSmoothWith = list(/turf/closed/mineral/random/rogue, /turf/closed/mineral/rogue)
+	icon = MAP_SWITCH('icons/turf/smooth/walls/mineral_moss.dmi', 'icons/turf/mining.dmi')
+	icon_state = MAP_SWITCH("mineral", "rand_low")
+	smoothing_flags = SMOOTH_BITMASK
+	smoothing_groups = SMOOTH_GROUP_CLOSED + SMOOTH_GROUP_MINERAL_WALLS
+	smoothing_list = SMOOTH_GROUP_MINERAL_WALLS
 	turf_type = /turf/open/floor/rogue/naturalstone
 	baseturfs = /turf/open/floor/rogue/naturalstone
 	mineralAmt = 1
@@ -283,63 +275,63 @@
 	spread = 0
 
 /turf/closed/mineral/rogue/gold
-	icon_state = "mingold"
+	icon_state = MAP_SWITCH("mineral", "gold")
 	mineralType = /obj/item/rogueore/gold
 	rockType = /obj/item/natural/rock/gold
 	spreadChance = 5
 	spread = 1
 
 /turf/closed/mineral/rogue/silver
-	icon_state = "minsilver"
+	icon_state = MAP_SWITCH("mineral", "silver")
 	mineralType = /obj/item/rogueore/silver
 	rockType = /obj/item/natural/rock/silver
 	spreadChance = 5
 	spread = 1
 
 /turf/closed/mineral/rogue/salt
-	icon_state = "minsalt"
+	icon_state = MAP_SWITCH("mineral", "salt")
 	mineralType = /obj/item/reagent_containers/powder/salt
 	rockType = /obj/item/natural/rock/salt
 	spreadChance = 33
 	spread = 15
 
 /turf/closed/mineral/rogue/iron
-	icon_state = "miniron"
+	icon_state = MAP_SWITCH("mineral", "iron")
 	mineralType = /obj/item/rogueore/iron
 	rockType = /obj/item/natural/rock/iron
 	spreadChance = 23
 	spread = 5
 
 /turf/closed/mineral/rogue/copper
-	icon_state = "mincopper"
+	icon_state = MAP_SWITCH("mineral", "copper")
 	mineralType = /obj/item/rogueore/copper
 	rockType = /obj/item/natural/rock/copper
 	spreadChance = 27
 	spread = 8
 
 /turf/closed/mineral/rogue/tin
-	icon_state = "mintin"
+	icon_state = MAP_SWITCH("mineral", "tin")
 	mineralType = /obj/item/rogueore/tin
 	rockType = /obj/item/natural/rock/tin
 	spreadChance = 15
 	spread = 5
 
 /turf/closed/mineral/rogue/coal
-	icon_state = "mincoal"
+	icon_state = MAP_SWITCH("mineral", "coal")
 	mineralType = /obj/item/rogueore/coal
 	rockType = /obj/item/natural/rock/coal
 	spreadChance = 33
 	spread = 11
 
 /turf/closed/mineral/rogue/cinnabar
-	icon_state = "mincinna"
+	icon_state = MAP_SWITCH("mineral", "cinna")
 	mineralType = /obj/item/rogueore/cinnabar
 	rockType = /obj/item/natural/rock/cinnabar
 	spreadChance = 23
 	spread = 5
 
 /turf/closed/mineral/rogue/gem
-	icon_state = "mingem"
+	icon_state = MAP_SWITCH("mineral", "gem")
 	mineralType = /obj/item/roguegem/random
 	rockType = /obj/item/natural/rock/gem
 	spreadChance = 3
@@ -348,7 +340,7 @@
 /turf/closed/mineral/rogue/bedrock
 	name = "rock"
 	desc = "Seems barren and nigh-indestructable"
-	icon_state = "rockyashbed"
+	icon_state = MAP_SWITCH("mineral", "bedrock")
 //	smooth_icon = 'icons/turf/walls/hardrock.dmi'
 	max_integrity = 10000000
 	damage_deflection = 99999999

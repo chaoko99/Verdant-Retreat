@@ -11,7 +11,7 @@
 	var/heavyfootstep = null
 	var/footstepstealth = FALSE
 	baseturfs = /turf/open/transparent/openspace
-
+	smoothing_groups = SMOOTH_GROUP_OPEN
 	damage_deflection = INFINITY //TODO: Find a better method for breakable turf system
 
 /turf/proc/get_slowdown(mob/user)

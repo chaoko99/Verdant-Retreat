@@ -18,12 +18,14 @@
 	if (!armor)
 		armor = ARMOR_STRUCTURE
 	. = ..()
+  
+	if(smoothing_flags & (SMOOTH_BITMASK|SMOOTH_BITMASK_CARDINALS))
+		QUEUE_SMOOTH(src)
+		QUEUE_SMOOTH_NEIGHBORS(src)
+
 	if(isturf(loc))
 		vn_mark_dirty(loc)
-	if(smooth)
-		queue_smooth(src)
-		queue_smooth_neighbors(src)
-		icon_state = ""
+
 	if(redstone_id)
 		GLOB.redstone_objs += src
 		. = INITIALIZE_HINT_LATELOAD
@@ -76,8 +78,6 @@
 			O.redstone_attached -= src
 			redstone_attached -= O
 		GLOB.redstone_objs -= src
-//	if(smooth)
-//		queue_smooth_neighbors(src)
 	return ..()
 
 /obj/structure/attack_hand(mob/user)
