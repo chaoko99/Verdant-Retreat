@@ -5,6 +5,25 @@ GLOBAL_LIST_INIT(fracture_bclasses, list(
 	BCLASS_PUNCH,
 ))
 
+GLOBAL_LIST_INIT(crush_bclasses, list(
+	BCLASS_BLUNT,
+	BCLASS_SMASH,
+	BCLASS_PUNCH,
+))
+
+GLOBAL_LIST_INIT(wep_bclasses, list(
+	BCLASS_BLUNT,
+	BCLASS_SMASH,
+	BCLASS_CUT,
+	BCLASS_CHOP,
+	BCLASS_STAB,
+	BCLASS_PICK,
+	BCLASS_BITE,
+	BCLASS_PIERCE,
+	BCLASS_LASHING,
+	BCLASS_TWIST
+))
+
 GLOBAL_LIST_INIT(artery_bclasses, list(
 	BCLASS_CUT,
 	BCLASS_CHOP,
@@ -12,6 +31,17 @@ GLOBAL_LIST_INIT(artery_bclasses, list(
 	BCLASS_PICK,
 	BCLASS_BITE,
 	BCLASS_PIERCE,
+))
+
+GLOBAL_LIST_INIT(disembowel_bclasses, list(
+	BCLASS_CUT,
+	BCLASS_CHOP,
+	BCLASS_BITE
+))
+
+GLOBAL_LIST_INIT(dismember_bclasses, list(
+	BCLASS_CUT,
+	BCLASS_CHOP
 ))
 
 GLOBAL_LIST_INIT(artery_strong_bclasses, list(
@@ -44,6 +74,9 @@ GLOBAL_LIST_INIT(stab_bclasses, list(
 
 GLOBAL_LIST_INIT(charring_bclasses, list(
 	BCLASS_BURN,
+	BCLASS_FROST,
+	BCLASS_ELECTRICAL,
+	BCLASS_ACID,
 ))
 
 GLOBAL_LIST_INIT(whipping_bclasses, list(

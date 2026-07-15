@@ -43,14 +43,12 @@
 	aggressive = TRUE
 	del_on_death = 1
 
-//new ai, old ai off
-	can_have_ai = FALSE //disable native ai
-	AIStatus = AI_OFF
-	ai_controller = /datum/ai_controller/orc
-
 /mob/living/simple_animal/hostile/retaliate/rogue/orc/Initialize()
 	. = ..()
-	AddElement(/datum/element/ai_retaliate)
+	// Initialize behavior tree
+	init_ai_root(/datum/behavior_tree/node/selector/orc_tree)
+	ai_root.next_move_delay = move_to_delay
+	ai_root.next_attack_delay = ORC_ATTACK_SPEED
 
 /mob/living/simple_animal/hostile/retaliate/rogue/orc/orc2
 	icon_state = "savageorc2"
@@ -66,7 +64,6 @@
 	icon_living = "orcmarauder"
 	icon_dead = "orcmarauder"
 	base_intents = list(/datum/intent/sword/cut)
-	ai_controller = /datum/ai_controller/elite_orc
 	melee_damage_lower = 30
 	melee_damage_upper = 35
 	armor_penetration = 35
@@ -76,12 +73,17 @@
 			/obj/item/rogueweapon/sword/iron/messer,
 			/obj/effect/decal/cleanable/blood)
 
+/mob/living/simple_animal/hostile/retaliate/rogue/orc/orc_marauder/Initialize()
+	. = ..()
+	init_ai_root(/datum/behavior_tree/node/selector/orc_spear_tree)
+	ai_root.next_move_delay = move_to_delay
+	ai_root.next_attack_delay = ORC_ATTACK_SPEED
+
 /mob/living/simple_animal/hostile/retaliate/rogue/orc/orc_marauder/spear
 	icon_state = "orcmarauder_spear"
 	icon_living = "orcmarauder_spear"
 	icon_dead = "orcmarauder_spear"
 	base_intents = list(/datum/intent/spear/thrust/orcthrust)
-	ai_controller = /datum/ai_controller/spear_orc
 	loot = list(/obj/effect/mob_spawn/human/orc/corpse/orcmarauder,
 			/obj/item/rogueweapon/spear,
 			/obj/effect/decal/cleanable/blood)
@@ -90,7 +92,6 @@
 	icon_state = "orcravager"
 	icon_living = "orcravager"
 	icon_dead = "orcravager"
-	ai_controller = /datum/ai_controller/elite_orc
 	melee_damage_lower = 40
 	melee_damage_upper = 50
 	armor_penetration = 40
@@ -104,7 +105,6 @@
 	icon_state = "savageorc_spear"
 	icon_living = "savageorc_spear"
 	icon_dead = "savageorc_spear"
-	ai_controller = /datum/ai_controller/spear_orc
 	base_intents = list(/datum/intent/spear/thrust/orcthrust)
 	melee_damage_lower = 30
 	melee_damage_upper = 30
@@ -119,15 +119,26 @@
 
 	footstep_type = FOOTSTEP_MOB_BAREFOOT
 
+/mob/living/simple_animal/hostile/retaliate/rogue/orc/spear/Initialize()
+	. = ..()
+	init_ai_root(/datum/behavior_tree/node/selector/orc_spear_tree)
+	ai_root.next_move_delay = move_to_delay
+	ai_root.next_attack_delay = ORC_ATTACK_SPEED
+
 /mob/living/simple_animal/hostile/retaliate/rogue/orc/spear2
 	icon_state = "savageorc_spear2"
 	icon_living = "savageorc_spear2"
 	icon_dead = "savageorc_spear2"
-	ai_controller = /datum/ai_controller/spear_orc
 	base_intents = list(/datum/intent/spear/thrust/orcthrust)
 	loot = list(/obj/effect/mob_spawn/human/orc/corpse/savageorc2,
 			/obj/item/rogueweapon/spear/bonespear,
 			/obj/effect/decal/cleanable/blood)
+
+/mob/living/simple_animal/hostile/retaliate/rogue/orc/spear2/Initialize()
+	. = ..()
+	init_ai_root(/datum/behavior_tree/node/selector/orc_spear_tree)
+	ai_root.next_move_delay = move_to_delay
+	ai_root.next_attack_delay = ORC_ATTACK_SPEED
 
 /datum/intent/simple/axe/orc
 	clickcd = ORC_ATTACK_SPEED
@@ -229,31 +240,14 @@
 	maxHealth = ORC_HEALTH * 0.5
 	health = ORC_HEALTH * 0.5
 
-	can_have_ai = FALSE //disable native ai
-	AIStatus = AI_OFF
-	ai_controller = /datum/ai_controller/orc_ranged
-
 /mob/living/simple_animal/hostile/retaliate/rogue/orc/ranged/Initialize()
 	. = ..()
+
+	// Reuse deepone behavior tree for ranged combat
+	init_ai_root(/datum/behavior_tree/node/selector/deepone_ranged_tree)
+	ai_root.next_move_delay = move_to_delay
+	ai_root.next_attack_delay = ORC_ATTACK_SPEED
 
 /mob/living/simple_animal/hostile/retaliate/rogue/orc/death(gibbed)
 	..()
 	update_icon()
-
-/mob/living/simple_animal/hostile/retaliate/rogue/orc/event
-	ai_controller = /datum/ai_controller/orc/event
-/mob/living/simple_animal/hostile/retaliate/rogue/orc/orc2/event
-	ai_controller = /datum/ai_controller/orc/event
-/mob/living/simple_animal/hostile/retaliate/rogue/orc/orc_marauder/event
-	ai_controller = /datum/ai_controller/orc/event
-/mob/living/simple_animal/hostile/retaliate/rogue/orc/orc_marauder/spear/event
-	ai_controller = /datum/ai_controller/elite_orc/event
-/mob/living/simple_animal/hostile/retaliate/rogue/orc/orc_marauder/ravager/event
-	ai_controller = /datum/ai_controller/elite_orc/event
-/mob/living/simple_animal/hostile/retaliate/rogue/orc/spear/event
-	ai_controller = /datum/ai_controller/orc/event
-/mob/living/simple_animal/hostile/retaliate/rogue/orc/spear2/event
-	ai_controller = /datum/ai_controller/orc/event
-	
-/mob/living/simple_animal/hostile/retaliate/rogue/orc/ranged/event
-	ai_controller = /datum/ai_controller/orc_ranged/event

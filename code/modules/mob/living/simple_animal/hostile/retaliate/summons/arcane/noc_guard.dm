@@ -158,7 +158,7 @@
 /mob/living/simple_animal/hostile/retaliate/rogue/arcane/noc_guard/beckoned(mob/user)
 	if((src.summoner == user) && !stop_automated_movement)
 		stop_automated_movement = TRUE
-		Goto(user, move_to_delay)
+		set_ai_path_to(user)
 		addtimer(CALLBACK(src, PROC_REF(return_action)), 3 SECONDS)
 	else if(src.summoner != user)
 		Retaliate()
@@ -239,7 +239,8 @@
 		var/mob/living/simple_animal/hostile/retaliate/rogue/target = targets[1]
 		if(istype(target, /mob/living/simple_animal/hostile/retaliate/rogue/arcane/noc_guard))
 			if(target in invoker.summons_under)
-				target.enemies = list()
+				if(target.ai_root?.blackboard)
+					target.ai_root.blackboard[AIBLK_AGGRESSORS] = list()
 				target.LoseTarget()
 				target.say("S T A T U S: D I S E N G A G E D", spans = list(SPAN_MACHINA))
 			else

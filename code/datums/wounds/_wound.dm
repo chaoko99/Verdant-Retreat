@@ -31,6 +31,11 @@ GLOBAL_LIST_INIT(primordial_wounds, init_primordial_wounds())
 	/// Mob that owns this wound
 	var/mob/living/owner
 
+	/// When this wound was created (world.time)
+	var/created = 0
+	/// Number of wounds merged into this one (for tracking wound density)
+	var/amount = 1
+
 	/// How many "health points" this wound has, AKA how hard it is to heal
 	var/whp = 60
 	/// How many "health points" this wound gets after being sewn
@@ -44,7 +49,7 @@ GLOBAL_LIST_INIT(primordial_wounds, init_primordial_wounds())
 	/// Clotting rate when sewn
 	var/sewn_clotting_rate = 0.02
 	/// Clotting will not go below this amount of bleed_rate
-	var/clotting_threshold
+	var/clotting_threshold = 0
 	/// Clotting will not go below this amount of bleed_rate when sewn
 	var/sewn_clotting_threshold = 0
 	/// How much pain this wound causes while on a mob
@@ -153,7 +158,7 @@ GLOBAL_LIST_INIT(primordial_wounds, init_primordial_wounds())
 	return TRUE
 
 /// Adds this wound to a given bodypart
-/datum/wound/proc/apply_to_bodypart(obj/item/bodypart/affected, silent = FALSE, crit_message = FALSE)
+/datum/wound/proc/apply_to_bodypart(obj/item/bodypart/affected, silent = FALSE, crit_message = FALSE, damage)
 	if(QDELETED(affected) || QDELETED(affected.owner))
 		return FALSE
 	if(bodypart_owner)
@@ -164,9 +169,14 @@ GLOBAL_LIST_INIT(primordial_wounds, init_primordial_wounds())
 	sortTim(affected.wounds, GLOBAL_PROC_REF(cmp_wound_severity_dsc))
 	bodypart_owner = affected
 	owner = bodypart_owner.owner
+	created = world.time // Track when this wound was created
 	bodypart_owner.bleeding += bleed_rate // immediately apply our base bleeding
+	// Invalidate bleed cache since we added a new wound
+	if(iscarbon(owner))
+		var/mob/living/carbon/C = owner
+		C.invalidate_bleed_cache()
 	on_bodypart_gain(affected)
-	INVOKE_ASYNC(src, PROC_REF(on_mob_gain), affected.owner) //this is literally a fucking lint error like new species cannot possible spawn with wounds until after its ass
+	INVOKE_ASYNC(src, PROC_REF(on_mob_gain), affected.owner, damage) //this is literally a fucking lint error like new species cannot possible spawn with wounds until after its ass
 	if(crit_message)
 		var/message = get_crit_message(affected.owner, affected)
 		if(message)
@@ -193,8 +203,12 @@ GLOBAL_LIST_INIT(primordial_wounds, init_primordial_wounds())
 	var/obj/item/bodypart/was_bodypart = bodypart_owner
 	var/mob/living/was_owner = owner
 	LAZYREMOVE(bodypart_owner.wounds, src)
+	// Invalidate bleed cache since we removed a wound
 	bodypart_owner = null
 	owner = null
+	if(iscarbon(was_owner))
+		var/mob/living/carbon/C = was_owner
+		C.invalidate_bleed_cache()
 	on_bodypart_loss(was_bodypart)
 	on_mob_loss(was_owner)
 	return TRUE
@@ -264,8 +278,27 @@ GLOBAL_LIST_INIT(primordial_wounds, init_primordial_wounds())
 
 /// Called on handle_wounds(), on the life() proc
 /datum/wound/proc/on_life()
-	if(!isnull(clotting_threshold) && clotting_rate && (bleed_rate > clotting_threshold))
-		set_bleed_rate(max(clotting_threshold, bleed_rate - clotting_rate))
+	if(!owner)
+		return FALSE
+	if(!isnull(clotting_threshold) && clotting_rate && (bleed_rate > clotting_threshold) && bleed_rate < 12)
+		var/con_modifier = owner.STACON / 10
+		var/severity_modifier = 1.0
+		if(bleed_rate >= 3)
+			severity_modifier = 0.5
+
+		var/grab_modifier = 1.0
+		if(bodypart_owner)
+			var/list/grabs = bodypart_owner.grabbedby
+			if(length(grabs))
+				var/bp_grab_suppress = 1.0
+				for(var/obj/item/grabbing/G in grabs)
+					bp_grab_suppress *= G.bleed_suppressing
+				if(bodypart_owner.bleeding * bp_grab_suppress <= 0)
+					grab_modifier = 2.0
+
+		var/effective_clot = clotting_rate * con_modifier * severity_modifier * grab_modifier
+		set_bleed_rate(max(clotting_threshold, bleed_rate - effective_clot))
+
 	if (HAS_TRAIT(owner, TRAIT_PSYDONITE) && !passive_healing)
 		heal_wound(0.6) // psydonites are supposed to apparently slightly heal wounds whether dead or alive
 	if(owner.stat != DEAD && passive_healing) // passive healing is only called if we're like, you know, alive
@@ -275,8 +308,8 @@ GLOBAL_LIST_INIT(primordial_wounds, init_primordial_wounds())
 /// Called on handle_wounds(), on the life() proc
 /datum/wound/proc/on_death()
 	// for optimization's sake, only do dead wound healing if the mob has a client.
-	if (!owner.client)
-		return
+	if (!owner || !owner.client)
+		return FALSE
 
 	if (HAS_TRAIT(owner, TRAIT_PSYDONITE) && !passive_healing)
 		heal_wound(0.6) // psydonites are supposed to apparently slightly heal wounds whether dead or alive
@@ -285,21 +318,24 @@ GLOBAL_LIST_INIT(primordial_wounds, init_primordial_wounds())
 
 /// Setter for any adjustments we make to our bleed_rate, propagating them to the host bodypart.
 /datum/wound/proc/set_bleed_rate(amount)
-    if(!bodypart_owner || !owner)
-        return
+	if(bodypart_owner)
+		bodypart_owner.bleeding -= bleed_rate
+		bleed_rate = amount
+		bodypart_owner.bleeding += bleed_rate
+	else if(owner)
+		owner.simple_bleeding -= bleed_rate
+		bleed_rate = amount
+		owner.simple_bleeding += bleed_rate
 
-    // do simple bleeding
-    if(owner.simple_wounds?.len)
-        owner.simple_bleeding -= bleed_rate
-        bleed_rate = amount
-        owner.simple_bleeding += bleed_rate
-    else
-        bodypart_owner.bleeding -= bleed_rate
-        bleed_rate = amount
-        bodypart_owner.bleeding += bleed_rate
+	// Invalidate bleed cache since bleed rate changed
+	if(owner && iscarbon(owner))
+		var/mob/living/carbon/C = owner
+		C.invalidate_bleed_cache()
 
 /// Heals this wound by the given amount, and deletes it if it's healed completely
 /datum/wound/proc/heal_wound(heal_amount)
+	if(!owner)
+		return FALSE
 	// Wound cannot be healed normally, whp is null
 	if(isnull(whp))
 		return 0
@@ -310,15 +346,19 @@ GLOBAL_LIST_INIT(primordial_wounds, init_primordial_wounds())
 	if(whp <= 0)
 		if(!should_persist())
 			if(bodypart_owner)
-				remove_from_bodypart(src)
+				remove_from_bodypart()
 			else if(owner)
-				remove_from_mob(src)
+				remove_from_mob()
 			else
 				qdel(src)
 	return amount_healed
 
 /// Sews the wound up, changing its properties to the sewn ones
 /datum/wound/proc/sew_wound()
+	return standard_sewing_procedure()
+
+/// The standard logic for sewing a wound (stopping bleeding, changing overlay, but NOT healing it instantly)
+/datum/wound/proc/standard_sewing_procedure()
 	if(!can_sew)
 		return FALSE
 	var/old_overlay = mob_overlay
@@ -377,6 +417,46 @@ GLOBAL_LIST_INIT(primordial_wounds, init_primordial_wounds())
 	SHOULD_CALL_PARENT(TRUE)	//Don't skip this if you're making new dynamic wounds.
 	return
 
+/// Checks if two bleed rates are similar enough (within 3x ratio)
+/datum/wound/proc/bleed_rates_similar(bleed1, bleed2)
+	if(isnull(bleed1) || isnull(bleed2))
+		return TRUE // If either has no bleed rate, don't check
+	var/bleed_ratio = max(bleed1, bleed2) / max(min(bleed1, bleed2), 0.1)
+	return (bleed_ratio <= 3)
+
+/// Checks if this wound can merge with another wound (similar to IS12 Reborn system)
+/datum/wound/proc/can_merge(datum/wound/other)
+	if(!other || QDELETED(other))
+		return FALSE
+	if(other.type != src.type)
+		return FALSE
+	// Don't merge wounds of vastly different severities (based on bleed rate)
+	if(!bleed_rates_similar(bleed_rate, other.bleed_rate))
+		return FALSE
+	// Don't merge sewn and unsewn wounds
+	if(is_sewn() != other.is_sewn())
+		return FALSE
+	return TRUE
+
+/// Merges another wound into this one
+/datum/wound/proc/merge_wound(datum/wound/other)
+	if(!can_merge(other))
+		return FALSE
+
+	// Combine wound properties
+	whp = round((whp + other.whp) * 0.9, DAMAGE_PRECISION) // Slightly less than sum to prevent infinite scaling
+	set_bleed_rate(round(bleed_rate + (other.bleed_rate * 0.5), 0.1)) // Add half the other's bleed rate
+	woundpain = round((woundpain + other.woundpain) * 0.85, DAMAGE_PRECISION)
+	sew_threshold = round((sew_threshold + other.sew_threshold) * 0.9, DAMAGE_PRECISION)
+	amount += other.amount // Track how many wounds merged
+	created = max(created, other.created) // Take the newer creation time
+
+	// Remove the other wound
+	other.remove_from_bodypart()
+	qdel(other)
+
+	return TRUE
+
 /datum/wound/proc/update_name()
 	var/newname
 	var/oldname = name
@@ -393,22 +473,35 @@ GLOBAL_LIST_INIT(primordial_wounds, init_primordial_wounds())
 // Blank because it'll be overridden by wound code.
 /datum/wound/dynamic
 	var/is_maxed = FALSE
-	var/is_armor_maxed = FALSE
 	clotting_rate = 0.4
 	clotting_threshold = 0
+	/// Maximum damage this wound can absorb before creating a new wound
+	var/max_absorbable_damage = 150
+
+/// Checks if this dynamic wound can absorb more damage
+/datum/wound/dynamic/proc/can_worsen(damage)
+	if(amount > 1)
+		return FALSE // Merged wounds don't get worsened, they stay separate
+	if(is_maxed)
+		return FALSE // Already at max severity
+	if(whp >= max_absorbable_damage)
+		return FALSE // Wound is too severe to absorb more damage
+
+	// Check if incoming damage would result in similar bleed rate
+	var/hypothetical_new_bleed = get_hypothetical_bleed_rate(damage)
+	if(!bleed_rates_similar(bleed_rate, hypothetical_new_bleed))
+		return FALSE // Incoming damage would make wound severity too different
+
+	return TRUE
+
+/// Calculates what the bleed rate would be if we added this damage (override in child classes for accuracy)
+/datum/wound/dynamic/proc/get_hypothetical_bleed_rate(damage)
+	// Default approximation: assume linear scaling with damage
+	// Child classes override this for their specific upgrade formulas
+	return bleed_rate + (damage * 0.1)
 
 /datum/wound/dynamic/sew_wound()
 	heal_wound(whp)
-
-/datum/wound/dynamic/proc/armor_check(armor, cap)
-	if(armor)
-		if(!bodypart_owner.unlimited_bleeding)
-			if(bleed_rate >= cap)
-				set_bleed_rate(cap)
-				if(!is_armor_maxed)
-					playsound(owner, 'sound/combat/armored_wound.ogg', 100, TRUE)
-					owner.visible_message(span_crit("The wound tears open from [bodypart_owner.owner]'s <b>[lowertext(bodyzone2readablezone(bodypart_to_zone(bodypart_owner)))]</b>, the armor won't let it go any further!"))
-					is_armor_maxed = TRUE
 
 #define CLOT_THRESHOLD_INCREASE_PER_HIT 0.1	//This raises the MINIMUM bleed the wound can clot to.
 #define CLOT_DECREASE_PER_HIT 0.05	//This reduces the amount of clotting the wound has.
@@ -426,7 +519,7 @@ GLOBAL_LIST_INIT(primordial_wounds, init_primordial_wounds())
 				is_maxed = TRUE
 			clotting_rate = CLOT_RATE_ARTERY
 			clotting_threshold = CLOT_THRESHOLD_ARTERY
-	if(!is_maxed)
+	if(!is_maxed && clotting_rate > 0)
 		clotting_rate = max(0.01, (clotting_rate - CLOT_DECREASE_PER_HIT))
 		clotting_threshold += CLOT_THRESHOLD_INCREASE_PER_HIT
 	..()

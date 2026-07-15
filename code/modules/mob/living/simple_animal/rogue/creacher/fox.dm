@@ -53,9 +53,7 @@
 	pooptype = null
 	STACON = 6
 	STASTR = 5
-	STASPD = 13	//Fast
-	ai_controller = null
-	simple_detect_bonus = 20
+	melee_cooldown = FOX_ATTACK_SPEED
 	deaggroprob = 0
 	defprob = 40
 	del_on_deaggro = 44 SECONDS

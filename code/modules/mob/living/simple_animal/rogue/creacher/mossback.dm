@@ -12,7 +12,7 @@
 	emote_see = null
 	turns_per_move = 3
 	see_in_dark = 10
-	move_to_delay = 3
+	move_to_delay = MOSSBACK_MOVEMENT_SPEED
 	base_intents = list(/datum/intent/simple/claw/mossback)
 	botched_butcher_results = list (/obj/item/reagent_containers/food/snacks/rogue/meat/crab = 1, /obj/item/alch/viscera = 1)
 	butcher_results = list(/obj/item/reagent_containers/food/snacks/rogue/meat/crab = 3, 
@@ -27,8 +27,8 @@
 	maxHealth = MOSSBACK_HEALTH
 	melee_damage_lower = 35
 	melee_damage_upper = 50
-	vision_range = 4
-	aggro_vision_range = 3
+	vision_range = 9
+	aggro_vision_range = 9
 	retreat_distance = 0
 	minimum_distance = 0
 	milkies = FALSE
@@ -45,23 +45,22 @@
 	attack_sound = list('sound/combat/wooshes/blunt/wooshhuge (1).ogg','sound/combat/wooshes/blunt/wooshhuge (2).ogg','sound/combat/wooshes/blunt/wooshhuge (3).ogg')
 	dodgetime = 0
 	aggressive = 1
-	
-//	stat_attack = UNCONSCIOUS
-
-	can_have_ai = FALSE //disable native ai
-	AIStatus = AI_OFF
-	ai_controller = /datum/ai_controller/mossback
+	desc = "A mossback. It wants you dead."
 	melee_cooldown = MOSSBACK_ATTACK_SPEED
 
 /mob/living/simple_animal/hostile/retaliate/rogue/mossback/Initialize(mapload, mob/user, townercrab = FALSE)
 	. = ..()
-	AddElement(/datum/element/ai_retaliate)
-	ai_controller.set_blackboard_key(BB_BASIC_FOODS, food_type)
+	
+	init_ai_root(/datum/behavior_tree/node/selector/mossback_tree)
+	ai_root.next_move_delay = move_to_delay
+	ai_root.next_attack_delay = MOSSBACK_ATTACK_SPEED
+
 	if(user)
 		summoner = user.name
 		if (townercrab)
 			faction = list("neutral")
 			tamed(user)
+			ai_root.blackboard[AIBLK_MINION_FOLLOW_TARGET] = user
 
 /mob/living/simple_animal/hostile/retaliate/rogue/mossback/get_sound(input)
 	switch(input)

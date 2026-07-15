@@ -77,8 +77,11 @@
 							water_overlay.plane = GAME_PLANE
 			var/drained = get_stamina_drain(user, get_dir(src, newloc))
 			if(drained && !user.stamina_add(drained))
-				user.Immobilize(30)
-				addtimer(CALLBACK(user, TYPE_PROC_REF(/mob/living, Knockdown), 30), 1 SECONDS)
+				handle_swim_exhaustion(user)
+
+/turf/open/water/proc/handle_swim_exhaustion(mob/living/user)
+	user.Immobilize(30)
+	addtimer(CALLBACK(user, TYPE_PROC_REF(/mob/living, Knockdown), 30), 1 SECONDS)
 
 /turf/open/water/proc/get_stamina_drain(mob/living/swimmer, travel_dir)
 	var/const/BASE_STAM_DRAIN = 15
@@ -157,6 +160,13 @@
 			L.visible_message(span_warning("[L] spasms violently upon touching the water!"), span_danger("The water... it burns me!"))
 			L.adjustFireLoss(25)
 			return
+		else if(L.fire_stacks > 0)
+			var/datum/status_effect/fire_handler/fire_stacks/fire_effect = L.has_status_effect(/datum/status_effect/fire_handler/fire_stacks)
+			if(fire_effect)
+				fire_effect.extinguish()
+				fire_effect.adjust_stacks(-L.fire_stacks)
+				L.visible_message(span_notice("[L]'s flames are extinguished by the water!"), span_notice("The water extinguishes the flames!"))
+				playsound(L, 'sound/blank.ogg', 50, TRUE)
 		if(!(L.movement_type & FLYING))
 			if(!(L.mobility_flags & MOBILITY_STAND) || water_level == 3)
 				L.SoakMob(FULL_BODY)
@@ -432,34 +442,79 @@
 /turf/open/water/river
 	name = "river"
 	desc = "A river of crystal clear water flows swiftly along the contours of the land."
-	icon = 'icons/turf/roguefloor.dmi'
-	icon_state = "rivermove"
-	water_level = 3
-	slowdown = 5
-	wash_in = TRUE
-	swim_skill = TRUE
-	var/river_processing
-	swimdir = TRUE
-
-/turf/open/water/river/update_icon()
-	if(water_overlay)
-		water_overlay.color = water_color
-		water_overlay.icon_state = "riverbot"
-		water_overlay.dir = dir
-	if(water_top_overlay)
-		water_top_overlay.color = water_color
-		water_top_overlay.icon_state = "rivertop"
-		water_top_overlay.dir = dir
+	baseturfs = /turf/open/transparent/openspace
 
 /turf/open/water/river/Initialize()
-	icon_state = "rock"
-	.  = ..()
-
-/turf/open/water/river/Entered(atom/movable/AM, atom/oldLoc)
 	. = ..()
-	if(isliving(AM))
-		if(!river_processing)
-			river_processing = addtimer(CALLBACK(src, PROC_REF(process_river)), 5, TIMER_STOPPABLE)
+
+	var/turf/new_top = ChangeTurf(/turf/open/transparent/openspace, null, CHANGETURF_IGNORE_AIR)
+
+	var/turf/below = GetBelow(new_top)
+	if(below)
+		var/turf/river_bottom = below.ChangeTurf(/turf/open/floor/rogue/riverbot, null, CHANGETURF_IGNORE_AIR)
+		if(!river_bottom.cell)
+			river_bottom.cell = new /cell(river_bottom)
+			river_bottom.cell.InitLiquids()
+
+		var/datum/liquid/below_water = river_bottom.cell.get_fluid_datum(WATER)
+		if(below_water)
+			river_bottom.cell.fluid_volume[below_water] = 100
+
+		river_bottom.cell.flow_dir = dir
+
+		SSliquid.update_fluidsum(river_bottom)
+		SSliquid.cell_index[river_bottom] = TRUE
+
+/turf/open/floor/rogue/riverbot
+	name = "river bottom"
+	desc = "The rocky bed of a flowing river."
+	icon = 'icons/turf/roguefloor.dmi'
+	icon_state = "riverbot"
+	footstep = FOOTSTEP_WATER
+	barefootstep = FOOTSTEP_WATER
+	clawfootstep = FOOTSTEP_WATER
+	heavyfootstep = FOOTSTEP_WATER
+
+/turf/open/floor/rogue/riverbot/Initialize()
+	. = ..()
+	if(!cell)
+		cell = new /cell(src)
+		cell.InitLiquids()
+	var/datum/liquid/water_fluid = cell.get_fluid_datum(WATER)
+	if(water_fluid)
+		cell.fluid_volume[water_fluid] = MAX_FLUID_VOLUME
+	cell.make_liquid_source(10)
+	SSliquid.update_fluidsum(src)
+	SSliquid.cell_index[src] = TRUE
+	ensure_liquid_overlay()
+	liquid_overlay.layer = ABOVE_MOB_LAYER
+	liquid_overlay.plane = GAME_PLANE_HIGHEST
+
+/turf/open/floor/rogue/lakebed
+	name = "lakebed"
+	desc = "The muddy bottom of a deep lake."
+	icon = 'icons/turf/roguefloor.dmi'
+	icon_state = "lakebed"
+	footstep = FOOTSTEP_WATER
+	barefootstep = FOOTSTEP_WATER
+	clawfootstep = FOOTSTEP_WATER
+	heavyfootstep = FOOTSTEP_WATER
+
+/turf/open/floor/rogue/lakebed/Initialize()
+	. = ..()
+	if(!cell)
+		cell = new /cell(src)
+		cell.InitLiquids()
+	var/datum/liquid/water_fluid = cell.get_fluid_datum(WATER)
+	if(water_fluid)
+		cell.fluid_volume[water_fluid] = MAX_FLUID_VOLUME
+	cell.make_liquid_source(10)
+	SSliquid.update_fluidsum(src)
+	SSliquid.cell_index[src] = TRUE
+	ensure_liquid_overlay()
+	liquid_overlay.layer = ABOVE_MOB_LAYER
+	liquid_overlay.plane = GAME_PLANE_HIGHEST
+
 
 /turf/open/water/river/get_heuristic_slowdown(mob/traverser, travel_dir)
 	var/const/UPSTREAM_PENALTY = 2
@@ -470,19 +525,12 @@
 	for(var/obj/structure/S in src)
 		if(S.obj_flags & BLOCK_Z_OUT_DOWN)
 			return
-	if(travel_dir == dir) // downriver
-		. += DOWNSTREAM_BONUS // faster!
-	else if(travel_dir == GLOB.reverse_dir[dir]) // upriver
-		. += UPSTREAM_PENALTY // slower
-
-/turf/open/water/river/proc/process_river()
-	river_processing = null
-	for(var/atom/movable/A in contents)
-		for(var/obj/structure/S in src)
-			if(S.obj_flags & BLOCK_Z_OUT_DOWN)
-				return
-		if((A.loc == src) && A.has_gravity())
-			A.ConveyorMove(dir)
+	if(!cell?.flow_dir)
+		return
+	if(travel_dir == cell.flow_dir)
+		. += DOWNSTREAM_BONUS
+	else if(travel_dir == GLOB.reverse_dir[cell.flow_dir])
+		. += UPSTREAM_PENALTY
 
 /turf/open/water/ocean
 	name = "salt water"
@@ -518,3 +566,23 @@
 	swim_skill = TRUE
 	wash_in = TRUE
 	water_reagent = /datum/reagent/water
+
+/turf/open/water/lake
+	name = "lake"
+	desc = "Still, deep water. Peaceful and serene."
+	icon = 'icons/turf/roguefloor.dmi'
+	icon_state = "rock"
+	slowdown = 5
+	wash_in = TRUE
+	swim_skill = TRUE
+
+/turf/open/water/lake/Initialize()
+	. = ..()
+
+	var/turf/below = GetBelow(src)
+	if(below && istype(below, /turf/open/floor))
+		var/datum/liquid/below_water = below.cell.get_fluid_datum(WATER)
+		if(below_water)
+			below.cell.fluid_volume[below_water] = 100
+		SSliquid.update_fluidsum(below)
+		SSliquid.cell_index[below] = TRUE

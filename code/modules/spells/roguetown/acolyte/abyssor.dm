@@ -173,6 +173,8 @@
 	recharge_time = 10 SECONDS
 	miracle = TRUE
 	devotion_cost = 50
+	damage_variance = SPELL_VARIANCE_MID
+	is_offensive = TRUE
 
 /obj/effect/proc_holder/spell/invoked/abyssheal/cast(list/targets, mob/living/user)
 	. = ..()
@@ -185,7 +187,8 @@
 			return FALSE
 		if(user.patron?.undead_hater && (target.mob_biotypes & MOB_UNDEAD)) //THE DEEP CALLS- sorry, the pressure of the deep falls upon those of the undead ilk
 			target.visible_message(span_danger("[target] is crushed by divine pressure!"), span_userdanger("I'm crushed by divine pressure!"))
-			target.adjustBruteLoss(30)
+			var/adjusted_damage = get_varied_damage(30, user)
+			target.adjustBruteLoss(adjusted_damage)
 			return TRUE
 		var/conditional_buff = FALSE
 		var/situational_bonus = 1
@@ -297,7 +300,7 @@
 
 	return TRUE
 
-/proc/summon_dreamfiend(mob/living/target, mob/living/user, mob/F = /mob/living/simple_animal/hostile/rogue/dreamfiend, outer_tele_radius = 3, inner_tele_radius = 2, include_dense = FALSE, include_teleport_restricted = FALSE)
+/proc/summon_dreamfiend(mob/living/target, mob/living/user, mob/living/F = /mob/living/simple_animal/hostile/rogue/dreamfiend, outer_tele_radius = 3, inner_tele_radius = 2, include_dense = FALSE, include_teleport_restricted = FALSE)
 	var/turf/target_turf = get_turf(target)
 	var/list/turfs = list()
 
@@ -328,8 +331,8 @@
 	var/turf/spawn_turf = pick(turfs)
 
 	F = new F(spawn_turf)
-	F.ai_controller.set_blackboard_key(BB_BASIC_MOB_CURRENT_TARGET, target)
-	F.ai_controller.set_blackboard_key(BB_MAIN_TARGET, target)
+	if(F.ai_root)
+		F.ai_root.target = target
 
 	F.visible_message(span_notice("A [F] manifests following after [target]... countless teeth bared with hostility!"))
 	return TRUE

@@ -19,7 +19,6 @@
 
 /mob/living/carbon/human/species/skeleton/npc
 	aggressive = 1
-	mode = NPC_AI_IDLE
 	wander = FALSE
 	skel_fragile = TRUE
 	npc_jump_chance = 0 // no jumping skeletons
@@ -27,7 +26,6 @@
 
 /mob/living/carbon/human/species/skeleton/npc/ambush
 	aggressive = 1
-	mode = NPC_AI_IDLE
 	wander = FALSE
 
 /mob/living/carbon/human/species/skeleton/Initialize()
@@ -87,6 +85,13 @@
 		var/datum/outfit/OU = new skel_outfit
 		if(OU)
 			equipOutfit(OU)
+
+	// Initialize behavior tree AI (for NPC skeletons only)
+	if(istype(src, /mob/living/carbon/human/species/skeleton/npc))
+		init_ai_root(/datum/behavior_tree/node/selector/hostile_humanoid_tree)
+		SSai.Register(src)
+		ai_root.next_move_delay = 3
+		ai_root.next_attack_delay = SKELETON_ATTACK_SPEED
 
 /datum/outfit/job/npc/skeleton/pre_equip(mob/living/carbon/human/H)
 	..()

@@ -57,10 +57,25 @@
 	//whether turf teleport spells are forbidden from teleporting to this turf
 	var/teleport_restricted = FALSE 
 
+	// Liquid simulation system variables
+	var/cell/cell // Cell datum for liquid simulation
+	var/obj/effect/liquid/liquid_overlay // Visual overlay for liquid
+
 	vis_flags = VIS_INHERIT_PLANE|VIS_INHERIT_ID
 
 	///Icon-smoothing variable to map a diagonal wall corner with a fixed underlay.
 	var/list/fixed_underlay = null
+/obj/effect/liquid/Destroy()
+	for(var/direction in trims)
+		qdel(trims[direction])
+	trims = null
+	current_trim_dirs = null
+	return ..()
+
+/turf/proc/ensure_liquid_overlay()
+	if(!liquid_overlay)
+		liquid_overlay = new(src)
+	return liquid_overlay
 
 /turf/vv_edit_var(var_name, new_value)
 	var/static/list/banned_edits = list("x", "y", "z")
@@ -140,6 +155,7 @@
 	if(T)
 		T.multiz_turf_del(src, UP)
 	STOP_PROCESSING(SSweather,src)
+	QDEL_NULL(liquid_overlay)
 	if(force)
 		..()
 		//this will completely wipe turf state

@@ -62,10 +62,6 @@
 	dodgetime = 30
 	aggressive = 1
 
-	AIStatus = AI_OFF
-	can_have_ai = FALSE
-	ai_controller = /datum/ai_controller/dragon
-
 	limb_destroyer = TRUE
 //	stat_attack = UNCONSCIOUS
 
@@ -97,9 +93,11 @@
 
 	leap.Grant(src)
 
-	AddElement(/datum/element/ai_retaliate)
-
-	ai_controller.set_blackboard_key(BB_TARGETED_ACTION, leap)
+	// Reuse the direbear behavior tree for special behaviors
+	init_ai_root(/datum/behavior_tree/node/selector/direbear_tree)
+	ai_root.blackboard["targeted_action"] = leap
+	ai_root.next_move_delay = move_to_delay
+	ai_root.next_attack_delay = DRAGON_ATTACK_SPEED
 	
 	//ADD_TRAIT(src, TRAIT_NOPAINSTUN, TRAIT_GENERIC) // Need a weakness
 
@@ -234,7 +232,8 @@
 	fire_breath = new(src)
 	fire_breath.Grant(src)
 
-	ai_controller.set_blackboard_key(BB_TARGETED_ACTION, fire_breath)
+	// Override blackboard to use fire breath instead of leap
+	ai_root.blackboard["targeted_action"] = fire_breath
 
 /mob/living/simple_animal/hostile/retaliate/rogue/dragon/broodmother/Destroy()
 	fire_breath.Remove(src)

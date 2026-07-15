@@ -256,6 +256,8 @@
 			if(!ispath(atom_def, /atom)) // Skip the item if the path does not exist.  Fix your crap, mappers!
 				if(bad_paths)
 					LAZYOR(bad_paths[path_text], model_key)
+				else
+					log_world("MAP ERROR: nonexistent path [path_text] in model key \"[model_key]\" of [original_path], dropped")
 				continue
 			members.Add(atom_def)
 
@@ -307,6 +309,9 @@
 	var/index
 	var/list/members = model[1]
 	var/list/members_attributes = model[2]
+	if(!length(members))
+		log_world("MAP ERROR: empty model at [crds ? "[crds.x],[crds.y],[crds.z]" : "unknown coords"], tile skipped")
+		return
 
 	////////////////
 	//Instanciation
@@ -333,8 +338,11 @@
 	//then instance the /turf and, if multiple tiles are presents, simulates the DMM underlays piling effect
 
 	var/first_turf_index = 1
-	while(!ispath(members[first_turf_index], /turf)) //find first /turf object in members
+	while(first_turf_index <= members.len && !ispath(members[first_turf_index], /turf)) //find first /turf object in members
 		first_turf_index++
+	if(first_turf_index > members.len)
+		log_world("MAP ERROR: model with no turf at [crds ? "[crds.x],[crds.y],[crds.z]" : "unknown coords"], tile skipped")
+		return
 
 	//turn off base new Initialization until the whole thing is loaded
 	SSatoms.map_loader_begin()

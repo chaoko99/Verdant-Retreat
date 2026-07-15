@@ -95,6 +95,8 @@
 	var/list/possibleclass
 	var/advsetup = 0
 
+	// Armor cache - single alist for get_best_armor lookups
+	var/alist/best_armor_cache
 
 //	var/alignment = ALIGNMENT_TN
 
@@ -169,8 +171,3 @@
 
 	/// Assoc list of culinary preferences of the mob
 	var/list/culinary_preferences = list()
-
-	/// List of mobs that have attacked us. Only relevant to someone with TRAIT_TEMPO.
-	var/list/tempo_attackers = list()
-
-	var/next_tempo_cull

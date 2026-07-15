@@ -13,7 +13,7 @@
 	speak_chance = 1
 	turns_per_move = 3
 	see_in_dark = 6
-	move_to_delay = 3
+	move_to_delay = WOLF_MOVEMENT_SPEED
 	base_intents = list(/datum/intent/simple/bite/volf)
 	botched_butcher_results = list(/obj/item/reagent_containers/food/snacks/rogue/meat/steak/wolf = 1, /obj/item/alch/viscera = 1, /obj/item/alch/sinew = 1, /obj/item/natural/bone = 2)
 	butcher_results = list(/obj/item/reagent_containers/food/snacks/rogue/meat/steak/wolf = 2,
@@ -38,7 +38,7 @@
 	maxHealth = WOLF_HEALTH
 	melee_damage_lower = 19
 	melee_damage_upper = 29
-	vision_range = 7
+	vision_range = 9
 	aggro_vision_range = 9
 	environment_smash = ENVIRONMENT_SMASH_NONE
 	retreat_distance = 0
@@ -69,9 +69,6 @@
 	
 
 //new ai, old ai off
-	AIStatus = AI_OFF
-	can_have_ai = FALSE
-	ai_controller = /datum/ai_controller/volf
 	melee_cooldown = WOLF_ATTACK_SPEED
 
 /obj/effect/decal/remains/wolf
@@ -83,13 +80,13 @@
 
 /mob/living/simple_animal/hostile/retaliate/rogue/wolf/Initialize()
 	. = ..()
-	AddElement(/datum/element/ai_retaliate)
-	AddElement(/datum/element/ai_flee_while_injured, 0.75, 0.4)
 	gender = MALE
 	if(prob(33))
 		gender = FEMALE
 	update_icon()
-	ai_controller.set_blackboard_key(BB_BASIC_FOODS, food_type)
+	
+	// NEW AI SYSTEM
+	init_ai_root(/datum/behavior_tree/node/selector/volf_tree)
 
 
 /mob/living/simple_animal/hostile/retaliate/rogue/wolf/death(gibbed)

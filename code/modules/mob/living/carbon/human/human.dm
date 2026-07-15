@@ -94,6 +94,7 @@
 	//initialise organs
 	create_internal_organs() //most of it is done in set_species now, this is only for parent call
 	physiology = new()
+	best_armor_cache = new /alist()
 
 	. = ..()
 
@@ -148,7 +149,6 @@
 
 /mob/living/carbon/human/Destroy()
 	QDEL_NULL(sexcon)
-	STOP_PROCESSING(SShumannpc, src)
 	QDEL_NULL(physiology)
 	QDEL_NULL(sunder_light_obj)
 	GLOB.human_list -= src

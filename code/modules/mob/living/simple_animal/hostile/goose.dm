@@ -37,13 +37,6 @@
 	var/icon_vomit_end = "vomit_end"
 	var/message_cooldown = 0
 
-/mob/living/simple_animal/hostile/retaliate/goose/handle_automated_movement()
-	. = ..()
-	if (stat == DEAD)
-		return
-	if(prob(5) && random_retaliate == TRUE)
-		Retaliate()
-
 /mob/living/simple_animal/hostile/retaliate/goose/vomit
 	name = "Birdboat"
 	real_name = "Birdboat"
@@ -191,7 +184,7 @@
 	icon_icon = 'icons/mob/animal.dmi'
 	cooldown_time = 250
 
-/datum/action/cooldown/vomit/Trigger()
+/datum/action/cooldown/vomit/Trigger(atom/target)
 	if(!..())
 		return FALSE
 	if(!istype(owner, /mob/living/simple_animal/hostile/retaliate/goose/vomit))

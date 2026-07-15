@@ -30,7 +30,7 @@
 	releasedrain = 10
 	chargedrain = 0
 	chargetime = 0
-	range = 1
+	range = 7
 	no_early_release = TRUE
 	movement_interrupt = FALSE
 	chargedloop = /datum/looping_sound/invokeholy
@@ -71,9 +71,6 @@
 	footstep_type = FOOTSTEP_MOB_BAREFOOT
 	del_on_death = TRUE
 	loot = list(/obj/item/bomb/smoke/decoy)
-	can_have_ai = FALSE
-	AIStatus = AI_OFF
-	ai_controller = /datum/ai_controller/mudcrab // doesnt really matter
 
 
 /obj/item/bomb/smoke/decoy/Initialize()

@@ -9,7 +9,7 @@
 	mob_biotypes = MOB_ORGANIC|MOB_HUMANOID
 	robust_searching = 1
 	turns_per_move = 2
-	move_to_delay = 3
+	move_to_delay = DEEPONE_MOVEMENT_SPEED
 	STACON = 11
 	STASTR = 13
 	STASPD = 9
@@ -19,7 +19,7 @@
 	harm_intent_damage = 20
 	melee_damage_lower = 10
 	melee_damage_upper = 25
-	vision_range = 7
+	vision_range = 9
 	aggro_vision_range = 9
 	retreat_distance = 0
 	minimum_distance = 0
@@ -35,11 +35,16 @@
 	faction = list("deepone")
 	footstep_type = FOOTSTEP_MOB_BAREFOOT
 
-	can_have_ai = FALSE 
-	AIStatus = AI_OFF
 
-	ai_controller = /datum/ai_controller/deepone
 
+/mob/living/simple_animal/hostile/rogue/deepone/Initialize()
+	. = ..()
+	init_ai_root(/datum/behavior_tree/node/selector/deepone_melee_tree)
+	ai_root.next_move_delay = move_to_delay
+	ai_root.next_attack_delay = DEEPONE_ATTACK_SPEED
+
+/mob/living/simple_animal/hostile/rogue/deepone/Life()
+	..()
 
 /mob/living/simple_animal/hostile/rogue/deepone/arm
 	name = "Deep One"
@@ -68,7 +73,13 @@
 	minimum_distance = 5
 	ranged_cooldown_time = 40
 	check_friendly_fire = 1
-	ai_controller = /datum/ai_controller/deepone_ranged
+
+
+/mob/living/simple_animal/hostile/rogue/deepone/spit/Initialize()
+	. = ..()
+	init_ai_root(/datum/behavior_tree/node/selector/deepone_ranged_tree)
+	ai_root.next_move_delay = move_to_delay
+	ai_root.next_attack_delay = DEEPONE_ATTACK_SPEED
 
 /mob/living/simple_animal/hostile/rogue/deepone/wiz
 	name = "Deep One Devout"
@@ -84,8 +95,14 @@
 	minimum_distance = 5
 	ranged_cooldown_time = 70
 	check_friendly_fire = 1
-	ai_controller = /datum/ai_controller/deepone_ranged
+
 	var/allowed_projectile_types = list(/obj/projectile/magic/frostbolt, /obj/projectile/energy/rogue3, /obj/projectile/magic/repel)	
+
+/mob/living/simple_animal/hostile/rogue/deepone/wiz/Initialize()
+	. = ..()
+	init_ai_root(/datum/behavior_tree/node/selector/deepone_ranged_tree)
+	ai_root.next_move_delay = move_to_delay
+	ai_root.next_attack_delay = DEEPONE_ATTACK_SPEED
 
 
 /mob/living/simple_animal/hostile/rogue/deepone/wiz/Shoot()

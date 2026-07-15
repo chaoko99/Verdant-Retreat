@@ -18,9 +18,14 @@
 	if (!armor)
 		armor = ARMOR_STRUCTURE
 	. = ..()
+  
 	if(smoothing_flags & (SMOOTH_BITMASK|SMOOTH_BITMASK_CARDINALS))
 		QUEUE_SMOOTH(src)
 		QUEUE_SMOOTH_NEIGHBORS(src)
+
+	if(isturf(loc))
+		vn_mark_dirty(loc)
+
 	if(redstone_id)
 		GLOB.redstone_objs += src
 		. = INITIALIZE_HINT_LATELOAD
@@ -64,6 +69,7 @@
 
 /obj/structure/Destroy()
 	if(isturf(loc))
+		vn_mark_dirty(loc)
 		for(var/mob/living/user in loc)
 			if(climb_offset)
 				user.reset_offsets("structure_climb")

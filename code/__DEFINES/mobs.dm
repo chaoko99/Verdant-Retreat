@@ -119,7 +119,7 @@
 //Brain Damage defines
 #define BRAIN_DAMAGE_MILD 20
 #define BRAIN_DAMAGE_SEVERE 100
-#define BRAIN_DAMAGE_DEATH 200
+#define BRAIN_DAMAGE_DEATH 100
 
 #define BRAIN_TRAUMA_MILD /datum/brain_trauma/mild
 #define BRAIN_TRAUMA_SEVERE /datum/brain_trauma/severe
@@ -243,20 +243,12 @@
 
 //Hostile simple animals
 //If you add a new status, be sure to add a list for it to the simple_animals global in _globalvars/lists/mobs.dm
+/*
 #define AI_ON		1
 #define AI_IDLE		2
 #define AI_OFF		3
+*/
 #define AI_Z_OFF	4
-
-// these are exclusively for hostile humantype mobs
-#define NPC_AI_OFF		0
-#define NPC_AI_IDLE		1
-#define NPC_AI_COMBAT	2
-#define NPC_AI_RETREAT	3
-#define NPC_AI_HUNT		4
-#define NPC_AI_FLEE		5
-/// Sleep mode (NPC is not processing, excluded from mob subsystem). Remember that NPC_AI_OFF is different from this and supposes *removed* AI (aka player-controlled mob)
-#define NPC_AI_SLEEP    6
 
 //determines if a mob can smash through it
 #define ENVIRONMENT_SMASH_NONE			0
@@ -427,7 +419,6 @@
 #define SKIN_COLOR_PLATINUM "ffe0d1"
 #define SKIN_COLOR_AURUM "fcccb3"
 #define SKIN_COLOR_QUICKSILVER "edc6b3"
-#define SKIN_COLOR_BRASS "e2b9a3"
 #define SKIN_COLOR_IRON "d9a284"
 #define SKIN_COLOR_MALACHITE "c69b83"
 #define SKIN_COLOR_OBSIDIAN "3b2e27"

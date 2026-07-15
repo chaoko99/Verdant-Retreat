@@ -1,28 +1,13 @@
 /mob/living/simple_animal/hostile/retaliate
-	var/list/enemies = list()
 
 /mob/living/simple_animal/hostile/retaliate/attack_hand(mob/living/carbon/human/M)
 	. = ..()
 	if(M.used_intent.type == INTENT_HELP)
-		if(enemies.len)
+		if(ai_root?.blackboard[AIBLK_AGGRESSORS]?.len)
 			if(tame)
-				enemies = list()
+				ai_root.blackboard[AIBLK_AGGRESSORS] = list()
 				src.visible_message(span_notice("[src] calms down."))
 				LoseTarget()
-
-/mob/living/simple_animal/hostile/retaliate
-	var/aggressive = 0
-
-/mob/living/simple_animal/hostile/retaliate/ListTargets()
-	if(!(AIStatus == NPC_AI_OFF))
-		if(aggressive)
-			return ..()
-		else
-			if(!enemies.len)
-				return list()
-			var/list/see = ..()
-			see &= enemies // Remove all entries that aren't in enemies
-			return see
 
 /mob/living/simple_animal/hostile/retaliate/proc/DismemberBody(mob/living/L)
 	//Lets keep track of this to see if we start getting wounded while eating.
@@ -40,17 +25,14 @@
 			if(iscarbon(L))
 				var/mob/living/carbon/C = L
 				var/obj/item/bodypart/limb
-				var/list/limb_list = list(BODY_ZONE_L_ARM, BODY_ZONE_R_ARM, BODY_ZONE_L_LEG, BODY_ZONE_R_LEG)
+				var/static/list/limb_list = list(BODY_ZONE_L_ARM, BODY_ZONE_R_ARM, BODY_ZONE_L_LEG, BODY_ZONE_R_LEG, BODY_ZONE_HEAD, BODY_ZONE_CHEST)
+				var/list/candidates = list()
 				for(var/zone in limb_list)
 					limb = C.get_bodypart(zone)
 					if(limb)
-						limb.dismember()
-						return TRUE
-				limb = C.get_bodypart(BODY_ZONE_HEAD)
-				if(limb)
-					limb.dismember()
-					return TRUE
-				limb = C.get_bodypart(BODY_ZONE_CHEST)
+						candidates += limb
+
+				limb = pick(candidates)
 				if(limb)
 					if(!limb.dismember())
 						C.gib()
@@ -62,20 +44,28 @@
 
 /mob/living/simple_animal/hostile/retaliate/proc/Retaliate()
 //	var/list/around = view(src, vision_range)
-	toggle_ai(AI_ON)
-	var/list/around = hearers(vision_range, src)
+	SSai.WakeUp(src)
+	var/list/around = get_nearby_entities(src, vision_range)
 
-	for(var/atom/movable/A in around)
-		if(A == src)
-			continue
-		if(isliving(A))
-			var/mob/living/M = A
-			if(faction_check_mob(M) && attack_same || !faction_check_mob(M))
-				enemies |= M
+	if(!ai_root?.blackboard)
+		return
+
+	if(!ai_root.blackboard[AIBLK_AGGRESSORS])
+		ai_root.blackboard[AIBLK_AGGRESSORS] = list()
+
+	var/list/new_aggressors = list()
+	for(var/mob/living/L as anything in around)
+		if(faction_check_mob(L) && attack_same || !faction_check_mob(L))
+			ai_root.blackboard[AIBLK_AGGRESSORS] |= L
+			new_aggressors |= L
 
 	for(var/mob/living/simple_animal/hostile/retaliate/H in around)
 		if(faction_check_mob(H) && !attack_same && !H.attack_same)
-			H.enemies |= enemies
+			if(!H.ai_root?.blackboard)
+				continue
+			if(!H.ai_root.blackboard[AIBLK_AGGRESSORS])
+				H.ai_root.blackboard[AIBLK_AGGRESSORS] = list()
+			H.ai_root.blackboard[AIBLK_AGGRESSORS] |= new_aggressors
 	return 0
 	
 

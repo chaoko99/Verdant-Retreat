@@ -80,7 +80,7 @@
 				var/mob/living/L = user
 				if(L.STASTR >= initial(kickthresh))
 					kickthresh--
-				if((prob(L.STASTR * 0.5) || kickthresh == 0) && (L.STASTR >= initial(kickthresh)))
+				if((get_stat_roll(L.STASTR) >= 20 || kickthresh == 0) && (L.STASTR >= initial(kickthresh)))
 					playsound(src, 'sound/combat/hits/onwood/woodimpact (1).ogg', 100)
 					if(HAS_TRAIT(user, TRAIT_LAMIAN_TAIL))
 						user.visible_message(span_warning("[user] slams [src] open with [user.p_their()] tail!"), \
@@ -298,7 +298,7 @@
 	if(ishuman(user))
 		var/mob/living/carbon/human/human_user = user
 		// must have a client or be trying to pass through the door
-		if(!human_user.client && !length(human_user.myPath))
+		if(!human_user.client && (!human_user.ai_root || !length(human_user.ai_root.path)))
 			return FALSE
 		if(human_user.handcuffed)
 			return FALSE
@@ -723,6 +723,8 @@
 			span_notice("I lock [src]."))
 		playsound(src, locksound, 100)
 		locked = 1
+	if(isturf(loc))
+		vn_mark_dirty(loc)
 
 /obj/structure/mineral_door/setAnchored(anchorvalue) //called in default_unfasten_wrench() chain
 	. = ..()
@@ -741,6 +743,8 @@
 		density = FALSE
 		opacity = FALSE
 		brokenstate = TRUE
+		if(isturf(loc))
+			vn_mark_dirty(loc)
 	..()
 
 /obj/structure/mineral_door/OnCrafted(dirin, user)

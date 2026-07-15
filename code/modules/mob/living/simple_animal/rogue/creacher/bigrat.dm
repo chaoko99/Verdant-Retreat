@@ -11,7 +11,7 @@
 	speak_chance = 1
 	turns_per_move = 3
 	see_in_dark = 6
-	move_to_delay = 5
+	move_to_delay = RAT_MOVEMENT_SPEED
 	pixel_x = -16
 	pixel_y = -8
 	vision_range = 5
@@ -65,11 +65,9 @@
 	eat_forever = TRUE
 
 //new ai, old ai off
-	AIStatus = AI_OFF
-	can_have_ai = FALSE
-	ai_controller = /datum/ai_controller/big_rat
 	melee_cooldown = RAT_ATTACK_SPEED
 	stat_attack = UNCONSCIOUS
+	wander = 0 // Disable simple_animal wandering
 
 /obj/effect/decal/remains/bigrat
 	name = "remains"
@@ -82,7 +80,6 @@
 /mob/living/simple_animal/hostile/retaliate/rogue/bigrat/Initialize()
 	. = ..()
 	gender = MALE
-	AddElement(/datum/element/ai_flee_while_injured, 0.75, 0.3)
 	if(prob(33))
 		gender = FEMALE
 	if(gender == FEMALE)
@@ -90,7 +87,11 @@
 		icon_living = "Frat"
 		icon_dead = "Frat1"
 	update_icon()
-	ai_controller.set_blackboard_key(BB_BASIC_FOODS, food_type)
+	
+	// NEW AI SYSTEM
+	init_ai_root(/datum/behavior_tree/node/selector/bigrat_tree)
+	ai_root.next_move_delay = 5
+	ai_root.next_attack_delay = RAT_ATTACK_SPEED
 
 
 /mob/living/simple_animal/hostile/retaliate/rogue/bigrat/death(gibbed)

@@ -223,7 +223,6 @@
 #define TRAIT_GOODWRITER "Great Writer"
 #define TRAIT_ADRENALINE_RUSH "Adrenaline Rush"
 #define TRAIT_COMBAT_AWARE	"Combat Aware"
-#define TRAIT_TEMPO	"Tempo Capable"
 #define TRAIT_STRONGKICK	"Strong Kick"
 #define TRAIT_SILVER_WEAK "Silver Weakness"
 #define TRAIT_DEADITE "Deadite"
@@ -241,6 +240,7 @@
 #define TRAIT_MASTER_MASON "Master Masonry"
 #define TRAIT_FOOD_STIPEND "Vomitorium-known"
 #define TRAIT_ROYALSERVANT "Household Insight" // Let's you see the royals liked/hated food/drink
+#define TRAIT_MONSTERBAIT "Monster Bait" // NPCs will try to subdue you instead of killing you.
 
 
 GLOBAL_LIST_INIT(roguetraits, list(
@@ -320,7 +320,7 @@ GLOBAL_LIST_INIT(roguetraits, list(
 	TRAIT_SEEDKNOW = span_info("I know which seeds grow which crops."),
 	TRAIT_PERFECT_TRACKER = span_info("I am the perfect tracker. No tracks will deceive my eyes, nor will they hide their secrets from me."),//Hearthstone port.
 	TRAIT_ZIZOSIGHT = span_info("Zizo blesses my eyes to be unburdened by the night."), //Hearthstone change.
-	TRAIT_CIVILIZEDBARBARIAN = span_info("My rigorous training in the martial arts has turned me into a living weapon. No limb is out of reach for my fists and feet, and my unarmed strikes now have a higher chance to inflict critical damage."),
+	TRAIT_CIVILIZEDBARBARIAN = span_info("My rigorous training in the martial arts has turned me into a living weapon. No limb is out of reach for my fists and feet. My unarmed strikes are more powerful and have a higher chance to inflict critical damage."),
 	TRAIT_COMICSANS = span_sans("I am cursed with a odd voice."),
 	TRAIT_SQUIRE_REPAIR = span_info("I know my way around my Master's tools."),
 	TRAIT_CROPSHARE = span_info("I get a percentage of the export profit off goods I put in the stockpile!"),
@@ -408,7 +408,6 @@ GLOBAL_LIST_INIT(roguetraits, list(
 	TRAIT_BLOODLOSS_IMMUNE = span_notice("While I may bleed, I will feel nothing from it."),
 	TRAIT_ADRENALINE_RUSH = span_notice("I'm invigorated in the midst of battle! I don't feel my wounds!"),
 	TRAIT_COMBAT_AWARE = span_notice("My honed senses and intuition allow me to spot notable things in the midst of battle with ease."),
-	TRAIT_TEMPO	= span_greentext("I can keep up with multiple opponents at once."),
 	TRAIT_STRONGKICK = span_info("My kicks knock people down and back a step, consistently. There's no need for obstacles."),
 	TRAIT_SILVER_WEAK = span_notice("Silver is my bane."),
 	TRAIT_WINGS = span_info("My wings allow me to jump farther."),
@@ -669,6 +668,9 @@ Remember to update _globalvars/traits.dm if you're adding/removing/renaming trai
 #define TRAIT_FRIENDLY			"friendly"
 #define TRAIT_GRABWEAKNESS		"grab_weakness"
 #define TRAIT_SNOB				"snob"
+
+// Item/weapon traits
+#define TRAIT_FILTHY_WEAPON		"filthy_weapon"  // Ancient/decrepit weapons, bites, claws - high infection chance
 
 // common trait sources
 #define TRAIT_GENERIC "generic"

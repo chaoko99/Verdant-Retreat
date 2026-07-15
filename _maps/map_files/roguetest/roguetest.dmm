@@ -7,7 +7,7 @@
 /obj/item/reagent_containers/food/snacks/grown/wheat,
 /obj/item/reagent_containers/food/snacks/grown/wheat,
 /obj/item/reagent_containers/food/snacks/butter,
-/turf/open/floor/rogue/ruinedwood/herringbone,
+/turf/open/floor/rogue/wood/ruined/herringbone,
 /area/rogue/indoors)
 "al" = (
 /turf/open/floor/rogue/cobblerock,
@@ -83,7 +83,7 @@
 /area/rogue/indoors)
 "bp" = (
 /obj/structure/roguewindow,
-/turf/open/floor/rogue/ruinedwood/herringbone,
+/turf/open/floor/rogue/wood/ruined/herringbone,
 /area/rogue/indoors)
 "bQ" = (
 /obj/structure/table/wood{
@@ -180,11 +180,11 @@
 "eL" = (
 /obj/item/rogueweapon/tongs,
 /obj/item/rogueweapon/hammer/steel,
-/turf/open/floor/rogue/ruinedwood,
+/turf/open/floor/rogue/wood/ruined,
 /area/rogue/indoors)
 "fk" = (
 /obj/structure/fluff/grindwheel,
-/turf/open/floor/rogue/ruinedwood,
+/turf/open/floor/rogue/wood/ruined,
 /area/rogue/indoors)
 "fz" = (
 /obj/structure/stairs{
@@ -247,7 +247,7 @@
 /obj/item/reagent_containers/glass/cup,
 /obj/item/reagent_containers/glass/cup,
 /obj/item/reagent_containers/glass/cup,
-/turf/open/floor/rogue/ruinedwood/herringbone,
+/turf/open/floor/rogue/wood/ruined/herringbone,
 /area/rogue/indoors)
 "gY" = (
 /obj/structure/table/wood{
@@ -328,7 +328,7 @@
 /area/rogue/indoors)
 "jh" = (
 /obj/machinery/light/rogue/smelter/great,
-/turf/open/floor/rogue/ruinedwood,
+/turf/open/floor/rogue/wood/ruined,
 /area/rogue/indoors)
 "jp" = (
 /obj/structure/table/wood{
@@ -347,7 +347,7 @@
 /area/rogue/indoors)
 "jM" = (
 /obj/machinery/light/rogue/smelter,
-/turf/open/floor/rogue/ruinedwood,
+/turf/open/floor/rogue/wood/ruined,
 /area/rogue/indoors)
 "jN" = (
 /obj/item/rogueweapon/stoneaxe/woodcut,
@@ -373,7 +373,7 @@
 /obj/item/reagent_containers/food/snacks/rogue/meat/poultry,
 /obj/item/reagent_containers/food/snacks/rogue/meat/poultry,
 /obj/item/reagent_containers/food/snacks/rogue/meat/poultry,
-/turf/open/floor/rogue/ruinedwood/herringbone,
+/turf/open/floor/rogue/wood/ruined/herringbone,
 /area/rogue/indoors)
 "kS" = (
 /turf/open/floor/rogue/wood,
@@ -410,7 +410,7 @@
 /obj/item/reagent_containers/food/snacks/grown/apple,
 /obj/item/reagent_containers/food/snacks/grown/apple,
 /obj/item/reagent_containers/food/snacks/grown/apple,
-/turf/open/floor/rogue/ruinedwood/herringbone,
+/turf/open/floor/rogue/wood/ruined/herringbone,
 /area/rogue/indoors)
 "lR" = (
 /obj/effect/decal/cobbleedge{
@@ -528,7 +528,7 @@
 /obj/item/reagent_containers/glass/bottle/rogue{
 	pixel_x = 5
 	},
-/turf/open/floor/rogue/ruinedwood/herringbone,
+/turf/open/floor/rogue/wood/ruined/herringbone,
 /area/rogue/indoors)
 "qQ" = (
 /obj/structure/mineral_door/swing_door{
@@ -541,7 +541,7 @@
 /area/rogue/indoors)
 "rf" = (
 /obj/item/roguebin/water/gross,
-/turf/open/floor/rogue/ruinedwood,
+/turf/open/floor/rogue/wood/ruined,
 /area/rogue/indoors)
 "rK" = (
 /obj/structure/fluff/railing/border{
@@ -581,7 +581,7 @@
 /area/rogue/indoors)
 "ta" = (
 /obj/machinery/light/rogue/cauldron,
-/turf/open/floor/rogue/ruinedwood/herringbone,
+/turf/open/floor/rogue/wood/ruined/herringbone,
 /area/rogue/indoors)
 "tf" = (
 /obj/structure/stairs/fancy/l{
@@ -706,7 +706,7 @@
 	pixel_x = -7;
 	pixel_y = -5
 	},
-/turf/open/floor/rogue/ruinedwood/herringbone,
+/turf/open/floor/rogue/wood/ruined/herringbone,
 /area/rogue/indoors)
 "wM" = (
 /obj/structure/table/wood{
@@ -739,7 +739,7 @@
 /area/rogue/indoors)
 "xJ" = (
 /obj/item/flint,
-/turf/open/floor/rogue/ruinedwood,
+/turf/open/floor/rogue/wood/ruined,
 /area/rogue/indoors)
 "yn" = (
 /obj/structure/fluff/railing/border{
@@ -757,7 +757,7 @@
 /area/rogue/outdoors)
 "zv" = (
 /obj/machinery/anvil,
-/turf/open/floor/rogue/ruinedwood,
+/turf/open/floor/rogue/wood/ruined,
 /area/rogue/indoors)
 "zD" = (
 /turf/open/floor/rogue/naturalstone,
@@ -798,7 +798,7 @@
 /turf/open/floor/rogue/dirt/road,
 /area/rogue/outdoors)
 "Cc" = (
-/turf/open/floor/rogue/ruinedwood,
+/turf/open/floor/rogue/wood/ruined,
 /area/rogue/indoors)
 "Ck" = (
 /obj/machinery/light/rogue/wallfire/candle/l,
@@ -1026,7 +1026,7 @@
 /obj/item/kitchen/spoon/iron,
 /obj/item/kitchen/spoon/iron,
 /obj/item/kitchen/spoon/iron,
-/turf/open/floor/rogue/ruinedwood/herringbone,
+/turf/open/floor/rogue/wood/ruined/herringbone,
 /area/rogue/indoors)
 "LF" = (
 /obj/effect/decal/mossy{
@@ -1170,7 +1170,7 @@
 /area/rogue/indoors)
 "PD" = (
 /obj/machinery/light/rogue/forge,
-/turf/open/floor/rogue/ruinedwood,
+/turf/open/floor/rogue/wood/ruined,
 /area/rogue/indoors)
 "PE" = (
 /obj/item/flashlight/flare/torch/lantern,
@@ -1186,7 +1186,7 @@
 /obj/item/ingot/steel,
 /obj/item/ingot/steel,
 /obj/item/ingot/steel,
-/turf/open/floor/rogue/ruinedwood,
+/turf/open/floor/rogue/wood/ruined,
 /area/rogue/indoors)
 "PY" = (
 /obj/structure/table/wood{
@@ -1212,7 +1212,7 @@
 /obj/item/reagent_containers/glass/bowl,
 /obj/item/reagent_containers/glass/bowl,
 /obj/item/reagent_containers/glass/bowl,
-/turf/open/floor/rogue/ruinedwood/herringbone,
+/turf/open/floor/rogue/wood/ruined/herringbone,
 /area/rogue/indoors)
 "QM" = (
 /mob/living/simple_animal/hostile/retaliate/rogue/goat,
@@ -1225,7 +1225,7 @@
 /area/rogue/outdoors)
 "Rv" = (
 /obj/machinery/light/rogue/wallfire/candle/blue/l,
-/turf/open/floor/rogue/ruinedwood/herringbone,
+/turf/open/floor/rogue/wood/ruined/herringbone,
 /area/rogue/indoors)
 "RN" = (
 /mob/living/simple_animal/hostile/retaliate/rogue/swine/hog,
@@ -1402,7 +1402,7 @@
 /turf/closed/wall/mineral/rogue/stonebrick,
 /area/rogue/indoors)
 "Zp" = (
-/turf/open/floor/rogue/ruinedwood/herringbone,
+/turf/open/floor/rogue/wood/ruined/herringbone,
 /area/rogue/indoors)
 "ZJ" = (
 /obj/machinery/light/rogue/wallfire/candle/l,

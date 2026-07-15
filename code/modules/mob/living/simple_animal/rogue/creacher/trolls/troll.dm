@@ -18,7 +18,7 @@
 
 	turns_per_move = 2
 	see_in_dark = 10
-	move_to_delay = 7
+	move_to_delay = TROLL_MOVEMENT_SPEED
 	vision_range = 6
 	aggro_vision_range = 6
 	botched_butcher_results = list (
@@ -74,9 +74,8 @@
 //	stat_attack = UNCONSCIOUS
 	remains_type = /obj/effect/decal/remains/troll
 	
-	can_have_ai = FALSE //disable native ai
-	AIStatus = AI_OFF
-	ai_controller = /datum/ai_controller/troll
+	aggressive = 1
+	desc = "A troll. It wants you dead."
 	melee_cooldown = TROLL_ATTACK_SPEED
 
 	var/critvuln = FALSE
@@ -85,8 +84,10 @@
 	. = ..()
 	if(critvuln)
 		ADD_TRAIT(src, TRAIT_CRITICAL_WEAKNESS, TRAIT_GENERIC)
-	AddElement(/datum/element/ai_retaliate)
-	ai_controller.set_blackboard_key(BB_BASIC_FOODS, food_type)
+	
+	init_ai_root(/datum/behavior_tree/node/selector/generic_hostile_tree)
+	ai_root.next_move_delay = move_to_delay
+	ai_root.next_attack_delay = TROLL_ATTACK_SPEED
 
 /mob/living/simple_animal/hostile/retaliate/rogue/troll/death(gibbed)
 	..()
@@ -119,19 +120,18 @@
 	if(has_status_effect(/datum/status_effect/fire_handler))
 		adjustHealth(-rand(20,35))
 
-/mob/living/simple_animal/hostile/retaliate/rogue/troll/bog/LoseTarget()
+/mob/living/simple_animal/hostile/retaliate/rogue/troll/bog/Life()
 	..()
-	if(health > 0)
+	if(ai_root && ai_root.target)
+		if(icon_state == "troll_hiding")
+			icon_state = "troll_ambush"
+	else if(health > 0)
 		icon_state = "troll_hiding"
 
 /mob/living/simple_animal/hostile/retaliate/rogue/troll/bog/Moved()
 	. = ..()
 	if(!icon_state == "troll")
 		icon_state = "troll"
-
-/mob/living/simple_animal/hostile/retaliate/rogue/troll/bog/GiveTarget()
-	..()
-	icon_state = "troll_ambush"
 
 /mob/living/simple_animal/hostile/retaliate/rogue/troll/simple_limb_hit(zone)
 	if(!zone)

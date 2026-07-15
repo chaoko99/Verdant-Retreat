@@ -39,8 +39,6 @@ GLOBAL_VAR_INIT(farm_animals, FALSE)
 	var/wander = 1
 	///When set to 1 this stops the animal from moving when someone is pulling it.
 	var/stop_automated_movement_when_pulled = 1
-	///Next time we can perform a grid update (throttled to avoid excessive updates)
-	var/next_grid_update_time = 0
 
 	var/obj/item/handcuffed = null //Whether or not the mob is handcuffed
 	var/obj/item/legcuffed = null  //Same as handcuffs but for legs. Bear traps use this.
@@ -146,11 +144,6 @@ GLOBAL_VAR_INIT(farm_animals, FALSE)
 	var/dextrous = FALSE
 	var/dextrous_hud_type = /datum/hud/dextrous
 
-	///The Status of our AI, can be set to AI_ON (On, usual processing), AI_IDLE (Will not process, but will return to AI_ON if an enemy comes near), NPC_AI_OFF (Off, Not processing ever), AI_Z_OFF (Temporarily off due to nonpresence of players).
-	var/AIStatus = AI_ON
-	///once we have become sentient, we can never go back.
-	var/can_have_ai = TRUE
-
 	///Domestication.
 	var/tame = FALSE
 	///What the mob eats, typically used for taming or animal husbandry.
@@ -192,13 +185,10 @@ GLOBAL_VAR_INIT(farm_animals, FALSE)
 
 	///What distance should we be checking for interesting things when considering idling/deidling? Defaults to AI_DEFAULT_INTERESTING_DIST
 	var/interesting_dist = AI_DEFAULT_INTERESTING_DIST
-	///our current cell grid
-	var/datum/cell_tracker/our_cells
 
 
 /mob/living/simple_animal/Initialize()
 	. = ..()
-	GLOB.simple_animals[AIStatus] += src
 	if(gender == PLURAL)
 		gender = pick(MALE,FEMALE)
 	if(!real_name)
@@ -211,13 +201,11 @@ GLOBAL_VAR_INIT(farm_animals, FALSE)
 		AddSpell(newspell)
 	if(is_flying_animal)
 		ADD_TRAIT(src, TRAIT_MOVE_FLYING, ROUNDSTART_TRAIT)
-	our_cells = new(interesting_dist, interesting_dist, 1)
-	set_new_cells()
 
+	init_ai_root(/datum/behavior_tree/node/selector/generic_friendly_tree)
+	
 /mob/living/simple_animal/Destroy()
-	GLOB.simple_animals[AIStatus] -= src
-	if (SSnpcpool.state == SS_PAUSED && LAZYLEN(SSnpcpool.currentrun))
-		SSnpcpool.currentrun -= src
+	SSai.Unregister(src)
 
 	if(nest)
 		nest.spawned_mobs -= src
@@ -227,12 +215,7 @@ GLOBAL_VAR_INIT(farm_animals, FALSE)
 		QDEL_NULL(ssaddle)
 		ssaddle = null
 
-	var/turf/T = get_turf(src)
-	if (T && AIStatus == AI_Z_OFF)
-		SSidlenpcpool.idle_mobs_by_zlevel[T.z] -= src
-
 	. = ..()
-	our_cells = null
 
 /mob/living/simple_animal/attackby(obj/item/O, mob/user, params)
 	if(!is_type_in_list(O, food_type))
@@ -326,63 +309,6 @@ GLOBAL_VAR_INIT(farm_animals, FALSE)
 	..()
 	if(stuttering)
 		stuttering = 0
-
-/mob/living/simple_animal/proc/handle_automated_action()
-	set waitfor = FALSE
-	return
-
-/mob/living/simple_animal/proc/handle_automated_movement()
-	set waitfor = FALSE
-	if(!stop_automated_movement && wander && !doing)
-		if(ssaddle && has_buckled_mobs())
-			return 0
-		if(binded)
-			return FALSE
-		if((isturf(loc) || allow_movement_on_non_turfs) && (mobility_flags & MOBILITY_MOVE))		//This is so it only moves if it's not inside a closet, gentics machine, etc.
-			turns_since_move++
-			if(turns_since_move >= turns_per_move)
-				if(!(stop_automated_movement_when_pulled && pulledby)) //Some animals don't move when pulled
-					var/anydir = pick(GLOB.cardinals)
-					if(Process_Spacemove(anydir))
-						Move(get_step(src, anydir), anydir)
-						turns_since_move = 0
-			return 1
-
-/mob/living/simple_animal/proc/handle_automated_speech(override)
-	set waitfor = FALSE
-	if(speak_chance)
-		if(prob(speak_chance) || override)
-			if(speak && speak.len)
-				if((emote_hear && emote_hear.len) || (emote_see && emote_see.len))
-					var/length = speak.len
-					if(emote_hear && emote_hear.len)
-						length += emote_hear.len
-					if(emote_see && emote_see.len)
-						length += emote_see.len
-					var/randomValue = rand(1,length)
-					if(randomValue <= speak.len)
-						say(pick(speak), forced = "poly")
-					else
-						randomValue -= speak.len
-						if(emote_see && randomValue <= emote_see.len)
-							emote("me [pick(emote_see)]", 1)
-						else
-							emote("me [pick(emote_hear)]", 2)
-				else
-					say(pick(speak), forced = "poly")
-			else
-				if(!(emote_hear && emote_hear.len) && (emote_see && emote_see.len))
-					emote("me", 1, pick(emote_see))
-				if((emote_hear && emote_hear.len) && !(emote_see && emote_see.len))
-					emote("me", 2, pick(emote_hear))
-				if((emote_hear && emote_hear.len) && (emote_see && emote_see.len))
-					var/length = emote_hear.len + emote_see.len
-					var/pick = rand(1,length)
-					if(pick <= emote_see.len)
-						emote("me", 1, pick(emote_see))
-					else
-						emote("me", 2, pick(emote_hear))
-
 
 /mob/living/simple_animal/proc/environment_is_safe(check_temp = FALSE)
 	. = TRUE
@@ -731,8 +657,8 @@ GLOBAL_VAR_INIT(farm_animals, FALSE)
 		animate(src, transform = ntransform, time = 2, easing = EASE_IN|EASE_OUT)
 
 /mob/living/simple_animal/proc/sentience_act() //Called when a simple animal gains sentience via gold slime potion
-	toggle_ai(AI_OFF) // To prevent any weirdness.
-	can_have_ai = FALSE
+	// No legacy logic needed here anymore. AI is controlled by behavior tree.
+	return
 
 /mob/living/simple_animal/update_sight()
 	if(!client)
@@ -921,48 +847,11 @@ GLOBAL_VAR_INIT(farm_animals, FALSE)
 	. = ..()
 	LoadComponent(/datum/component/riding)
 
-/mob/living/simple_animal/proc/toggle_ai(togglestatus)
-	if(!can_have_ai && (togglestatus != AI_OFF))
-		return
-	if (AIStatus != togglestatus)
-		if (togglestatus > 0 && togglestatus < 5)
-			if (togglestatus == AI_Z_OFF || AIStatus == AI_Z_OFF)
-				var/turf/T = get_turf(src)
-				if (AIStatus == AI_Z_OFF)
-					SSidlenpcpool.idle_mobs_by_zlevel[T.z] -= src
-				else
-					SSidlenpcpool.idle_mobs_by_zlevel[T.z] += src
-			GLOB.simple_animals[AIStatus] -= src
-			GLOB.simple_animals[togglestatus] += src
-			AIStatus = togglestatus
-		else
-			stack_trace("Something attempted to set simple animals AI to an invalid state: [togglestatus]")
-
-/mob/living/simple_animal/proc/consider_wakeup()
-	for(var/datum/spatial_grid_cell/grid as anything in our_cells.member_cells)
-		if(length(grid.client_contents))
-			GLOB.mob_living_list |= src
-			GLOB.idle_mob_list -= src
-			toggle_ai(AI_ON)
-			return TRUE
-
-	GLOB.mob_living_list -= src
-	GLOB.idle_mob_list |= src
-	toggle_ai(AI_OFF)
-	return FALSE
-
 /mob/living/simple_animal/adjustHealth(amount, updating_health = TRUE, forced = FALSE)
 	. = ..()
 	if(!ckey && !stat)//Not unconscious
-		if(AIStatus == AI_IDLE)
-			toggle_ai(AI_ON)
+		SSai.WakeUp(src)
 
-
-/mob/living/simple_animal/onTransitZ(old_z, new_z)
-	..()
-	if (AIStatus == AI_Z_OFF)
-		SSidlenpcpool.idle_mobs_by_zlevel[old_z] -= src
-		toggle_ai(initial(AIStatus))
 
 /mob/living/simple_animal/Move()
 	if(binded)
@@ -979,8 +868,6 @@ GLOBAL_VAR_INIT(farm_animals, FALSE)
 		food = max(food + 30, 100)
 
 /mob/living/simple_animal/Life()
-	if(!client && can_have_ai && (AIStatus == AI_Z_OFF || AIStatus == AI_OFF))
-		return
 	. = ..()
 	if(.)
 		if(food > 0)
@@ -992,55 +879,34 @@ GLOBAL_VAR_INIT(farm_animals, FALSE)
 				pooprog = 0
 				poop()
 
+/mob/living/simple_animal/proc/recuperate()
+	if(health >= maxHealth)
+		return
+
+	visible_message(span_danger("[src] tends to their wounds..."))
+	if(do_after(src, 8 SECONDS, target = src))
+		var/max_hp = maxHealth
+		var/bleed_clot = 0.02
+		var/brute_heal = 0.10
+		var/fire_heal = 1
+		var/blood_recovery = 5
+
+		if(bleed_rate)
+			bleed_rate = bleed_rate - (max_hp * bleed_clot)
+			bleed_rate = clamp(bleed_rate, 0, max_hp)
+
+		adjustBruteLoss( (max_hp * -brute_heal) )
+		health = clamp(health, 0, max_hp)
+		adjust_fire_stacks(-fire_heal)
+		if(blood_volume)
+			blood_volume += blood_recovery
+			blood_volume = clamp(blood_volume, 0, BLOOD_VOLUME_NORMAL)
+
 /mob/living/simple_animal/proc/poop()
 	if(pooptype)
 		if(isturf(loc))
 			playsound(src, "fart", 100, TRUE)
 			new pooptype(loc)
 
-/mob/living/simple_animal/proc/on_client_enter(datum/source, atom/target)
-	SIGNAL_HANDLER
-	if(AIStatus == AI_IDLE)
-		GLOB.mob_living_list |= src
-		GLOB.idle_mob_list -= src
-		toggle_ai(AI_ON)
-
-/mob/living/simple_animal/proc/on_client_exit(datum/source, datum/exited)
-	SIGNAL_HANDLER
-	consider_wakeup()
-
-/mob/living/simple_animal/proc/set_new_cells()
-	var/turf/our_turf = get_turf(src)
-	if(isnull(our_turf))
-		return
-
-	var/list/cell_collections = our_cells.recalculate_cells(our_turf)
-
-	for(var/datum/old_grid as anything in cell_collections[2])
-		UnregisterSignal(old_grid, list(SPATIAL_GRID_CELL_ENTERED(SPATIAL_GRID_CONTENTS_TYPE_CLIENTS), SPATIAL_GRID_CELL_EXITED(SPATIAL_GRID_CONTENTS_TYPE_CLIENTS)))
-
-	for(var/datum/spatial_grid_cell/new_grid as anything in cell_collections[1])
-		RegisterSignal(new_grid, SPATIAL_GRID_CELL_ENTERED(SPATIAL_GRID_CONTENTS_TYPE_CLIENTS), PROC_REF(on_client_enter))
-		RegisterSignal(new_grid, SPATIAL_GRID_CELL_EXITED(SPATIAL_GRID_CONTENTS_TYPE_CLIENTS), PROC_REF(on_client_exit))
-	consider_wakeup()
-
 /mob/living/simple_animal/Moved()
 	. = ..()
-	if(world.time >= next_grid_update_time)
-		update_grid()
-
-/mob/living/simple_animal/proc/update_grid()
-	next_grid_update_time = world.time + 5
-	var/turf/our_turf = get_turf(src)
-	if(isnull(our_turf))
-		return
-
-	var/list/cell_collections = our_cells.recalculate_cells(our_turf)
-
-	for(var/datum/old_grid as anything in cell_collections[2])
-		UnregisterSignal(old_grid, list(SPATIAL_GRID_CELL_ENTERED(SPATIAL_GRID_CONTENTS_TYPE_CLIENTS), SPATIAL_GRID_CELL_EXITED(SPATIAL_GRID_CONTENTS_TYPE_CLIENTS)))
-
-	for(var/datum/spatial_grid_cell/new_grid as anything in cell_collections[1])
-		RegisterSignal(new_grid, SPATIAL_GRID_CELL_ENTERED(SPATIAL_GRID_CONTENTS_TYPE_CLIENTS), PROC_REF(on_client_enter))
-		RegisterSignal(new_grid, SPATIAL_GRID_CELL_EXITED(SPATIAL_GRID_CONTENTS_TYPE_CLIENTS), PROC_REF(on_client_exit))
-	consider_wakeup()

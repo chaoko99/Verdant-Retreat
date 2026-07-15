@@ -81,6 +81,139 @@ GLOBAL_DATUM_INIT(openspace_backdrop_one_for_all, /atom/movable/openspace_backdr
 		return TRUE
 	return FALSE
 
+/turf/open/transparent/openspace/can_zFall(atom/movable/A, levels = 1, turf/target)
+	// If the turf below is full of water, prevent falling UNLESS they're incapacitated
+	if(isliving(A) && target?.cell && target.cell.fluidsum >= 80)
+		var/mob/living/L = A
+		// Let them fall (sink) if knocked down, paralyzed, unconscious, etc
+		if(L.stat != CONSCIOUS || L.incapacitated(ignore_restraints = TRUE))
+			return ..()
+		return FALSE // Otherwise they can swim
+	return ..()
+
+/mob/living/proc/vn_update_swim_mask()
+	var/static/icon/waterline_mask
+	var/swimming = FALSE
+	var/turf/T = loc
+	if(isturf(T) && isopenspace(T) && !(movement_type & FLYING))
+		var/turf/below = GetBelow(T)
+		if(below?.cell && below.cell.fluidsum >= 80)
+			swimming = TRUE
+	if(swimming)
+		if(!waterline_mask)
+			waterline_mask = icon('icons/turf/newwater.dmi', "df")
+		add_filter("vn_swim_mask", 1, alpha_mask_filter(icon = waterline_mask))
+	else
+		remove_filter("vn_swim_mask")
+
+// Swimming through openspace when water is below
+/turf/open/transparent/openspace/Entered(atom/movable/AM, atom/oldLoc)
+	. = ..()
+	if(isliving(AM))
+		var/mob/living/L = AM
+		L.vn_update_swim_mask()
+	var/turf/below = GetBelow(src)
+	if(!below?.cell || below.cell.fluidsum < 80)
+		return
+
+	handle_water_entry(AM, oldLoc)
+
+/turf/open/transparent/openspace/Exited(atom/movable/AM, atom/newloc)
+	. = ..()
+	if(isliving(AM))
+		var/mob/living/L = AM
+		L.vn_update_swim_mask()
+	var/turf/below = GetBelow(src)
+	if(!below?.cell || below.cell.fluidsum < 80)
+		return
+
+	if(isliving(AM) && !AM.throwing)
+		var/mob/living/user = AM
+		if(isliving(user) && !user.is_floor_hazard_immune())
+			var/drained = calculate_swim_stamina_drain(user, get_dir(src, newloc), below)
+			if(drained && !user.stamina_add(drained))
+				// Use water turf's exhaustion handler (will cause them to sink via knockdown)
+				user.visible_message(span_danger("[user] is too exhausted to swim!"), span_danger("I'm too exhausted to swim!"))
+				user.Immobilize(30)
+				addtimer(CALLBACK(user, TYPE_PROC_REF(/mob/living, Knockdown), 30), 1 SECONDS)
+
+// Shared water entry logic
+/turf/open/transparent/openspace/proc/handle_water_entry(atom/movable/AM, atom/oldLoc)
+	if(isliving(AM) && !AM.throwing)
+		var/mob/living/L = AM
+		if(HAS_TRAIT(L, TRAIT_CURSE_ABYSSOR))
+			L.freak_out()
+			L.visible_message(span_warning("[L] spasms violently upon touching the water!"), span_danger("The water... it burns me!"))
+			L.adjustFireLoss(25)
+			return
+		else if(L.fire_stacks > 0)
+			var/datum/status_effect/fire_handler/fire_stacks/fire_effect = L.has_status_effect(/datum/status_effect/fire_handler/fire_stacks)
+			if(fire_effect)
+				fire_effect.extinguish()
+				fire_effect.adjust_stacks(-L.fire_stacks)
+				L.visible_message(span_notice("[L]'s flames are extinguished by the water!"), span_notice("The water extinguishes the flames!"))
+				playsound(L, 'sound/blank.ogg', 50, TRUE)
+		if(!(L.movement_type & FLYING))
+			L.SoakMob(FULL_BODY) // Deep water
+			if(!istype(oldLoc, type))
+				playsound(AM, 'sound/foley/waterenter.ogg', 100, FALSE)
+			else
+				playsound(AM, pick('sound/foley/watermove (1).ogg','sound/foley/watermove (2).ogg'), 100, FALSE)
+
+// Calculate stamina drain using water turf logic
+/turf/open/transparent/openspace/proc/calculate_swim_stamina_drain(mob/living/swimmer, travel_dir, turf/water_below)
+	// Use the water turf's get_stamina_drain if it exists
+	if(istype(water_below, /turf/open/water))
+		var/turf/open/water/water_turf = water_below
+		return water_turf.get_stamina_drain(swimmer, travel_dir)
+
+	// Otherwise calculate it ourselves with flow direction support
+	var/const/BASE_STAM_DRAIN = 15
+	var/const/MIN_STAM_DRAIN = 1
+	var/const/STAM_PER_LEVEL = 5
+	var/const/UNSKILLED_ARMOR_PENALTY = 40
+
+	if(!isliving(swimmer))
+		return 0
+	if(swimmer.is_floor_hazard_immune())
+		return 0
+	if(swimmer.buckled)
+		return 0
+
+	// Check flow direction if it's a river
+	if(water_below?.cell?.flow_dir && travel_dir && travel_dir == water_below.cell.flow_dir)
+		return 0 // going with the flow
+
+	var/abyssor_swim_bonus = HAS_TRAIT(swimmer, TRAIT_ABYSSOR_SWIM) ? 5 : 0
+	var/swimming_skill_level = swimmer.get_skill_level(/datum/skill/misc/swimming)
+	. = max(BASE_STAM_DRAIN - (swimming_skill_level * STAM_PER_LEVEL) - abyssor_swim_bonus, MIN_STAM_DRAIN)
+
+	if(swimmer.mind)
+		swimmer.mind.add_sleep_experience(/datum/skill/misc/swimming, swimmer.STAINT * 0.5)
+
+	if(!swimmer.check_armor_skill())
+		. += UNSKILLED_ARMOR_PENALTY
+
+	if(.)
+		for(var/D in GLOB.cardinals)
+			var/turf/adjacent = get_step(src, D)
+			if(istype(adjacent, /turf/open/floor))
+				return 0
+
+/turf/open/transparent/openspace/get_heuristic_slowdown(mob/traverser, travel_dir)
+	var/const/LOW_STAM_PENALTY = 7
+	. = ..()
+
+	var/turf/below = GetBelow(src)
+	if(!below?.cell || below.cell.fluidsum < 80)
+		return
+
+	if(isliving(traverser) && !HAS_TRAIT(traverser, TRAIT_INFINITE_STAMINA))
+		var/mob/living/living_traverser = traverser
+		var/remaining_stamina = (living_traverser.max_stamina - living_traverser.stamina)
+		if(remaining_stamina < calculate_swim_stamina_drain(living_traverser, travel_dir, below))
+			. += LOW_STAM_PENALTY
+
 /turf/open/transparent/openspace/can_traverse_safely(atom/movable/traveler)
 	var/turf/destination = GET_TURF_BELOW(src)
 	if(!destination)

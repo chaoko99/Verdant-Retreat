@@ -10,7 +10,7 @@
 	speak_chance = 1
 	turns_per_move = 2
 	see_in_dark = 6
-	move_to_delay = 5
+	move_to_delay = MOLE_MOVEMENT_SPEED
 	base_intents = list(/datum/intent/simple/claw/mole)
 	botched_butcher_results = list(/obj/item/reagent_containers/food/snacks/rogue/meat/steak = 2, /obj/item/alch/viscera = 1)
 	butcher_results = list(/obj/item/reagent_containers/food/snacks/rogue/meat/steak = 3,
@@ -35,7 +35,7 @@
 	maxHealth = MOLE_HEALTH
 	melee_damage_lower = 19
 	melee_damage_upper = 29
-	vision_range = 7
+	vision_range = 9
 	aggro_vision_range = 9
 	environment_smash = ENVIRONMENT_SMASH_STRUCTURES
 	retreat_distance = 0
@@ -63,9 +63,6 @@
 	
 
 //new ai, old ai off
-	AIStatus = AI_OFF
-	can_have_ai = FALSE
-	ai_controller = /datum/ai_controller/mole
 
 /obj/effect/decal/remains/mole
 	name = "remains"
@@ -76,11 +73,13 @@
 /mob/living/simple_animal/hostile/retaliate/rogue/mole/Initialize()
 	. = ..()
 	gender = MALE
-	AddElement(/datum/element/ai_retaliate)
 	if(prob(33))
 		gender = FEMALE
 	update_icon()
-	ai_controller.set_blackboard_key(BB_BASIC_FOODS, food_type)
+	
+	init_ai_root(/datum/behavior_tree/node/selector/generic_hungry_hostile_tree)
+	ai_root.next_move_delay = move_to_delay
+	ai_root.next_attack_delay = MOLE_ATTACK_SPEED
 
 /mob/living/simple_animal/hostile/retaliate/rogue/mole/death(gibbed)
 	..()

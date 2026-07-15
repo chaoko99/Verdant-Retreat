@@ -47,16 +47,16 @@
 	retreat_health = 0
 	food = 0
 
-	AIStatus = AI_OFF
-	can_have_ai = FALSE
-	ai_controller = /datum/ai_controller/mirespider
-
 /mob/living/simple_animal/hostile/retaliate/rogue/mirespider/Initialize()
 	. = ..()
 	update_icon()
-	AddElement(/datum/element/ai_retaliate)
 	ADD_TRAIT(src, TRAIT_NOPAINSTUN, TRAIT_GENERIC)
 	ADD_TRAIT(src, TRAIT_KNEESTINGER_IMMUNITY, INNATE_TRAIT)
+
+	// Initialize behavior tree
+	init_ai_root(/datum/behavior_tree/node/selector/mirespider_tree)
+	ai_root.next_move_delay = move_to_delay
+	ai_root.next_attack_delay = MIRESPIDER_ATTACK_SPEED
 
 	addtimer(CALLBACK(src, PROC_REF(find_lurker_to_follow)), 10)
 
@@ -67,9 +67,9 @@
 		lurker = L
 		break
 	}
-	
-	if(lurker && ai_controller)
-		ai_controller.set_blackboard_key(BB_FOLLOW_TARGET, lurker)
+
+	if(lurker && ai_root)
+		ai_root.blackboard[AIBLK_FOLLOW_TARGET] = lurker
 
 /mob/living/simple_animal/hostile/retaliate/rogue/mirespider/death(gibbed)
 	..()
@@ -182,7 +182,6 @@
 	STAPER = 15
 	pixel_x = -4
 
-	ai_controller = /datum/ai_controller/mirespider_lurker
 	projectiletype = /obj/projectile/bullet/spider
 
 	ranged = 1
@@ -196,7 +195,11 @@
 	. = ..()
 	ADD_TRAIT(src, TRAIT_NOPAINSTUN, TRAIT_GENERIC)
 	ADD_TRAIT(src, TRAIT_KNEESTINGER_IMMUNITY, INNATE_TRAIT)
-	// I'll replace this with something better later. Stopgap for now to make killing them more than just a nuisance.
+
+	// Initialize behavior tree for ranged combat
+	init_ai_root(/datum/behavior_tree/node/selector/mirespider_lurker_tree)
+	ai_root.next_move_delay = move_to_delay
+	ai_root.next_attack_delay = MIRESPIDER_LURKER_ATTACK_SPEED
 
 /mob/living/simple_animal/hostile/rogue/mirespider_lurker/death(gibbed)
 	..()
@@ -218,11 +221,8 @@
 		return
 
 	for (var/mob/living/simple_animal/hostile/retaliate/rogue/mirespider/follower in followers)
-		follower.ai_controller.clear_blackboard_key(BB_FOLLOW_TARGET)
-		follower.ai_controller.clear_blackboard_key(BB_TRAVEL_DESTINATION)
-		follower.ai_controller.clear_blackboard_key(BB_BASIC_MOB_CURRENT_TARGET)
-		follower.ai_controller.clear_blackboard_key(BB_BASIC_MOB_RETALIATE_LIST)
-		follower.ai_controller.CancelActions()
+		if(follower.ai_root && follower.ai_root.blackboard)
+			follower.ai_root.blackboard -= AIBLK_FOLLOW_TARGET
 	followers.Cut()
 
 /mob/living/simple_animal/hostile/rogue/mirespider_paralytic
@@ -262,7 +262,13 @@
 	STASPD = 12
 	STAPER = 7
 
-	ai_controller = /datum/ai_controller/mirespider_paralytic
+/mob/living/simple_animal/hostile/rogue/mirespider_paralytic/Initialize()
+	. = ..()
+
+	// Initialize behavior tree
+	init_ai_root(/datum/behavior_tree/node/selector/mirespider_paralytic_tree)
+	ai_root.next_move_delay = move_to_delay
+	ai_root.next_attack_delay = ARAGN_ATTACK_SPEED
 
 /datum/intent/simple/bite/mirespider_paralytic
 	clickcd = ARAGN_ATTACK_SPEED

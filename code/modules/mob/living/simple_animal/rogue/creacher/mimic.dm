@@ -44,9 +44,8 @@
 	STASTR = 15
 	STASPD = 5
 
-	ai_controller = /datum/ai_controller/mimic
-	AIStatus = AI_OFF
-	can_have_ai = FALSE
+	aggressive = 1
+	desc = "A mimic. It wants you dead."
 	/// The typepath of the chest this mimic is mimicking.
 	var/obj/structure/closet/crate/chest/mimicking_chest = /obj/structure/closet/crate/chest
 
@@ -59,6 +58,10 @@
 	icon = mimicking_chest::icon
 	icon_state = mimicking_chest::icon_state
 	AddComponent(/datum/component/anti_magic, TRUE, TRUE, TRUE, null, null, FALSE)
+	
+	init_ai_root(/datum/behavior_tree/node/selector/mimic_tree)
+	ai_root.next_move_delay = 5
+	ai_root.next_attack_delay = CLICK_CD_MELEE
 
 /mob/living/simple_animal/hostile/retaliate/rogue/mimic/examine(mob/user)
 	if(aggressive)
@@ -66,11 +69,6 @@
 	. = list("[get_examine_string(user, TRUE)].[get_inspect_button()]")
 	if(mimicking_chest::desc)
 		. += span_info("[mimicking_chest::desc]")
-
-/mob/living/simple_animal/hostile/retaliate/rogue/mimic/find_food()
-	. = ..()
-	if(!.)
-		return eat_bodies()
 
 /mob/living/simple_animal/hostile/retaliate/rogue/mimic/Life()
 	..()

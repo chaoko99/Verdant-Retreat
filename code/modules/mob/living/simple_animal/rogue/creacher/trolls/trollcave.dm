@@ -5,7 +5,6 @@
 	icon = 'icons/roguetown/mob/monster/trolls/troll_cave.dmi'
 	health = CAVETROLL_HEALTH
 	maxHealth = CAVETROLL_HEALTH
-	ai_controller = /datum/ai_controller/troll_cave
 
 	botched_butcher_results = list (
 		/obj/item/reagent_containers/food/snacks/rogue/meat/steak = 2,
@@ -37,4 +36,9 @@
 	. = ..()
 	var/datum/action/cooldown/mob_cooldown/stone_throw/throwstone = new(src)
 	throwstone.Grant(src)
-	ai_controller.set_blackboard_key(BB_TARGETED_ACTION, throwstone)
+
+	// Initialize behavior tree with stone throw ability
+	init_ai_root(/datum/behavior_tree/node/selector/direbear_tree)
+	ai_root.blackboard[AIBLK_TARGETED_ACTION] = throwstone
+	ai_root.next_move_delay = move_to_delay
+	ai_root.next_attack_delay = TROLL_ATTACK_SPEED

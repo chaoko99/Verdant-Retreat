@@ -2,6 +2,9 @@
 	//used by the basic ai controller /datum/ai_behavior/basic_melee_attack to determine how fast a mob can attack
 	var/melee_cooldown = CLICK_CD_MELEE
 
+/mob/living/proc/get_preferred_squad_type()
+	return /ai_squad // Default generic squad type
+
 /mob/living/Initialize()
 	. = ..()
 	update_a_intents()
@@ -15,6 +18,10 @@
 	AddElement(/datum/element/movetype_handler)
 
 /mob/living/Destroy()
+	if(qt_range)
+		QDEL_NULL(qt_range)
+	if(ai_root)
+		SSai.Unregister(src)
 	surgeries = null
 	if(LAZYLEN(status_effects))
 		for(var/s in status_effects)
@@ -256,17 +263,9 @@
 
 		//stat checking block
 		if(!(world.time % 5))
-			var/statchance = 50
-
-			if(STASTR > L.STASTR)
-				statchance = 50 + (STASTR - L.STASTR * 10)
-
-			else if(STASTR < L.STASTR)
-				statchance = 50 - (L.STASTR - STASTR * 10)
-			if(statchance < 10)
-				statchance = 10
-			if(prob(statchance))
+			if(get_stat_roll(STASTR) >= get_stat_roll(L.STASTR))
 				visible_message(span_info("[src] pushes [M]."))
+				
 			else
 				visible_message(span_warning("[src] pushes [M]."))
 				return TRUE
@@ -449,6 +448,8 @@
 			O.grabbee = src
 			O.limb_grabbed = BP
 			BP.grabbedby += O
+			// Invalidate bleed cache since grab was added to bodypart
+			C.invalidate_bleed_cache()
 			if(item_override)
 				O.sublimb_grabbed = item_override
 			else
@@ -875,6 +876,9 @@
 			qdel(wound)
 		else
 			wound.heal_wound(wound.whp)
+	if(iscarbon(src))
+		var/mob/living/carbon/C = src
+		C.invalidate_bleed_cache()
 	extinguish_mob()
 	confused = 0
 	dizziness = 0
@@ -966,8 +970,7 @@
 			var/mob/living/L = pulledby
 			L.set_pull_offsets(src, pulledby.grab_state)
 
-//	if(active_storage && !(CanReach(active_storage.parent,view_only = TRUE)))
-	if(active_storage)
+	if(active_storage && !(CanReach(active_storage.parent,view_only = TRUE)))
 		active_storage.close(src)
 
 	if(!(mobility_flags & MOBILITY_STAND) && !buckled && prob(getBruteLoss()*200/maxHealth))
@@ -1202,6 +1205,11 @@
 		resist_chance += (STACON - L.STASPD) * 5
 	else
 		resist_chance += (STACON - (agg_grab ? L.STASTR : L.STAEND)) * 5
+
+	// Dodge experts can use their speed to slip out of grabs
+	if(HAS_TRAIT(src, TRAIT_DODGEEXPERT))
+		resist_chance += (STASPD - 10) * 3
+
 	resist_chance *= combat_modifier
 	resist_chance = clamp(resist_chance, 5, 95)
 
@@ -1805,13 +1813,6 @@
 		if (client)
 			if (new_z)
 				SSmobs.clients_by_zlevel[new_z] += src
-				for (var/I in length(SSidlenpcpool.idle_mobs_by_zlevel[new_z]) to 1 step -1) //Backwards loop because we're removing (guarantees optimal rather than worst-case performance), it's fine to use .len here but doesn't compile on 511
-					var/mob/living/simple_animal/SA = SSidlenpcpool.idle_mobs_by_zlevel[new_z][I]
-					if (SA)
-						SA.toggle_ai(AI_ON) // Guarantees responsiveness for when appearing right next to mobs
-					else
-						SSidlenpcpool.idle_mobs_by_zlevel[new_z] -= SA
-
 			registered_z = new_z
 		else
 			registered_z = null

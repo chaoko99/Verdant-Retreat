@@ -58,10 +58,7 @@
 	stat_attack = UNCONSCIOUS	//You falling unconcious won't save you, little one..
 	eat_forever = TRUE
 
-//new ai, old ai off
-	AIStatus = AI_OFF
-	can_have_ai = FALSE
-	ai_controller = /datum/ai_controller/direbear
+
 
 /mob/living/simple_animal/hostile/retaliate/rogue/direbear/get_sound(input)
 	switch(input)
@@ -85,5 +82,12 @@
 	. = ..()
 	var/datum/action/cooldown/mob_cooldown/bear_swipe/swipe = new(src)
 	swipe.Grant(src)
-	ai_controller.set_blackboard_key(BB_TARGETED_ACTION, swipe)
+
+	init_ai_root(/datum/behavior_tree/node/selector/direbear_tree)
+	ai_root.blackboard[AIBLK_TARGETED_ACTION] = swipe
+	ai_root.next_move_delay = 5
+	ai_root.next_attack_delay = RAT_ATTACK_SPEED
+
+/mob/living/simple_animal/hostile/retaliate/rogue/direbear/Life()
+	..()
 

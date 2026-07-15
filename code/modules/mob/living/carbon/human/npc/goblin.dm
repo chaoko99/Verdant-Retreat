@@ -18,7 +18,6 @@
 
 /mob/living/carbon/human/species/goblin/npc
 	aggressive=1
-	mode = NPC_AI_IDLE
 	dodgetime = 30 //they can dodge easily, but have a cooldown on it
 	flee_in_pain = TRUE
 	npc_jump_chance = 60
@@ -26,11 +25,32 @@
 	rude = TRUE
 	wander = FALSE
 
+/mob/living/carbon/human/species/goblin/npc/get_preferred_squad_type()
+	return /ai_squad/goblin
+
+/mob/living/carbon/human/species/goblin/npc/should_target(mob/living/L)
+	// Goblins never target other goblins (faction check)
+	if(faction_check_mob(L))
+		return FALSE
+	return ..()
+
+/mob/living/carbon/human/species/goblin/npc/Initialize()
+	. = ..()
+	// Initialize behavior tree AI
+	init_ai_root(/datum/behavior_tree/node/selector/goblin_tree)
+	ai_root.next_move_delay = 3
+	ai_root.next_attack_delay = CLICK_CD_MELEE
+	SSai.Register(src)
+	var/director_faction_id = "goblins_base"
+	if(ispath(race, /datum/species/goblin/sea))
+		director_faction_id = "sea_goblins"
+	else if(ispath(race, /datum/species/goblin/cave))
+		director_faction_id = "cave_goblins"
+	assign_faction_director(director_faction_id)
+
 /mob/living/carbon/human/species/goblin/npc/ambush
 	aggressive = 1
-	mode = NPC_AI_IDLE
 	wander = FALSE
-	attack_speed = 2
 
 /mob/living/carbon/human/species/goblin/hell
 	name = "hell goblin"
@@ -105,7 +125,7 @@
 /obj/item/bodypart/head/goblin/get_limb_icon(dropped, hideaux = FALSE)
 	return
 
-/obj/item/bodypart/head/goblin/skeletonize()
+/obj/item/bodypart/head/goblin/skeletonize(lethal)
 	. = ..()
 	icon_state = "goblin_skel_head"
 	sellprice = 2
@@ -204,11 +224,7 @@
 	. = ..()
 	addtimer(CALLBACK(src, PROC_REF(after_creation)), 1 SECONDS)
 
-/mob/living/carbon/human/species/goblin/handle_combat()
-	if(mode == NPC_AI_HUNT)
-		if(prob(2))
-			emote("laugh")
-	. = ..()
+// Combat is now handled by behavior trees
 
 /mob/living/carbon/human/species/goblin/after_creation()
 	..()
@@ -233,6 +249,12 @@
 		QDEL_NULL(src.charflaw)
 	update_body()
 	faction = list("orcs")
+	if(is_species(src, /datum/species/goblin/sea))
+		faction += "goblins_sea"
+	else if(is_species(src, /datum/species/goblin/cave))
+		faction += "goblins_cave"
+	else
+		faction += "goblins_base"
 	name = "goblin"
 	real_name = "goblin"
 	ADD_TRAIT(src, TRAIT_NOMOOD, TRAIT_GENERIC)

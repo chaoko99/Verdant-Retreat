@@ -31,6 +31,8 @@ GLOBAL_VAR_INIT(mobids, 1)
 	GLOB.mob_directory -= tag
 	focus = null
 
+	SSquadtree.UnregisterMob(src)
+
 	for (var/alert in alerts)
 		clear_alert(alert, TRUE)
 	if(observers && observers.len)
@@ -87,6 +89,10 @@ GLOBAL_VAR_INIT(mobids, 1)
 	become_hearing_sensitive()
 	update_config_movespeed()
 	update_movespeed(TRUE)
+	// By putting this here, we can track even ghosts for a variety of shenanigans
+	if(!isdead(src) && !isobserver(src)) // Yes I know this sucks, but overriding the entire initialize chain is too much of a hassle
+		qt_range = RECT(x, y, AI_HIBERNATION_RANGE * 2, AI_HIBERNATION_RANGE * 2)
+		SSquadtree.RegisterMob(src)
 
 /**
  * Generate the tag for this mob

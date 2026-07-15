@@ -188,7 +188,6 @@
 	SETUP_SMOOTHING()
 
 	ComponentInitialize()
-	InitializeAIController()
 
 	return INITIALIZE_HINT_NORMAL
 
@@ -236,7 +235,9 @@
 	LAZYCLEARLIST(priority_overlays)
 
 	QDEL_NULL(light)
-	QDEL_NULL(ai_controller)
+	if(isliving(src))
+		var/mob/living/L = src
+		QDEL_NULL(L.ai_root)
 
 	if(smoothing_flags & SMOOTH_QUEUED)
 		SSicon_smooth.remove_from_queues(src)
@@ -806,7 +807,6 @@
 	VV_DROPDOWN_OPTION(VV_HK_MODIFY_TRANSFORM, "Modify Transform")
 	VV_DROPDOWN_OPTION(VV_HK_ADD_REAGENT, "Add Reagent")
 	VV_DROPDOWN_OPTION(VV_HK_TRIGGER_EXPLOSION, "Explosion")
-	VV_DROPDOWN_OPTION(VV_HK_ADD_AI, "Add AI controller")
 
 /atom/vv_do_topic(list/href_list)
 	. = ..()
@@ -1205,16 +1205,6 @@
 	// force_no_gravity has been removed because this is Roguetown code
 	// it'd be trivial to readd if you needed it, though
 	return SSmapping.gravity_by_z_level["[gravity_turf.z]"] || turf_area.has_gravity
-
-
-/**
-* Instantiates the AI controller of this atom. Override this if you want to assign variables first.
-*
-* This will work fine without manually passing arguments.
-+*/
-/atom/proc/InitializeAIController()
-	if(ai_controller)
-		ai_controller = new ai_controller(src)
 
 ///Returns a list of all locations (except the area) the movable is within.
 /proc/get_nested_locs(atom/movable/atom_on_location, include_turf = FALSE)

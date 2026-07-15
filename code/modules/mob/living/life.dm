@@ -11,17 +11,6 @@
 			send2irc_adminless_only("Mob", msg, R_ADMIN)
 			log_game("[key_name(src)] was found to have no .loc with an attached client.")
 
-		// This is a temporary error tracker to make sure we've caught everything
-		else if (registered_z != T.z)
-#ifdef TESTING
-			message_admins("[ADMIN_LOOKUPFLW(src)] has somehow ended up in Z-level [T.z] despite being registered in Z-level [registered_z]. If you could ask them how that happened and notify coderbus, it would be appreciated.")
-#endif
-			log_game("Z-TRACKING: [src] has somehow ended up in Z-level [T.z] despite being registered in Z-level [registered_z].")
-			update_z(T.z)
-	else if (registered_z)
-		log_game("Z-TRACKING: [src] of type [src.type] has a Z-registration despite not having a client.")
-		update_z(null)
-
 	if (notransform)
 		return
 	if(!loc)
@@ -131,6 +120,14 @@
 		else
 			wound.on_death()
 
+/mob/living/carbon/handle_wounds() // Carbons now directly access these lists for performance reasons
+	for(var/obj/item/bodypart/BP as anything in bodyparts)
+		for(var/datum/wound/W as anything in BP.wounds)
+			if (stat != DEAD)
+				W.on_life()
+			else
+				W.on_death()
+
 
 /obj/item/proc/on_embed_life(mob/living/user, obj/item/bodypart/bodypart)
 	return
@@ -146,9 +143,9 @@
 				adjust_fire_stacks(1, psyblessed?.is_blessed ? /datum/status_effect/fire_handler/fire_stacks/sunder/blessed : /datum/status_effect/fire_handler/fire_stacks/sunder)
 			to_chat(src, span_danger("[embedded] in me hurts!"))
 
-		if(prob(embedded.embedding.embedded_fall_chance))
-			simple_remove_embedded_object(embedded)
-			to_chat(src,span_danger("[embedded] falls out of me!"))
+		//if(prob(embedded.embedding.embedded_fall_chance))
+		//	simple_remove_embedded_object(embedded)
+		//	to_chat(src,span_danger("[embedded] falls out of me!"))
 
 //this updates all special effects: knockdown, druggy, stuttering, etc..
 /mob/living/proc/handle_status_effects()

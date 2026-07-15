@@ -238,6 +238,7 @@ GLOBAL_LIST_EMPTY(species_list)
 	var/obscured_flags = NONE
 
 /proc/do_after(mob/user, delay, needhand = TRUE, atom/target = null, progress = TRUE, datum/callback/extra_checks = null, same_direction = FALSE, no_interrupt = FALSE)
+	set waitfor = FALSE
 	if(!user)
 		return FALSE
 
@@ -311,6 +312,7 @@ GLOBAL_LIST_EMPTY(species_list)
 		qdel(progbar)
 
 /proc/move_after(mob/user, delay, needhand = 1, atom/target = null, progress = 1, datum/callback/extra_checks = null, uninterrupt = FALSE) //do_after copypasta but you can move
+	set waitfor = FALSE
 	if(!user)
 		return 0
 
@@ -393,6 +395,7 @@ GLOBAL_LIST_EMPTY(species_list)
 	return
 
 /proc/do_after_mob(mob/user, list/targets, time = 30, uninterruptible = 0, progress = 1, datum/callback/extra_checks, required_mobility_flags = MOBILITY_STAND)
+	set waitfor = FALSE
 	if(!user || !targets)
 		return 0
 
@@ -606,3 +609,50 @@ GLOBAL_LIST_EMPTY(species_list)
 		sleep(1)
 	if(set_original_dir)
 		AM.setDir(originaldir)
+
+/// Uses the quadtree and the existing source.qt_range shape initialized on the mob to get a list of all players and NPCs in range
+/proc/get_nearby_entities(mob/living/source, range)
+	if(source.qt_range)
+		source.qt_range.width = range * 2
+		source.qt_range.height = range * 2
+
+		var/list/entities = ENTITIES_IN_RANGE(source) - source
+
+		source.qt_range.width = source.qt_range.initial_width
+		source.qt_range.height = source.qt_range.initial_height
+
+		return entities
+
+/// As above, uses the quadtree and the existing source.qt_range shape initialized on the mob to get a list, but of only NPCs in range
+/proc/get_nearby_npcs(mob/living/source, range)
+	if(source.qt_range)
+		source.qt_range.width = range * 2
+		source.qt_range.height = range * 2
+
+		var/list/entities = SSquadtree.npcs_in_range(source.qt_range, source.z) - source
+
+		source.qt_range.width = source.qt_range.initial_width
+		source.qt_range.height = source.qt_range.initial_height
+
+		return entities
+
+/proc/qt_view(mob/living/source) // Version of view() that uses the quadtree and a bressenham line to check for LOS at lightning speed! This shouldn't be relied on for anything other than very basic LOS checks, it's just here for performance reasons.
+	if(source.qt_range)
+		var/dist = NPC_VIEWRANGE
+		if(source.client)
+			dist = source.client.view
+
+		source.qt_range.width = dist * 2
+		source.qt_range.height = dist * 2
+
+		var/list/entities = ENTITIES_IN_RANGE(source) - source
+		var/list/visible = list()
+
+		for(var/mob/living/M as anything in entities)
+			if(get_dist(source, M) <= dist && !los_blocked(source, M, TRUE))
+				visible += M
+
+		source.qt_range.width = source.qt_range.initial_width
+		source.qt_range.height = source.qt_range.initial_height
+
+		return visible
