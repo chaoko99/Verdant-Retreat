@@ -17,7 +17,7 @@
 // of its own.
 
 SUBSYSTEM_DEF(native)
-	name = "Native Offload"
+	name = "Verdant Native"
 	init_order = INIT_ORDER_NATIVE
 	priority = SS_PRIORITY_NATIVE
 	wait = 1
