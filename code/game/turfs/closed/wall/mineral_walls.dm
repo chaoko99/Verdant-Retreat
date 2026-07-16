@@ -1,8 +1,9 @@
 /turf/closed/wall/mineral
 	name = "mineral wall"
-	desc = ""
-	icon_state = ""
+	icon = 'icons/turf/walls.dmi'
 	var/last_event = 0
 	var/active = null
-	canSmoothWith = null
-	smooth = SMOOTH_TRUE
+
+	smoothing_flags = NONE
+	smoothing_groups = null
+	smoothing_list = null

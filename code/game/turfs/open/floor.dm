@@ -25,9 +25,7 @@
 	spread_chance = 3
 	///means fires last at base 15 seconds
 	burn_power = 15
-
-	tiled_dirt = TRUE
-
+	smoothing_groups = SMOOTH_GROUP_OPEN_FLOOR
 /turf/open/floor/Initialize(mapload)
 
 	if (!broken_states)

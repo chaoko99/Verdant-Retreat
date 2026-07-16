@@ -4,6 +4,7 @@
 	opacity = 1
 	density = TRUE
 	blocks_air = TRUE
+	smoothing_groups = SMOOTH_GROUP_CLOSED
 	baseturfs = list(/turf/open/floor/rogue/naturalstone, /turf/open/transparent/openspace)
 	plane = WALL_PLANE
 	var/above_floor
@@ -273,16 +274,7 @@
 	to_be_destroyed = FALSE
 	return src
 
-/turf/closed/indestructible/sandstone
-	name = "sandstone wall"
-	desc = ""
-	icon = 'icons/turf/walls/sandstone_wall.dmi'
-	icon_state = "sandstone"
-	baseturfs = /turf/closed/indestructible/sandstone
-	smooth = SMOOTH_TRUE
 
-/turf/closed/indestructible/oldshuttle/corner
-	icon_state = "corner"
 
 /turf/closed/indestructible/splashscreen
 	name = ""
@@ -307,7 +299,6 @@
 /turf/closed/indestructible/riveted
 	icon = 'icons/turf/walls/riveted.dmi'
 	icon_state = "riveted"
-	smooth = SMOOTH_TRUE
 
 /turf/closed/indestructible/abductor
 	icon_state = "alien1"
@@ -369,9 +360,7 @@
 /turf/closed/indestructible/riveted/boss
 	name = "necropolis wall"
 	desc = ""
-	icon = 'icons/turf/walls/boss_wall.dmi'
 	icon_state = "wall"
-	canSmoothWith = list(/turf/closed/indestructible/riveted/boss, /turf/closed/indestructible/riveted/boss/see_through)
 	explosion_block = 50
 	baseturfs = /turf/closed/indestructible/riveted/boss
 
