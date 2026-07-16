@@ -121,40 +121,40 @@
 	QDEL_NULL(udder)
 	return ..()
 
-/mob/living/simple_animal/hostile/retaliate/rogue/Life()
+/mob/living/simple_animal/hostile/retaliate/rogue/life_extras(alive = TRUE)
 	. = ..()
-	if(.)
-		if(ai_root?.blackboard[AIBLK_AGGRESSORS]?.len)
-			if(prob(4))
-				emote("cidle")
-			if(prob(deaggroprob))
-				if(mob_timers["aggro_time"])
-					if(world.time > mob_timers["aggro_time"] + 30 SECONDS)
-						ai_root.blackboard[AIBLK_AGGRESSORS] = list()
-						src.visible_message(span_info("[src] calms down."))
-						LoseTarget()
-				else
-					mob_timers["aggro_time"] = world.time
-		else
-			if(prob(2)) //Plays an idle sound
-				emote("idle")
-
-			if(adult_growth)
-				growth_prog += 0.5
-				if(growth_prog >= 100)
-					if(isturf(loc))
-						var/mob/living/simple_animal/A = new adult_growth(loc)
-						if(tame)
-							A.tame = TRUE
-						qdel(src)
-						return
+	if(!alive)
+		return
+	if(ai_root?.blackboard[AIBLK_AGGRESSORS]?.len)
+		if(prob(4))
+			emote("cidle")
+		if(prob(deaggroprob))
+			if(mob_timers["aggro_time"])
+				if(world.time > mob_timers["aggro_time"] + 30 SECONDS)
+					ai_root.blackboard[AIBLK_AGGRESSORS] = list()
+					src.visible_message(span_info("[src] calms down."))
+					LoseTarget()
 			else
-				if(childtype)
-					make_babies()
-		if(udder)
-			if(production > 0)
-				production--
-				udder.generateMilk()
+				mob_timers["aggro_time"] = world.time
+	else
+		if(prob(2)) //Plays an idle sound
+			emote("idle")
+
+		if(adult_growth)
+			growth_prog += 0.5
+			if(growth_prog >= 100)
+				if(isturf(loc))
+					var/mob/living/simple_animal/A = new adult_growth(loc)
+					if(tame)
+						A.tame = TRUE
+					qdel(src)
+					return
+		else
+			if(childtype)
+				make_babies()
+	if(udder && production > 0)
+		production--
+		udder.generateMilk()
 
 /mob/living/simple_animal/hostile/retaliate/rogue/Retaliate()
 //	if(!enemies.len && message)

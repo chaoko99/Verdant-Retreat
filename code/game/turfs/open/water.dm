@@ -447,6 +447,9 @@
 /turf/open/water/river/Initialize()
 	. = ..()
 
+	if(!GetBelow(src))
+		return
+
 	var/turf/new_top = ChangeTurf(/turf/open/transparent/openspace, null, CHANGETURF_IGNORE_AIR)
 
 	var/turf/below = GetBelow(new_top)

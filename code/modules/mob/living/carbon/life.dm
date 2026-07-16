@@ -12,16 +12,24 @@
 		update_damage_hud()
 
 	//Reagent processing needs to come before breathing, to prevent edge cases.
-	handle_organs()
+	if(life_work & (LIFEWORK_REAGENTS|LIFEWORK_ORGANS))
+		handle_organs()
+		if(!reagents || !reagents.total_volume)
+			life_work &= ~LIFEWORK_REAGENTS
+		if(life_organs_settled())
+			life_work &= ~LIFEWORK_ORGANS
 
-	. = ..()
+	. = ..(seconds, times_fired)
 
 	if (QDELETED(src))
 		return
 
-	handle_wounds()
-	handle_embedded_objects()
-	handle_blood()
+	if(life_work & LIFEWORK_WOUNDS)
+		handle_wounds()
+		handle_embedded_objects()
+		handle_blood()
+		if(life_wounds_settled())
+			life_work &= ~LIFEWORK_WOUNDS
 	handle_roguebreath()
 	var/bprv = handle_bodyparts()
 	if(bprv & BODYPART_LIFE_UPDATE_HEALTH)
@@ -114,6 +122,18 @@
 
 /mob/living/carbon/proc/handle_roguebreath()
 	return
+
+/mob/living/carbon/proc/life_organs_settled()
+	for(var/obj/item/organ/O as anything in internal_organs)
+		if(O.damage > 0)
+			return FALSE
+		if(istype(O, /obj/item/organ/heart) || istype(O, /obj/item/organ/stomach) || istype(O, /obj/item/organ/eyes/night_vision))
+			return FALSE
+	return TRUE
+
+/mob/living/carbon/life_status_settled()
+	return !confused && !slowdown && !dizziness && !drowsyness && !jitteriness && !stuttering && !slurring && \
+		!cultslurring && !silent && !druggy && !hallucination && !drunkenness
 
 /mob/living/carbon/human/handle_roguebreath()
 	..()

@@ -21,12 +21,14 @@
 /mob/living/carbon/human
 	var/leprosy = 2
 	var/allmig_reward = 0
+	var/visible_name_dirty = TRUE
+	var/gas_mask_equipped = FALSE
 
-/mob/living/carbon/human/Life()
+/mob/living/carbon/human/Life(seconds, times_fired)
 	if (notransform)
 		return
 
-	. = ..()
+	. = ..(seconds, times_fired)
 
 	if (QDELETED(src))
 		return 0
@@ -85,9 +87,12 @@
 			dna.species.spec_life(src) // for mutantraces
 
 	//Update our name based on whether our face is obscured/disfigured
-	name = get_visible_name()
+	if(visible_name_dirty || (times_fired + life_work_id) % 10 == 0)
+		name = get_visible_name()
+		visible_name_dirty = FALSE
 
-	handle_gas_mask_sound()
+	if(gas_mask_equipped)
+		handle_gas_mask_sound()
 
 	if(sexcon && client?.prefs?.sexable)
 		sexcon.process_sexcon(1 SECONDS)
@@ -386,3 +391,13 @@
 #undef THERMAL_PROTECTION_ARM_RIGHT
 #undef THERMAL_PROTECTION_HAND_LEFT
 #undef THERMAL_PROTECTION_HAND_RIGHT
+
+/mob/living/carbon/human/life_temp_settled()
+	if(on_fire)
+		return FALSE
+	if(abs(bodytemperature - BODYTEMP_NORMAL) > 1)
+		return FALSE
+	var/turf/T = get_turf(src)
+	if(T && T.temperature && abs(T.temperature - bodytemperature) > 1)
+		return FALSE
+	return TRUE

@@ -341,6 +341,12 @@ GLOBAL_VAR_INIT(farm_animals, FALSE)
 	if((bodytemperature < minbodytemp) || (bodytemperature > maxbodytemp))
 		adjustHealth(unsuitable_atmos_damage)
 
+/mob/living/simple_animal/life_temp_settled()
+	var/turf/T = get_turf(src)
+	if(!T)
+		return TRUE
+	return abs(T.temperature - bodytemperature) <= 5 && bodytemperature >= minbodytemp && bodytemperature <= maxbodytemp
+
 /mob/living/simple_animal/MiddleClick(mob/living/user, params)
 	if(stat == DEAD)
 		var/obj/item/held_item = user.get_active_held_item()
@@ -869,15 +875,20 @@ GLOBAL_VAR_INIT(farm_animals, FALSE)
 
 /mob/living/simple_animal/Life()
 	. = ..()
-	if(.)
-		if(food > 0)
-			food--
-			pooprog++
-			production++
-			production = min(production, 100)
-			if(pooprog >= 100)
-				pooprog = 0
-				poop()
+	life_extras(.)
+
+/mob/living/simple_animal/life_extras(alive = TRUE)
+	. = ..()
+	if(!alive)
+		return
+	if(food > 0)
+		food--
+		pooprog++
+		production++
+		production = min(production, 100)
+		if(pooprog >= 100)
+			pooprog = 0
+			poop()
 
 /mob/living/simple_animal/proc/recuperate()
 	if(health >= maxHealth)

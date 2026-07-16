@@ -682,6 +682,9 @@
 			update_total()
 			if(my_atom)
 				my_atom.on_reagent_change(ADD_REAGENT)
+			if(isliving(my_atom))
+				var/mob/living/M = my_atom
+				M.life_work |= LIFEWORK_REAGENTS
 			R.on_merge(data, amount)
 			if(!no_react)
 				handle_reactions()
@@ -698,6 +701,8 @@
 
 	if(isliving(my_atom))
 		R.on_mob_add(my_atom) //Must occur befor it could posibly run on_mob_delete
+		var/mob/living/M = my_atom
+		M.life_work |= LIFEWORK_REAGENTS
 	update_total()
 	if(my_atom)
 		my_atom.on_reagent_change(ADD_REAGENT)

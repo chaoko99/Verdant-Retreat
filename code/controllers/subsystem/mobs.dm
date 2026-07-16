@@ -11,6 +11,9 @@ SUBSYSTEM_DEF(mobs)
 	var/static/list/cubemonkeys = list()
 	var/alive_mobs = 0
 
+	// Change-driven Life() work skipping
+	var/life_work_next_id = 0
+
 
 /datum/controller/subsystem/mobs/stat_entry()
 	..("P:[GLOB.mob_living_list.len], I:[GLOB.idle_mob_list.len]")
@@ -56,6 +59,11 @@ SUBSYSTEM_DEF(mobs)
 			alive_mobs++
 		if (MC_TICK_CHECK)
 			return
+
+/datum/controller/subsystem/mobs/proc/LifeWorkRegister(mob/living/M)
+	if(!M.life_work_id)
+		M.life_work_id = ++life_work_next_id
+	return M.life_work_id
 
 SUBSYSTEM_DEF(mobs_dead)
 	name = "Mobs (Dead)"

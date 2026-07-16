@@ -120,6 +120,9 @@ GLOBAL_LIST_INIT(brain_penetration_zones, list(BODY_ZONE_PRECISE_SKULL, BODY_ZON
 		qdel(wound)
 		return
 
+	if(owner)
+		owner.life_work |= LIFEWORK_WOUNDS
+
 	if(!istype(wound, /datum/wound/infection))
 		check_wound_infection(wound, user, weapon)
 
@@ -846,6 +849,7 @@ GLOBAL_LIST_INIT(brain_penetration_zones, list(BODY_ZONE_PRECISE_SKULL, BODY_ZON
 	embedder.is_embedded = TRUE
 	embedder.forceMove(src)
 	if(owner)
+		owner.life_work |= LIFEWORK_WOUNDS
 		// Invalidate mob bleed cache since we added an embedded object
 		if(iscarbon(owner))
 			var/mob/living/carbon/C = owner

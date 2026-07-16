@@ -374,8 +374,9 @@ PROCESSING_SUBSYSTEM_DEF(liquid)
 			T.cell = new /cell(T)
 			T.cell.InitLiquids()
 		var/list/vols = T.cell.fluid_volume
-		// zero every native-mapped type, then apply the reported vector;
-		// unmapped (dynamic) types are DM-only and left alone
+		// zero every native-mapped type (static or registered dynamic), then
+		// apply the reported vector; still-unmapped dynamic types are
+		// DM-only and left alone
 		for(var/datum/liquid/fluid as anything in vols)
 			if(vn_fluid_mat_id(fluid))
 				vols[fluid] = 0
@@ -383,16 +384,30 @@ PROCESSING_SUBSYSTEM_DEF(liquid)
 			var/mat = res[cur++]
 			var/amt = res[cur++]
 			var/fluid_path = GLOB.vn_liquid_mat_paths["[mat]"]
+			if(istext(fluid_path))
+				fluid_path = text2path(fluid_path)
 			if(!fluid_path)
 				continue
-			var/datum/liquid/instance = locate(fluid_path) in vols
+			var/datum/liquid/instance
+			if(ispath(fluid_path, /datum/liquid))
+				instance = locate(fluid_path) in vols
+			else
+				// mat id maps to a reagent typepath (dynamic liquid): match
+				// the cell's existing same-reagent instance, or create one
+				for(var/datum/liquid/existing as anything in vols)
+					if(existing.type == /datum/liquid && existing.reagent == fluid_path)
+						instance = existing
+						break
+				if(!instance)
+					instance = GLOB.liquid_registry.create_liquid_from_reagent(fluid_path)
+					if(instance)
+						vols[instance] = 0
 			if(instance)
 				vols[instance] = amt
 		update_fluidsum(T)
 		cell_index[T] = TRUE
 		if(T.cell.fluidsum >= MIN_FLUID_VOLUME)
-			if(!(T in GLOB.pool_manager.liquid_turfs))
-				GLOB.pool_manager.liquid_turfs += T
+			GLOB.pool_manager.liquid_turfs[T] = TRUE
 		else
 			GLOB.pool_manager.liquid_turfs -= T
 		update_cell_image(T)

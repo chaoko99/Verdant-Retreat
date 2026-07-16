@@ -120,13 +120,11 @@ GLOBAL_DATUM_INIT(pool_manager, /datum/pool_manager, new)
  * Should be called periodically from the liquid subsystem.
  */
 /datum/pool_manager/proc/process_continuous_behaviors()
-    continuous_behavior_timer++
-
-    // Process continuous behaviors every 5 ticks (5 seconds)
-    if(continuous_behavior_timer < 5)
+    // Process continuous behaviors every 5 seconds
+    if(world.time < continuous_behavior_timer)
         return
 
-    continuous_behavior_timer = 0
+    continuous_behavior_timer = world.time + 5 SECONDS
 
     // Process all mobs standing in liquid pools
     for(var/turf/T as anything in liquid_turfs)
@@ -162,13 +160,11 @@ GLOBAL_DATUM_INIT(pool_manager, /datum/pool_manager, new)
     if(!GLOB.liquid_registry.allow_dynamic_liquids)
         return
 
-    reaction_timer++
-
-    // Process floor reactions every 10 ticks (10 seconds) - slower than behaviors
-    if(reaction_timer < 10)
+    // Process floor reactions every 10 seconds - slower than behaviors
+    if(world.time < reaction_timer)
         return
 
-    reaction_timer = 0
+    reaction_timer = world.time + 10 SECONDS
 
     // Process reactions on liquid turfs that have multiple reagent types
     for(var/turf/T as anything in liquid_turfs)

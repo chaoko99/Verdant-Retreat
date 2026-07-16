@@ -364,6 +364,8 @@
 //				encumbrance = 0
 
 /mob/living/carbon/human/wear_mask_update(obj/item/I, toggle_off = 1)
+	visible_name_dirty = TRUE
+	gas_mask_equipped = istype(wear_mask, /obj/item/clothing/mask/rogue/facemask/steel/confessor)
 	if((I.flags_inv & (HIDEHAIR|HIDEFACIALHAIR)) || (initial(I.flags_inv) & (HIDEHAIR|HIDEFACIALHAIR)))
 		update_hair()
 	if(I.flags_inv & HIDEEYES)
@@ -371,6 +373,7 @@
 	..()
 
 /mob/living/carbon/human/head_update(obj/item/I, forced)
+	visible_name_dirty = TRUE
 	if((I.flags_inv & (HIDEHAIR|HIDEFACIALHAIR)) || forced)
 		update_hair()
 	else

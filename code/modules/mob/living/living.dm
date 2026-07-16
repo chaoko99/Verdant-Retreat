@@ -1581,6 +1581,7 @@
  * * fire_type: type Type of fire status effect that we apply, should be subtype of /datum/status_effect/fire_handler/fire_stacks
  */
 /mob/living/proc/adjust_fire_stacks(stacks, fire_type = /datum/status_effect/fire_handler/fire_stacks)
+	life_work |= LIFEWORK_FIRE_WATER
 	if(stacks < 0)
 		if(HAS_TRAIT(src, TRAIT_NO_EXTINGUISH)) //You can't reduce fire stacks of the everlasting flames
 			return
@@ -1600,6 +1601,7 @@
  */
 
 /mob/living/proc/set_fire_stacks(stacks, fire_type = /datum/status_effect/fire_handler/fire_stacks)
+	life_work |= LIFEWORK_FIRE_WATER
 	if(stacks < 0) //Shouldn't happen, ever
 		CRASH("set_fire_stacks received negative [stacks] fire stacks")
 

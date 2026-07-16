@@ -16,35 +16,49 @@
 	if(!loc)
 		return
 
+	life_work_upkeep(times_fired)
+
 	//Breathing, if applicable - CURRENTLY NOT IMPLEMENTED
 	//handle_breathing(times_fired)
 
-	if(HAS_TRAIT(src, TRAIT_SIMPLE_WOUNDS))
-		handle_wounds()
-		handle_embedded_objects()
-		handle_blood()
-		//passively heal even wounds with no passive healing
+	if(life_work & LIFEWORK_WOUNDS)
+		if(HAS_TRAIT(src, TRAIT_SIMPLE_WOUNDS))
+			handle_wounds()
+			handle_embedded_objects()
+			handle_blood()
+			//passively heal even wounds with no passive healing
 
-		var/heal_amount = 1 + (blood_volume > BLOOD_VOLUME_SURVIVE ? 0.6 : 0)
-		// apparently this means NPCs should heal their wounds slowly over time,
-		// with a 60% bonus if they're not completely bled out.
-		// this is a strict replacement for two whole-ass block iteration things that did the same thing (or nothing at all)
-		heal_wounds(heal_amount)
-		
+			var/heal_amount = 1 + (blood_volume > BLOOD_VOLUME_SURVIVE ? 0.6 : 0)
+			// apparently this means NPCs should heal their wounds slowly over time,
+			// with a 60% bonus if they're not completely bled out.
+			// this is a strict replacement for two whole-ass block iteration things that did the same thing (or nothing at all)
+			heal_wounds(heal_amount)
+		if(life_wounds_settled())
+			life_work &= ~LIFEWORK_WOUNDS
+
 	if (QDELETED(src)) // diseases can qdel the mob via transformations
 		return
 
-	handle_environment()
-	
+	if(life_work & (LIFEWORK_TEMP|LIFEWORK_FIRE_WATER))
+		handle_environment()
+		if(life_temp_settled())
+			life_work &= ~LIFEWORK_TEMP
+		if(life_fire_water_settled())
+			life_work &= ~LIFEWORK_FIRE_WATER
+
 	//Random events (vomiting etc)
 	handle_random_events()
 
 	handle_gravity()
 
 	handle_traits() // eye, ear, brain damages
-	handle_status_effects() //all special effects, stun, knockdown, jitteryness, hallucination, sleeping, etc
+	if(life_work & LIFEWORK_STATUS)
+		handle_status_effects() //all special effects, stun, knockdown, jitteryness, hallucination, sleeping, etc
+		if(life_status_settled())
+			life_work &= ~LIFEWORK_STATUS
 
-	update_sneak_invis()
+	if(rogue_sneaking || m_intent == MOVE_INTENT_SNEAK || world.time < mob_timers[MT_INVISIBILITY])
+		update_sneak_invis()
 
 	if(machine)
 		machine.check_eye(src)
@@ -191,3 +205,33 @@
 	if(gravity >= GRAVITY_DAMAGE_TRESHOLD) //Aka gravity values of 3 or more
 		var/grav_stregth = gravity - GRAVITY_DAMAGE_TRESHOLD
 		adjustBruteLoss(min(grav_stregth,3))
+
+// ==============================================================================
+// CHANGE-DRIVEN LIFE() WORK SKIPPING
+// ==============================================================================
+
+/mob/living/proc/life_extras(alive = TRUE)
+	return
+
+/mob/living/var/life_work = LIFEWORK_ALL
+/mob/living/var/life_work_id = 0
+
+/mob/living/proc/life_work_upkeep(times_fired)
+	if(!life_work_id)
+		life_work_id = SSmobs.LifeWorkRegister(src)
+	if((times_fired + life_work_id) % 15 == 0)
+		life_work |= LIFEWORK_STATUS
+	if((times_fired + life_work_id) % 30 == 0)
+		life_work |= LIFEWORK_ALL
+
+/mob/living/proc/life_wounds_settled()
+	return !length(get_wounds()) && !length(get_embedded_objects()) && bleed_rate <= 0
+
+/mob/living/proc/life_temp_settled()
+	return TRUE
+
+/mob/living/proc/life_fire_water_settled()
+	return !on_fire && fire_stacks <= 0 && !istype(loc, /turf/open/water)
+
+/mob/living/proc/life_status_settled()
+	return !confused && !slowdown

@@ -1,6 +1,7 @@
 
 /mob/living/carbon/human/proc/change_name(new_name)
 	real_name = new_name
+	visible_name_dirty = TRUE
 
 /mob/living/carbon/human/restrained(ignore_grab = TRUE)
 	. = ((wear_armor && wear_armor.breakouttime) || ..())
