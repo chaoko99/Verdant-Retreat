@@ -407,8 +407,7 @@ PROCESSING_SUBSYSTEM_DEF(liquid)
 		update_fluidsum(T)
 		cell_index[T] = TRUE
 		if(T.cell.fluidsum >= MIN_FLUID_VOLUME)
-			if(!(T in GLOB.pool_manager.liquid_turfs))
-				GLOB.pool_manager.liquid_turfs += T
+			GLOB.pool_manager.liquid_turfs[T] = TRUE
 		else
 			GLOB.pool_manager.liquid_turfs -= T
 		update_cell_image(T)

@@ -16,6 +16,8 @@
 // Every hook funnels through vn_mark_dirty(T); no hook ever does a call_ext
 // of its own.
 
+#define VN_TEST
+
 SUBSYSTEM_DEF(native)
 	name = "Native Offload"
 	init_order = INIT_ORDER_NATIVE
@@ -111,9 +113,12 @@ SUBSYSTEM_DEF(native)
 	log_world("verdant_native: grid mirror loaded ([world.maxx]x[world.maxy]x[world.maxz])")
 	if(vn_check_result(vn_light_init(world.maxx, world.maxy, world.maxz), "light_init"))
 		GLOB.vn_light_inited_maxz = world.maxz
-	if(world.params["vn_test"] || world.GetConfig("env", "VN_TEST"))
-		spawn(20)
-			RunSelfTests()
+
+#ifdef VN_TEST
+
+	//if(world.params["vn_test"] || world.GetConfig("env", "VN_TEST"))
+	//	spawn(20)
+	//		RunSelfTests()
 	if(world.params["vn_fluids_native"] || world.GetConfig("env", "VN_FLUIDS_NATIVE"))
 		log_world("verdant_native: fluid test pump enabled via environment")
 		// Headless test worlds never leave the lobby, where SSliquid doesn't
@@ -155,6 +160,25 @@ SUBSYSTEM_DEF(native)
 			for(var/i in 1 to 10)
 				log_world("verdant_native: fluids [vn_fluid_status()] deltas=[SSliquid.vn_deltas_applied] events=[SSliquid.vn_events_applied]")
 				sleep(100)
+	if(world.GetConfig("env", "VN_FLUID_DIAG"))
+		spawn(100)
+			var/cycle = 0
+			while(VN_OK)
+				log_world("verdant_native: diag [vn_fluid_status()] deltas=[SSliquid.vn_deltas_applied] events=[SSliquid.vn_events_applied] sources=[length(SSliquid.liquid_sources)] sinks=[length(SSliquid.liquid_sinks)] wet=[length(GLOB.pool_manager.liquid_turfs)]")
+				if(++cycle % 3 == 0)
+					var/list/by_type = list()
+					var/list/by_z = list()
+					for(var/turf/T as anything in GLOB.pool_manager.liquid_turfs)
+						by_type["[T.type]"]++
+						by_z["z[T.z]"]++
+					var/list/big = list()
+					for(var/k in by_type)
+						if(by_type[k] >= 300)
+							big += "[k]:[by_type[k]]"
+					log_world("verdant_native: diagtypes [jointext(big, " ")]")
+					log_world("verdant_native: diagz [json_encode(by_z)]")
+				sleep(100)
+#endif
 
 /// Appends one row's cell string and edge string to the output lists.
 /// out_annots (optional): also collects door-integrity annotations, used
