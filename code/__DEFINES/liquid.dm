@@ -56,3 +56,5 @@
 #ifndef M_PI
 #define M_PI 3.14159265
 #endif
+
+#define RIVER_PUSH_BASE_CD 10

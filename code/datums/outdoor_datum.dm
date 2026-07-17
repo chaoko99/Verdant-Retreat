@@ -207,9 +207,23 @@ Sunlight System
 		outdoor_effect.state = TempState
 		outdoor_effect.weatherproof = roofStat["WEATHERPROOF"]
 
+GLOBAL_VAR_INIT(ceiling_status_caching, FALSE)
+GLOBAL_LIST_EMPTY(ceiling_cache_top)
+GLOBAL_LIST_EMPTY(ceiling_cache_ceil)
+
+/turf/proc/get_ceiling_status(recursionStarted = FALSE)
+	if(!GLOB.ceiling_status_caching)
+		return _get_ceiling_status_uncached(recursionStarted)
+	var/list/cache = recursionStarted ? GLOB.ceiling_cache_ceil : GLOB.ceiling_cache_top
+	. = cache[src]
+	if(!isnull(.))
+		return .
+	. = _get_ceiling_status_uncached(recursionStarted)
+	cache[src] = .
+
 /* runs up the Z stack for this turf, returns a assoc (SKYVISIBLE, WEATHERPROOF)*/
 /* pass recursionStarted=TRUE when we are checking our ceiling's stats */
-/turf/proc/get_ceiling_status(recursionStarted = FALSE)
+/turf/proc/_get_ceiling_status_uncached(recursionStarted = FALSE)
 	. = list()
 
 	//Check yourself (before you wreck yourself)
@@ -238,20 +252,41 @@ Sunlight System
 
 	//Ceiling Check
 	// Psuedo-roof, for the top of the map (no actual turf exists up here) -- We assume these are solid, if you add glass pseudo_roofs then fix this
+	var/turf/above_turf = GET_TURF_ABOVE(src)
 	if (pseudo_roof)
 		.["SKYVISIBLE"]   =  FALSE
 		.["WEATHERPROOF"] =  TRUE
 	else
 		// EVERY turf must be transparent for sunlight - so &=
 		// ANY turf must be closed for weatherproof - so |=
-		var/turf/ceiling = get_step_multiz(src, UP)
-		if(ceiling)
-			var/list/ceilingStat = ceiling.get_ceiling_status(TRUE) //Pass TRUE because we are now acting as a ceiling
+		if(above_turf)
+			var/list/ceilingStat = above_turf.get_ceiling_status(TRUE) //Pass TRUE because we are now acting as a ceiling
 			.["SKYVISIBLE"]   &= ceilingStat["SKYVISIBLE"]
 			.["WEATHERPROOF"] |= ceilingStat["WEATHERPROOF"]
 
 	var/area/turf_area = get_area(src)
-	var/turf/above_turf = get_step_multiz(src, UP)
 	if((!above_turf && !turf_area.outdoors))
 		.["SKYVISIBLE"]   =  FALSE
 		.["WEATHERPROOF"] =  TRUE
+
+/proc/verify_outdoor_parity()
+	var/list/snapA = list()
+	for(var/z in SSmapping.levels_by_trait(ZTRAIT_STATION))
+		for(var/turf/T in block(locate(1,1,z), locate(world.maxx,world.maxy,z)))
+			var/atom/movable/outdoor_effect/OE = T.outdoor_effect
+			snapA[T] = OE ? "[OE.state],[OE.weatherproof]" : "-"
+		CHECK_TICK
+	GLOB.ceiling_status_caching = FALSE
+	for(var/z in SSmapping.levels_by_trait(ZTRAIT_STATION))
+		for(var/turf/T in block(locate(1,1,z), locate(world.maxx,world.maxy,z)))
+			T.get_sky_and_weather_states()
+		CHECK_TICK
+	var/mismatches = 0
+	for(var/turf/T in snapA)
+		var/atom/movable/outdoor_effect/OE = T.outdoor_effect
+		var/b = OE ? "[OE.state],[OE.weatherproof]" : "-"
+		if(snapA[T] != b)
+			mismatches++
+			if(mismatches <= 30)
+				log_world("OUTDOOR PARITY MISMATCH z[T.z] ([T.x],[T.y]) cached=[snapA[T]] uncached=[b]")
+	log_world("OUTDOOR PARITY VERIFY: turfs=[length(snapA)] mismatches=[mismatches]")

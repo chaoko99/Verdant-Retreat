@@ -370,8 +370,15 @@
 //Helpers procs
 ////////////////
 
+GLOBAL_VAR_INIT(mapload_stone_bottom, TRUE)
+GLOBAL_VAR_INIT(mapload_stone_bottom_count, 0)
+
 //Instance an atom at (x,y,z) and gives it the variables in attributes
 /datum/parsed_map/proc/instance_atom(path,list/attributes, turf/crds, no_changeturf, placeOnTop)
+	if(crds && GLOB.mapload_stone_bottom && ispath(path, /turf/open/transparent/openspace) && !ispath(path, /turf/open/transparent/openspace/debug) && !SSmapping.level_trait(crds.z, ZTRAIT_DOWN))
+		path = /turf/open/floor/rogue/naturalstone
+		attributes = null
+		GLOB.mapload_stone_bottom_count++
 	world.preloader_setup(attributes, path)
 
 	if(crds)

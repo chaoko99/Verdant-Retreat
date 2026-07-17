@@ -71,7 +71,13 @@ SUBSYSTEM_DEF(outdoor_effects)
 		get_time_of_day()
 		InitializeTurfs()
 		initialized = TRUE
+	GLOB.ceiling_cache_top = list()
+	GLOB.ceiling_cache_ceil = list()
+	GLOB.ceiling_status_caching = TRUE
 	fire(FALSE, TRUE)
+	GLOB.ceiling_status_caching = FALSE
+	GLOB.ceiling_cache_top = null
+	GLOB.ceiling_cache_ceil = null
 	..()
 
 /datum/controller/subsystem/outdoor_effects/stat_entry(msg)

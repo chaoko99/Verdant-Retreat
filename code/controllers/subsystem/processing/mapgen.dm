@@ -1172,6 +1172,8 @@ The 4-5 rule creates natural forest patterns with connected clearings and realis
 	if(below)
 		var/turf/riverbot = below.ChangeTurf(/turf/open/floor/rogue/riverbot, null, CHANGETURF_IGNORE_AIR)
 		riverbot.cell.flow_dir = flow_dir
+		riverbot.setDir(flow_dir)
+		SSliquid.update_cell_image(river_surface)
 
 // Lake Generation - "Droplet Method" (Iterative Expansion)
 /area/procedural_generation/forest/proc/generate_lakes()

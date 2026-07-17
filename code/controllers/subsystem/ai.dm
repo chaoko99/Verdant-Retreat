@@ -101,7 +101,7 @@ PROCESSING_SUBSYSTEM_DEF(ai)
 		QDEL_NULL(M.ai_root)
 
 /datum/controller/subsystem/processing/ai/proc/WakeUp(mob/living/M, forced = FALSE)
-	if(!M) return
+	if(!M || !M.ai_root) return
 	if(forced) M.ai_root.ai_flags &= ~AI_FLAG_FORCESLEEP
 	if(M.ai_root.ai_flags & AI_FLAG_FORCESLEEP) return
 	if(sleeping_mobs[M]) sleeping_mobs.Remove(M)

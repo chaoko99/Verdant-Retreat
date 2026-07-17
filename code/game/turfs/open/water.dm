@@ -42,7 +42,6 @@
 	var/wash_in = TRUE
 	var/swim_skill = FALSE
 	nomouseover = FALSE
-	var/swimdir = FALSE
 
 /turf/open/water/Initialize()
 	.  = ..()
@@ -94,8 +93,8 @@
 		return 0 // no stam cost
 	if(swimmer.is_floor_hazard_immune())
 		return 0 // floating!
-	if(swimdir && travel_dir && travel_dir == dir)
-		return 0 // going with the flow
+	if(cell?.flow_dir && travel_dir && travel_dir == cell.flow_dir)
+		return 0
 	if(swimmer.buckled)
 		return 0
 	var/abyssor_swim_bonus = HAS_TRAIT(swimmer, TRAIT_ABYSSOR_SWIM) ? 5 : 0
@@ -148,6 +147,7 @@
 	for(var/obj/structure/S in src)
 		if(S.obj_flags & BLOCK_Z_OUT_DOWN)
 			return
+	try_start_river_current(AM)
 	if(istype(AM, /obj/item/reagent_containers/food/snacks/fish))
 		var/obj/item/reagent_containers/food/snacks/fish/F = AM
 		SEND_GLOBAL_SIGNAL(COMSIG_GLOBAL_FISH_RELEASED, F.type, F.rarity_rank)
@@ -448,6 +448,13 @@
 	. = ..()
 
 	if(!GetBelow(src))
+		var/preserved_dir = dir
+		var/turf/stream = ChangeTurf(/turf/open/water/stream, null, CHANGETURF_IGNORE_AIR)
+		if(stream)
+			stream.setDir(preserved_dir)
+			if(stream.cell)
+				stream.cell.flow_dir = preserved_dir
+			stream.refresh_river_overlay()
 		return
 
 	var/turf/new_top = ChangeTurf(/turf/open/transparent/openspace, null, CHANGETURF_IGNORE_AIR)
@@ -464,9 +471,11 @@
 			river_bottom.cell.fluid_volume[below_water] = 100
 
 		river_bottom.cell.flow_dir = dir
+		river_bottom.setDir(dir)
 
 		SSliquid.update_fluidsum(river_bottom)
 		SSliquid.cell_index[river_bottom] = TRUE
+		new_top.refresh_river_overlay()
 
 /turf/open/floor/rogue/riverbot
 	name = "river bottom"
@@ -518,6 +527,145 @@
 	liquid_overlay.layer = ABOVE_MOB_LAYER
 	liquid_overlay.plane = GAME_PLANE_HIGHEST
 
+/turf/proc/river_flow_cell()
+	if(isopenspace(src))
+		var/turf/below = GetBelow(src)
+		if(below?.cell && (istype(below, /turf/open/floor/rogue/riverbot) || istype(below, /turf/open/floor/rogue/lakebed)))
+			return below.cell
+		return null
+	if(istype(src, /turf/open/water))
+		return cell
+	if(istype(src, /turf/open/floor/rogue/riverbot) || istype(src, /turf/open/floor/rogue/lakebed))
+		return cell
+	return null
+
+/turf/proc/refresh_river_overlay()
+	if(isopenspace(src) || istype(src, /turf/open/water) || istype(src, /turf/open/floor/rogue/riverbot) || istype(src, /turf/open/floor/rogue/lakebed))
+		SSliquid.update_cell_image(src)
+
+/turf/proc/can_river_push(mob/living/L)
+	if(!isliving(L))
+		return FALSE
+	if(L.anchored || L.buckled || L.pulledby)
+		return FALSE
+	if(L.is_floor_hazard_immune())
+		return FALSE
+	return TRUE
+
+/turf/proc/river_push_cooldown(rate)
+	return round(RIVER_PUSH_BASE_CD / clamp(rate, 0.25, 4))
+
+/turf/proc/handle_river_current()
+	var/cell/fc = river_flow_cell()
+	if(!fc?.flow_dir)
+		return FALSE
+	if(isopenspace(src))
+		var/turf/below = GetBelow(src)
+		if(!below?.cell || below.cell.fluidsum < 80)
+			return FALSE
+	for(var/obj/structure/S in src)
+		if(S.obj_flags & BLOCK_Z_OUT_DOWN)
+			return FALSE
+	. = FALSE
+	for(var/mob/living/L in contents.Copy())
+		if(!can_river_push(L))
+			continue
+		. = TRUE
+		if(!COOLDOWN_FINISHED(L, river_push_cd))
+			continue
+		COOLDOWN_START(L, river_push_cd, river_push_cooldown(fc.flow_rate))
+		L.ConveyorMove(fc.flow_dir)
+
+/turf/proc/try_start_river_current(atom/movable/AM)
+	if(!isliving(AM))
+		return
+	var/cell/fc = river_flow_cell()
+	if(!fc?.flow_dir)
+		return
+	START_PROCESSING(SSfastprocess, src)
+
+/turf/open/water/process()
+	if(!handle_river_current())
+		STOP_PROCESSING(SSfastprocess, src)
+
+/turf/proc/resolve_flow_origin_turf()
+	if(isopenspace(src))
+		var/turf/below = GetBelow(src)
+		if(below && (istype(below, /turf/open/floor/rogue/riverbot) || istype(below, /turf/open/floor/rogue/lakebed)))
+			return below
+		return null
+	if(istype(src, /turf/open/water) || istype(src, /turf/open/floor/rogue/riverbot) || istype(src, /turf/open/floor/rogue/lakebed))
+		return src
+	return null
+
+/turf/proc/flow_body_class()
+	if(istype(src, /turf/open/floor/rogue/riverbot))
+		return "riverbot"
+	if(istype(src, /turf/open/floor/rogue/lakebed))
+		return "lakebed"
+	if(istype(src, /turf/open/water))
+		return "[type]"
+	return null
+
+/turf/proc/flow_body_members(cap = 4000)
+	var/body_class = flow_body_class()
+	if(!body_class)
+		return list(src)
+	var/list/found = list(src)
+	var/list/frontier = list(src)
+	var/list/seen = list()
+	seen[src] = TRUE
+	while(length(frontier) && length(found) < cap)
+		var/turf/cur = frontier[length(frontier)]
+		frontier.len--
+		for(var/D in GLOB.cardinals)
+			var/turf/N = get_step(cur, D)
+			if(!N || seen[N])
+				continue
+			seen[N] = TRUE
+			if(N.flow_body_class() != body_class)
+				continue
+			found += N
+			frontier += N
+	return found
+
+/turf/proc/flow_body_surface()
+	if(istype(src, /turf/open/floor/rogue/riverbot) || istype(src, /turf/open/floor/rogue/lakebed))
+		var/turf/above = GetAbove(src)
+		if(above && isopenspace(above))
+			return above
+		return null
+	if(istype(src, /turf/open/water))
+		return src
+	return null
+
+/turf/open/water/stream
+	name = "stream"
+	desc = "A shallow stream of clear water rushes over the rocks."
+	icon = 'icons/turf/roguefloor.dmi'
+	icon_state = "riverbot"
+	water_level = 2
+
+/turf/open/water/stream/Initialize()
+	. = ..()
+	if(!cell)
+		cell = new /cell(src)
+		cell.InitLiquids()
+	var/datum/liquid/water_fluid = cell.get_fluid_datum(WATER)
+	if(water_fluid)
+		cell.fluid_volume[water_fluid] = MAX_FLUID_VOLUME
+	cell.flow_dir = dir
+	cell.sim_exempt = TRUE
+	cell.make_liquid_sink(10)
+	SSliquid.update_fluidsum(src)
+	ensure_liquid_overlay()
+	liquid_overlay.layer = ABOVE_MOB_LAYER
+	liquid_overlay.plane = GAME_PLANE_HIGHEST
+	SSliquid.update_cell_image(src)
+
+/turf/open/water/stream/Destroy()
+	SSliquid.liquid_sinks -= src
+	return ..()
 
 /turf/open/water/river/get_heuristic_slowdown(mob/traverser, travel_dir)
 	var/const/UPSTREAM_PENALTY = 2
