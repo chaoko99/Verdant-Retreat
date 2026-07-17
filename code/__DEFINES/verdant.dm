@@ -1,7 +1,7 @@
 // verdant.dm - DM API for the verdant_native offload library (byondapi)
 //
 // verdant_native.dll moves the crunching parts of pathfinding, liquid
-// simulation, and behavior-tree evaluation out of the DM interpreter.
+// simulation, corner-lighting and behavior-tree evaluation out of the DM interpreter.
 // Repo: verdant-native (private). The DLL sits next to the .dmb like rust_g.
 //
 // Every native call can return an error string "ERR:<code>:<msg>". Wrappers

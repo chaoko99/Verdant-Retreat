@@ -199,6 +199,8 @@ SUBSYSTEM_DEF(mapping)
 	//if any of these fail, something has gone horribly, HORRIBLY, wrong
 	var/list/FailedZs = list()
 
+	GLOB.mapload_stone_bottom = !world.GetConfig("env", "VN_KEEP_OPENSPACE_BOTTOM")
+
 	// ensure we have space_level datums for compiled-in maps
 	InitializeDefaultZLevels()
 
@@ -247,6 +249,8 @@ SUBSYSTEM_DEF(mapping)
 		msg += ". Yell at your server host!"
 		INIT_ANNOUNCE(msg)
 #undef INIT_ANNOUNCE
+
+	log_world("mapload: openspace->naturalstone bottom-z substitutions: [GLOB.mapload_stone_bottom_count]")
 
 	// Custom maps are removed after station loading so the map files does not persist for no reason.
 	if(config.map_path == "custom")
