@@ -137,3 +137,65 @@ INITIALIZE_IMMEDIATE(/obj/effect/mapping_helpers/no_lava)
 /obj/effect/landmark/map_load_mark/Initialize()
 	. = ..()
 	LAZYADD(SSmapping.map_load_marks,src)
+
+/obj/effect/mapping_helpers/river_flow
+	name = "river flow marker"
+	icon_state = "field_dir"
+	late = TRUE
+	var/flow_rate = 1
+	var/clear_flow = FALSE
+	var/whole_body = TRUE
+
+/obj/effect/mapping_helpers/river_flow/LateInitialize()
+	var/turf/T = get_turf(src)
+	var/turf/origin = T.resolve_flow_origin_turf()
+	if(!origin)
+		log_mapping("[src] at [x],[y],[z] is not over a river or basin turf.")
+		qdel(src)
+		return
+	var/list/body = whole_body ? origin.flow_body_members() : list(origin)
+	for(var/turf/member as anything in body)
+		if(!member.cell)
+			member.cell = new /cell(member)
+			member.cell.InitLiquids()
+		if(clear_flow)
+			member.cell.clear_flow_dir()
+			member.cell.flow_rate = 1
+		else
+			member.cell.set_flow_dir(dir)
+			member.cell.flow_rate = flow_rate
+	for(var/turf/member as anything in body)
+		member.refresh_river_overlay()
+		var/turf/surface = member.flow_body_surface()
+		if(!surface || surface == member)
+			continue
+		surface.refresh_river_overlay()
+		for(var/mob/living/L in surface)
+			surface.try_start_river_current(L)
+	for(var/mob/living/L in T)
+		T.try_start_river_current(L)
+	qdel(src)
+
+/obj/effect/mapping_helpers/river_flow/slow
+	name = "river flow marker (slow)"
+	flow_rate = 0.5
+
+/obj/effect/mapping_helpers/river_flow/fast
+	name = "river flow marker (fast)"
+	flow_rate = 2
+
+/obj/effect/mapping_helpers/river_flow/stop
+	name = "river flow stop marker"
+	clear_flow = TRUE
+
+/obj/effect/mapping_helpers/river_flow/tile
+	name = "river flow marker (single tile)"
+	whole_body = FALSE
+
+/obj/effect/mapping_helpers/river_flow/tile/slow
+	name = "river flow marker (single tile, slow)"
+	flow_rate = 0.5
+
+/obj/effect/mapping_helpers/river_flow/tile/fast
+	name = "river flow marker (single tile, fast)"
+	flow_rate = 2

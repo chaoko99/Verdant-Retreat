@@ -10,6 +10,9 @@ GLOBAL_LIST_EMPTY(liquid_types)
 	var/fluidsum = 0 // Total amount of fluid from all types
 
 	var/flow_dir = 0 // Direction bitmask for flow modification (rivers, currents)
+	var/flow_rate = 1
+	var/contain_max = 0
+	var/sim_exempt = FALSE
 	var/is_liquid_source = FALSE // Make this TRUE to make a turf spawn fluid.
 	var/production_rate = 0 // Amount of the fluid produced each processing loop.
 	var/source_fluid_type = WATER // The fluid type a source produces. Sources produce exactly one type.

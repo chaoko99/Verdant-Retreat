@@ -129,6 +129,7 @@
 
 	var/ventcrawl_layer = PIPING_LAYER_DEFAULT
 	var/losebreath = 0
+	COOLDOWN_DECLARE(river_push_cd)
 
 	var/slowed_by_drag = TRUE //Whether the mob is slowed down when dragging another prone mob
 

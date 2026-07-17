@@ -157,6 +157,39 @@ PROCESSING_SUBSYSTEM_DEF(liquid)
 		T.cell.fluidsum = sum
 		T.cell.last_fluid_level = get_fluid_level(T)
 
+/datum/controller/subsystem/processing/liquid/proc/has_contained_neighbor(turf/T)
+	if(istype(T, /turf/open/water) || istype(T, /turf/open/floor/rogue/riverbot) || istype(T, /turf/open/floor/rogue/lakebed))
+		return FALSE
+	for(var/D in GLOB.cardinals)
+		var/turf/N = get_step(T, D)
+		if(N?.cell?.contain_max)
+			return TRUE
+	return FALSE
+
+/datum/controller/subsystem/processing/liquid/proc/clamp_cell_fluid(turf/T, cap)
+	var/total = T.cell.fluidsum
+	if(total <= cap)
+		return
+	var/scale = cap / total
+	for(var/datum/liquid/fluid as anything in T.cell.fluid_volume)
+		var/amt = T.cell.fluid_volume[fluid]
+		if(amt <= 0)
+			continue
+		var/new_amt = round(amt * scale)
+		T.cell.fluid_volume[fluid] = new_amt
+		var/mat = vn_fluid_mat_id(fluid)
+		if(mat)
+			vn_fluid_queue(VN_FLUID_OP_SET, T, mat, new_amt)
+	update_fluidsum(T)
+
+/datum/controller/subsystem/processing/liquid/proc/clear_cell_fluid(turf/T)
+	for(var/datum/liquid/fluid as anything in T.cell.fluid_volume)
+		T.cell.fluid_volume[fluid] = 0
+	vn_fluid_queue(VN_FLUID_OP_CLEAR, T)
+	update_fluidsum(T)
+	GLOB.pool_manager.liquid_turfs -= T
+	update_cell_image(T)
+
 /datum/controller/subsystem/processing/liquid/proc/get_fluidsums(turf/T) as num
 	var/sum = 0
 	for(var/datum/liquid/fluid as anything in T.cell.fluid_volume)
@@ -226,7 +259,7 @@ PROCESSING_SUBSYSTEM_DEF(liquid)
 			var/datum/liquid/below_fluid = below.get_highest_fluid_by_volume()
 			if(below_fluid)
 				T.liquid_overlay.color = below_fluid.color
-			if(below.cell.flow_dir)
+			if(below.cell.flow_dir && (istype(below, /turf/open/floor/rogue/riverbot) || istype(below, /turf/open/floor/rogue/lakebed)))
 				T.liquid_overlay.icon_state = "rivermove"
 				T.liquid_overlay.dir = below.cell.flow_dir
 			else
@@ -240,7 +273,7 @@ PROCESSING_SUBSYSTEM_DEF(liquid)
 				T.cell.remove_liquid_sink()
 		return
 
-	if(T.cell?.flow_dir)
+	if(T.cell?.flow_dir && (istype(T, /turf/open/water) || istype(T, /turf/open/floor/rogue/riverbot) || istype(T, /turf/open/floor/rogue/lakebed)))
 		T.liquid_overlay.icon_state = "rivermove"
 		T.liquid_overlay.dir = T.cell.flow_dir
 	else
@@ -327,6 +360,9 @@ PROCESSING_SUBSYSTEM_DEF(liquid)
 	for(var/turf/T as anything in turfs)
 		if(!T?.cell || seen[T])
 			continue
+		if(T.cell.sim_exempt)
+			seen[T] = TRUE
+			continue
 		seen[T] = TRUE
 		for(var/datum/liquid/fluid as anything in T.cell.fluid_volume)
 			var/amt = T.cell.fluid_volume[fluid]
@@ -370,6 +406,9 @@ PROCESSING_SUBSYSTEM_DEF(liquid)
 		if(!T)
 			cur += ntypes * 2
 			continue
+		if(T.cell?.sim_exempt)
+			cur += ntypes * 2
+			continue
 		if(!T.cell) // fluid reached a turf created after init (e.g. construction)
 			T.cell = new /cell(T)
 			T.cell.InitLiquids()
@@ -406,6 +445,10 @@ PROCESSING_SUBSYSTEM_DEF(liquid)
 				vols[instance] = amt
 		update_fluidsum(T)
 		cell_index[T] = TRUE
+		if(T.cell.contain_max && T.cell.fluidsum > T.cell.contain_max)
+			clamp_cell_fluid(T, T.cell.contain_max)
+		else if(!T.cell.contain_max && T.cell.fluidsum > 0 && has_contained_neighbor(T))
+			clear_cell_fluid(T)
 		if(T.cell.fluidsum >= MIN_FLUID_VOLUME)
 			GLOB.pool_manager.liquid_turfs[T] = TRUE
 		else

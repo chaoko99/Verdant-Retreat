@@ -117,6 +117,11 @@ GLOBAL_DATUM_INIT(openspace_backdrop_one_for_all, /atom/movable/openspace_backdr
 		return
 
 	handle_water_entry(AM, oldLoc)
+	try_start_river_current(AM)
+
+/turf/open/transparent/openspace/process()
+	if(!handle_river_current())
+		STOP_PROCESSING(SSfastprocess, src)
 
 /turf/open/transparent/openspace/Exited(atom/movable/AM, atom/newloc)
 	. = ..()
