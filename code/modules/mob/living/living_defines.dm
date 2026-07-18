@@ -9,6 +9,7 @@
 	typing_indicator_enabled = TRUE
 
 	var/resize = 1 //Badminnery resize
+	var/underwater_bobbing = FALSE
 	var/lastattacker = null
 	var/lastattackerckey = null
 	var/last_attack_was_blunted = FALSE // Track if the last attack was blunted by armor

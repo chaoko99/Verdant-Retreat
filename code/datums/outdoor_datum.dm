@@ -262,28 +262,3 @@ Sunlight System
 		. |= CEIL_WEATHERPROOF
 	if(!recursionStarted && SSoutdoor_effects.ceiling_status_caching)
 		cs_cache = .
-
-/proc/verify_outdoor_parity()
-	var/list/snapA = list()
-	for(var/z in SSmapping.levels_by_trait(ZTRAIT_STATION))
-		for(var/turf/T in block(locate(1,1,z), locate(world.maxx,world.maxy,z)))
-			var/atom/movable/outdoor_effect/OE = T.outdoor_effect
-			snapA[T] = OE ? "[OE.state],[OE.weatherproof]" : "-"
-		CHECK_TICK
-	SSoutdoor_effects.ceiling_status_caching = FALSE
-	for(var/z in SSmapping.levels_by_trait(ZTRAIT_STATION))
-		for(var/turf/T in block(locate(1,1,z), locate(world.maxx,world.maxy,z)))
-			T.get_sky_and_weather_states()
-		CHECK_TICK
-	var/mismatches = 0
-	for(var/turf/T in snapA)
-		var/atom/movable/outdoor_effect/OE = T.outdoor_effect
-		var/b = OE ? "[OE.state],[OE.weatherproof]" : "-"
-		if(snapA[T] != b)
-			mismatches++
-			if(mismatches <= 30)
-				log_world("OUTDOOR PARITY MISMATCH z[T.z] ([T.x],[T.y]) cached=[snapA[T]] uncached=[b]")
-	var/resline = "OUTDOOR PARITY VERIFY: turfs=[length(snapA)] mismatches=[mismatches]"
-	log_world(resline)
-	fdel("data/outdoor_parity.txt")
-	text2file(resline, "data/outdoor_parity.txt")

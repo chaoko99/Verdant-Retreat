@@ -1542,6 +1542,21 @@
 	if(locations & CHEST)
 		extinguish_mob()
 
+/mob/living/proc/underwater_float_start()
+	if(underwater_bobbing)
+		return
+	if(movement_type & (FLOATING|FLYING))
+		return
+	underwater_bobbing = TRUE
+	animate(src, pixel_z = 2, time = 1.5 SECONDS, loop = -1, flags = ANIMATION_RELATIVE)
+	animate(pixel_z = -2, time = 1.5 SECONDS, flags = ANIMATION_RELATIVE)
+
+/mob/living/proc/underwater_float_stop()
+	if(!underwater_bobbing)
+		return
+	underwater_bobbing = FALSE
+	animate(src, pixel_z = 0, time = 0.5 SECONDS)
+
 /mob/living/proc/extinguish_mob()
 	if(HAS_TRAIT(src, TRAIT_NO_EXTINGUISH)) //The everlasting flames will not be extinguished
 		return

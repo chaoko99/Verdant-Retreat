@@ -68,9 +68,6 @@ SUBSYSTEM_DEF(outdoor_effects)
 			GLOB.SUNLIGHT_QUEUE_WORK += T
 
 /datum/controller/subsystem/outdoor_effects/Initialize(timeofday)
-	var/do_profile = world.params["profile_outdoor"]
-	if(do_profile)
-		world.Profile(PROFILE_RESTART, format = "json")
 	if(!initialized)
 		get_time_of_day()
 		InitializeTurfs()
@@ -78,10 +75,6 @@ SUBSYSTEM_DEF(outdoor_effects)
 	ceiling_status_caching = TRUE
 	fire(FALSE, TRUE)
 	ceiling_status_caching = FALSE
-	if(do_profile)
-		rustg_file_write(world.Profile(PROFILE_REFRESH, format = "json"), "data/outdoor_profile.json")
-	if(world.GetConfig("env", "VERIFY_CEILING") || world.params["verify_ceiling"])
-		verify_outdoor_parity()
 	..()
 
 /datum/controller/subsystem/outdoor_effects/stat_entry(msg)

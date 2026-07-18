@@ -65,15 +65,13 @@
 			for(var/obj/structure/S in src)
 				if(S.obj_flags & BLOCK_Z_OUT_DOWN)
 					return
+			if(!istype(newloc, /turf/open/water))
+				user.underwater_float_stop()
 			if(water_overlay)
-				if((get_dir(src, newloc) == SOUTH))
-					water_overlay.layer = BELOW_MOB_LAYER
-					water_overlay.plane = GAME_PLANE
-				else
-					spawn(6)
-						if(!locate(/mob/living) in src)
-							water_overlay.layer = BELOW_MOB_LAYER
-							water_overlay.plane = GAME_PLANE
+				spawn(6)
+					if(!locate(/mob/living) in src)
+						water_overlay.layer = BELOW_MOB_LAYER
+						water_overlay.plane = GAME_PLANE
 			var/drained = get_stamina_drain(user, get_dir(src, newloc))
 			if(drained && !user.stamina_add(drained))
 				handle_swim_exhaustion(user)
@@ -178,14 +176,16 @@
 					playsound(AM, 'sound/foley/waterenter.ogg', 100, FALSE)
 				else
 					playsound(AM, pick('sound/foley/watermove (1).ogg','sound/foley/watermove (2).ogg'), 100, FALSE)
-				if(istype(oldLoc, type) && (get_dir(src, oldLoc) != SOUTH))
+				if(istype(oldLoc, type))
 					water_overlay.layer = ABOVE_MOB_LAYER
-					water_overlay.plane = water_overlay.plane = GAME_PLANE_HIGHEST
+					water_overlay.plane = GAME_PLANE
 				else
 					spawn(6)
 						if(AM.loc == src)
 							water_overlay.layer = ABOVE_MOB_LAYER
-							water_overlay.plane = GAME_PLANE_HIGHEST
+							water_overlay.plane = GAME_PLANE
+			if(water_level >= 2)
+				L.underwater_float_start()
 		if(!istype(L, /mob/living/carbon/human/species/skeleton))
 			return
 		if(!istype(src, /turf/open/water/sewer))
