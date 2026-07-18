@@ -20,7 +20,7 @@
 /obj/item/organ/lungs/proc/missing_lungs_effects(mob/living/carbon/C)
 	if(HAS_TRAIT(C, TRAIT_NOBREATH))
 		return
-	C.adjustOxyLoss(5, TRUE)
+	C.adjustChokeOxyLoss(5, TRUE)
 	if(prob(10) && !C.stat)
 		C.emote("gasp")
 		to_chat(C, span_warning("I gasp for air, but nothing comes!"))
@@ -59,17 +59,17 @@
 	if(damage > 0)
 		var/damage_ratio = damage / maxHealth
 		if(damage < low_threshold)
-			C.adjustOxyLoss(damage_ratio * 0.5)
+			C.adjustChokeOxyLoss(damage_ratio * 0.5)
 			if(prob(3))
 				C.emote("cough")
 		else if(damage < high_threshold)
-			C.adjustOxyLoss(damage_ratio * 1.5)
+			C.adjustChokeOxyLoss(damage_ratio * 1.5)
 			if(prob(5))
 				C.emote("cough")
 			if(prob(2) && !C.stat)
 				to_chat(C, span_warning("My chest hurts."))
 		else if(damage < maxHealth)
-			C.adjustOxyLoss(damage_ratio * 3)
+			C.adjustChokeOxyLoss(damage_ratio * 3)
 			if(prob(8))
 				C.emote("cough")
 			if(prob(5) && !C.stat)
@@ -80,7 +80,7 @@
 			C.visible_message(span_danger("[C] clutches [C.p_their()] throat, gasping!"), \
 								span_userdanger("I CAN'T BREATHE!"))
 		failed = TRUE
-		C.adjustOxyLoss(4)
+		C.adjustChokeOxyLoss(4)
 	else if(!(organ_flags & ORGAN_FAILING))
 		failed = FALSE
 	return
