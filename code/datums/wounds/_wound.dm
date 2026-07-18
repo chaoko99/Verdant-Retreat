@@ -35,6 +35,8 @@ GLOBAL_LIST_INIT(primordial_wounds, init_primordial_wounds())
 	var/created = 0
 	/// Number of wounds merged into this one (for tracking wound density)
 	var/amount = 1
+	/// Whether this wound has already announced itself with a "new wound" message
+	var/named = FALSE
 
 	/// How many "health points" this wound has, AKA how hard it is to heal
 	var/whp = 60
@@ -465,7 +467,8 @@ GLOBAL_LIST_INIT(primordial_wounds, init_primordial_wounds())
 			if(severity_names[sevname] <= bleed_rate)
 				newname = sevname
 	name = "[newname  ? "[newname] " : ""][initial(name)]"	//[adjective] [name], aka, "gnarly slash" or "slash"
-	if(oldname == initial(name) && length(severity_names)) //if we're creating the wound
+	if(!named && length(severity_names))
+		named = TRUE
 		owner.visible_message(span_red("A new [initial(name)] appears on [owner]'s [lowertext(bodyzone2readablezone(bodypart_to_zone(bodypart_owner)))]!"))
 	else if(name != oldname)
 		owner.visible_message(span_red("The [oldname] on [owner]'s [lowertext(bodyzone2readablezone(bodypart_to_zone(bodypart_owner)))] gets worse!"))
