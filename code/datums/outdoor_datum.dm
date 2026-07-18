@@ -185,89 +185,83 @@ Sunlight System
 
 /* check ourselves and neighbours to see what outdoor effects we need */
 /* turf won't initialize an outdoor_effect if sky_blocked*/
-/turf/proc/get_sky_and_weather_states()
-	var/TempState
+#define CEIL_SKYVISIBLE   (1<<0)
+#define CEIL_WEATHERPROOF (1<<1)
 
+/turf/proc/get_sky_and_weather_states()
 	var/roofStat = get_ceiling_status()
-	var/tempRoofStat
-	if(roofStat["SKYVISIBLE"])
+	var/TempState
+	if(roofStat & CEIL_SKYVISIBLE)
 		TempState = SKY_VISIBLE
 		for(var/turf/CT in RANGE_TURFS(1, src))
-			tempRoofStat = CT.get_ceiling_status()
-			if(!tempRoofStat["SKYVISIBLE"]) /* if we have a single roofed/indoor neighbour, we are a border */
+			if(!(CT.get_ceiling_status() & CEIL_SKYVISIBLE)) /* if we have a single roofed/indoor neighbour, we are a border */
 				TempState = SKY_VISIBLE_BORDER
 				break
 	else /* roofed, so turn off the lights */
 		TempState = SKY_BLOCKED
 
 	/* if border or indoor, initialize. Set sunlight state if valid */
-	if(!outdoor_effect && (TempState <> SKY_BLOCKED || !roofStat["WEATHERPROOF"]))
+	if(!outdoor_effect && (TempState != SKY_BLOCKED || !(roofStat & CEIL_WEATHERPROOF)))
 		outdoor_effect = new /atom/movable/outdoor_effect(src)
 	if(outdoor_effect)
 		outdoor_effect.state = TempState
-		outdoor_effect.weatherproof = roofStat["WEATHERPROOF"]
+		outdoor_effect.weatherproof = (roofStat & CEIL_WEATHERPROOF) ? TRUE : FALSE
 
-GLOBAL_VAR_INIT(ceiling_status_caching, FALSE)
-GLOBAL_LIST_EMPTY(ceiling_cache_top)
-GLOBAL_LIST_EMPTY(ceiling_cache_ceil)
+/turf/var/cs_cache
 
+/* Walk this turf's Z-stack upward; returns CEIL_SKYVISIBLE|CEIL_WEATHERPROOF flags. */
 /turf/proc/get_ceiling_status(recursionStarted = FALSE)
-	if(!GLOB.ceiling_status_caching)
-		return _get_ceiling_status_uncached(recursionStarted)
-	var/list/cache = recursionStarted ? GLOB.ceiling_cache_ceil : GLOB.ceiling_cache_top
-	. = cache[src]
-	if(!isnull(.))
-		return .
-	. = _get_ceiling_status_uncached(recursionStarted)
-	cache[src] = .
+	if(!recursionStarted && SSoutdoor_effects.ceiling_status_caching && !isnull(cs_cache))
+		return cs_cache
 
-/* runs up the Z stack for this turf, returns a assoc (SKYVISIBLE, WEATHERPROOF)*/
-/* pass recursionStarted=TRUE when we are checking our ceiling's stats */
-/turf/proc/_get_ceiling_status_uncached(recursionStarted = FALSE)
-	. = list()
-
-	//Check yourself (before you wreck yourself)
-	if(isclosedturf(src)) //Closed, but we might be transparent
-		.["SKYVISIBLE"]   =  istransparentturf(src) // a column of glass should still let the sun in
-		.["WEATHERPROOF"] =  TRUE
-	else
-		if(recursionStarted)
-			// This src is acting as a ceiling - so if we are a floor we weatherproof + block the sunlight of our down-Z turf
-			.["SKYVISIBLE"]   = istransparentturf(src) //If we are glass floor, we don't block
-			for(var/obj/structure/thing in src.contents) // Checks to see if weatherproof objects on the tile
+	var/cumulative_sv = TRUE
+	var/cumulative_wp = FALSE
+	var/turf/current = src
+	var/rec = recursionStarted
+	while(TRUE)
+		var/base_sv
+		var/base_wp
+		if(isclosedturf(current))
+			base_sv = istransparentturf(current)
+			base_wp = TRUE
+		else if(rec)
+			base_sv = istransparentturf(current)
+			base_wp = current.weatherproof
+			for(var/obj/structure/thing in current.contents)
 				if(thing.weatherproof == TRUE)
-					.["WEATHERPROOF"] = TRUE // returns true to block the weather
-					.["SKYVISIBLE"] = FALSE
-					return .
-			.["WEATHERPROOF"] = weatherproof //If we are air or space, we aren't weatherproof
-		else //We are open, so assume open to the elements
-			.["SKYVISIBLE"]   = TRUE
-			.["WEATHERPROOF"] = FALSE
+					base_sv = FALSE
+					base_wp = TRUE
+					break
+		else
+			base_sv = TRUE
+			base_wp = FALSE
 
-	// Early leave if we can't see the sky - if we are an opaque turf, we already know the results
-	// I can't think of a case where we would have a turf that would block light but let weather effects through - Maybe a vent?
-	// fix this if that is the case
-	if(!.["SKYVISIBLE"])
-		return .
+		if(base_wp)
+			cumulative_wp = TRUE
+		if(!base_sv)
+			cumulative_sv = FALSE
+			break
+		if(current.pseudo_roof)
+			cumulative_sv = FALSE
+			cumulative_wp = TRUE
+			break
+		var/turf/above = GET_TURF_ABOVE(current)
+		if(!above)
+			var/area/A = get_area(current)
+			if(!A.outdoors)
+				cumulative_sv = FALSE
+				cumulative_wp = TRUE
+			break
+		current = above
+		rec = TRUE
 
-	//Ceiling Check
-	// Psuedo-roof, for the top of the map (no actual turf exists up here) -- We assume these are solid, if you add glass pseudo_roofs then fix this
-	var/turf/above_turf = GET_TURF_ABOVE(src)
-	if (pseudo_roof)
-		.["SKYVISIBLE"]   =  FALSE
-		.["WEATHERPROOF"] =  TRUE
-	else
-		// EVERY turf must be transparent for sunlight - so &=
-		// ANY turf must be closed for weatherproof - so |=
-		if(above_turf)
-			var/list/ceilingStat = above_turf.get_ceiling_status(TRUE) //Pass TRUE because we are now acting as a ceiling
-			.["SKYVISIBLE"]   &= ceilingStat["SKYVISIBLE"]
-			.["WEATHERPROOF"] |= ceilingStat["WEATHERPROOF"]
-
-	var/area/turf_area = get_area(src)
-	if((!above_turf && !turf_area.outdoors))
-		.["SKYVISIBLE"]   =  FALSE
-		.["WEATHERPROOF"] =  TRUE
+	. = 0
+	if(cumulative_sv)
+		. |= CEIL_SKYVISIBLE
+	if(cumulative_wp)
+		. |= CEIL_WEATHERPROOF
+	if(!recursionStarted && SSoutdoor_effects.ceiling_status_caching)
+		cs_cache = .
 
 /proc/verify_outdoor_parity()
 	var/list/snapA = list()
@@ -276,7 +270,7 @@ GLOBAL_LIST_EMPTY(ceiling_cache_ceil)
 			var/atom/movable/outdoor_effect/OE = T.outdoor_effect
 			snapA[T] = OE ? "[OE.state],[OE.weatherproof]" : "-"
 		CHECK_TICK
-	GLOB.ceiling_status_caching = FALSE
+	SSoutdoor_effects.ceiling_status_caching = FALSE
 	for(var/z in SSmapping.levels_by_trait(ZTRAIT_STATION))
 		for(var/turf/T in block(locate(1,1,z), locate(world.maxx,world.maxy,z)))
 			T.get_sky_and_weather_states()
@@ -289,4 +283,7 @@ GLOBAL_LIST_EMPTY(ceiling_cache_ceil)
 			mismatches++
 			if(mismatches <= 30)
 				log_world("OUTDOOR PARITY MISMATCH z[T.z] ([T.x],[T.y]) cached=[snapA[T]] uncached=[b]")
-	log_world("OUTDOOR PARITY VERIFY: turfs=[length(snapA)] mismatches=[mismatches]")
+	var/resline = "OUTDOOR PARITY VERIFY: turfs=[length(snapA)] mismatches=[mismatches]"
+	log_world(resline)
+	fdel("data/outdoor_parity.txt")
+	text2file(resline, "data/outdoor_parity.txt")

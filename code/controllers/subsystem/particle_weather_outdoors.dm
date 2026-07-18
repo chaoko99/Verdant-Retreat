@@ -60,6 +60,7 @@ SUBSYSTEM_DEF(outdoor_effects)
 	                                                   new /datum/time_of_day/dusk(),
 	                                                   new /datum/time_of_day/midnight())
 	var/next_day = FALSE // Resets when station_time is less than the next start time.
+	var/ceiling_status_caching = FALSE
 
 /datum/controller/subsystem/outdoor_effects/proc/fullPlonk()
 	for (var/z in SSmapping.levels_by_trait(ZTRAIT_STATION))
@@ -67,17 +68,20 @@ SUBSYSTEM_DEF(outdoor_effects)
 			GLOB.SUNLIGHT_QUEUE_WORK += T
 
 /datum/controller/subsystem/outdoor_effects/Initialize(timeofday)
+	var/do_profile = world.params["profile_outdoor"]
+	if(do_profile)
+		world.Profile(PROFILE_RESTART, format = "json")
 	if(!initialized)
 		get_time_of_day()
 		InitializeTurfs()
 		initialized = TRUE
-	GLOB.ceiling_cache_top = list()
-	GLOB.ceiling_cache_ceil = list()
-	GLOB.ceiling_status_caching = TRUE
+	ceiling_status_caching = TRUE
 	fire(FALSE, TRUE)
-	GLOB.ceiling_status_caching = FALSE
-	GLOB.ceiling_cache_top = null
-	GLOB.ceiling_cache_ceil = null
+	ceiling_status_caching = FALSE
+	if(do_profile)
+		rustg_file_write(world.Profile(PROFILE_REFRESH, format = "json"), "data/outdoor_profile.json")
+	if(world.GetConfig("env", "VERIFY_CEILING") || world.params["verify_ceiling"])
+		verify_outdoor_parity()
 	..()
 
 /datum/controller/subsystem/outdoor_effects/stat_entry(msg)

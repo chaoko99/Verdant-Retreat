@@ -341,7 +341,8 @@
 	while(first_turf_index <= members.len && !ispath(members[first_turf_index], /turf)) //find first /turf object in members
 		first_turf_index++
 	if(first_turf_index > members.len)
-		log_world("MAP ERROR: model with no turf at [crds ? "[crds.x],[crds.y],[crds.z]" : "unknown coords"], tile skipped")
+		if(members.len > 1) //skip area only models without turfs
+			log_world("MAP ERROR: [members.len - 1] object(s) with no turf at [crds ? "[crds.x],[crds.y],[crds.z]" : "unknown coords"], dropped")
 		return
 
 	//turn off base new Initialization until the whole thing is loaded
@@ -370,15 +371,12 @@
 //Helpers procs
 ////////////////
 
-GLOBAL_VAR_INIT(mapload_stone_bottom, TRUE)
-GLOBAL_VAR_INIT(mapload_stone_bottom_count, 0)
-
 //Instance an atom at (x,y,z) and gives it the variables in attributes
 /datum/parsed_map/proc/instance_atom(path,list/attributes, turf/crds, no_changeturf, placeOnTop)
-	if(crds && GLOB.mapload_stone_bottom && ispath(path, /turf/open/transparent/openspace) && !ispath(path, /turf/open/transparent/openspace/debug) && !SSmapping.level_trait(crds.z, ZTRAIT_DOWN))
+	if(crds && SSmapping.mapload_stone_bottom && ispath(path, /turf/open/transparent/openspace) && !ispath(path, /turf/open/transparent/openspace/debug) && !SSmapping.level_trait(crds.z, ZTRAIT_DOWN))
 		path = /turf/open/floor/rogue/naturalstone
-		attributes = null
-		GLOB.mapload_stone_bottom_count++
+		attributes = list()
+		SSmapping.mapload_stone_bottom_count++
 	world.preloader_setup(attributes, path)
 
 	if(crds)

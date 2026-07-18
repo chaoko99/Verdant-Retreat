@@ -23,7 +23,11 @@
 	if(!T)
 		vis_contents.len = 0
 		if(!show_bottom_level() && prune_on_fail) //If we cant show whats below, and we prune on fail, change the turf to plating as a fallback
-			ChangeTurf(/turf/open/floor/rogue/naturalstone, flags = CHANGETURF_INHERIT_AIR)
+			if(SSmapping.skip_offmap_prune && (SSmapping.level_trait(z, ZTRAIT_RESERVED) || SSmapping.level_trait(z, ZTRAIT_CENTCOM)))
+				SSmapping.openspace_prune_skipped++
+			else
+				SSmapping.openspace_prune_count++
+				ChangeTurf(/turf/open/floor/rogue/naturalstone, flags = CHANGETURF_INHERIT_AIR)
 		return FALSE
 	if(init)
 		vis_contents += T

@@ -29,6 +29,12 @@ SUBSYSTEM_DEF(mapping)
 	var/list/reservation_ready = list()
 	var/clearing_reserved_turfs = FALSE
 
+	var/mapload_stone_bottom = TRUE
+	var/skip_offmap_prune = TRUE
+	var/mapload_stone_bottom_count = 0
+	var/openspace_prune_count = 0
+	var/openspace_prune_skipped = 0
+
 	// Z-manager stuff
 	var/station_start  // should only be used for maploading-related tasks
 	var/space_levels_so_far = 0
@@ -199,7 +205,8 @@ SUBSYSTEM_DEF(mapping)
 	//if any of these fail, something has gone horribly, HORRIBLY, wrong
 	var/list/FailedZs = list()
 
-	GLOB.mapload_stone_bottom = !world.GetConfig("env", "VN_KEEP_OPENSPACE_BOTTOM")
+	mapload_stone_bottom = !world.GetConfig("env", "KEEP_OPENSPACE_BOTTOM")
+	skip_offmap_prune = !world.GetConfig("env", "PRUNE_ALL_LEVELS")
 
 	// ensure we have space_level datums for compiled-in maps
 	InitializeDefaultZLevels()
@@ -250,7 +257,7 @@ SUBSYSTEM_DEF(mapping)
 		INIT_ANNOUNCE(msg)
 #undef INIT_ANNOUNCE
 
-	log_world("mapload: openspace->naturalstone bottom-z substitutions: [GLOB.mapload_stone_bottom_count]")
+	log_world("mapload: openspace->naturalstone bottom-z substitutions: [mapload_stone_bottom_count]")
 
 	// Custom maps are removed after station loading so the map files does not persist for no reason.
 	if(config.map_path == "custom")
