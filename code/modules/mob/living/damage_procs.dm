@@ -188,6 +188,9 @@
 	oxyloss = CLAMP((oxyloss + (amount * CONFIG_GET(number/damage_multiplier))), 0, maxHealth * 2)
 	. -= oxyloss
 
+	if(choke_oxyloss > oxyloss) // Choke should never be greater than the total oxyloss
+		choke_oxyloss = oxyloss
+
 	if (!.)
 		return FALSE
 
@@ -199,9 +202,27 @@
 	if(status_flags & GODMODE)
 		return 0
 	oxyloss = amount
+	if(choke_oxyloss > oxyloss)
+		choke_oxyloss = oxyloss
 	if(updating_health)
 		updatehealth()
 	return amount
+
+/mob/living/proc/adjustChokeOxyLoss(amount, updating_health = TRUE, forced = FALSE)
+	var/before = oxyloss
+	. = adjustOxyLoss(amount, updating_health, forced)
+	if(amount > 0)
+		var/applied = oxyloss - before
+		if(applied > 0)
+			choke_oxyloss = min(choke_oxyloss + applied, oxyloss)
+			choke_oxy_active = TRUE
+
+/mob/living/proc/handle_choke_recovery()
+	if(choke_oxyloss > 0 && !choke_oxy_active)
+		var/heal = min(CHOKE_OXY_RECOVERY_PER_TICK, choke_oxyloss)
+		choke_oxyloss -= heal
+		adjustOxyLoss(-heal)
+	choke_oxy_active = FALSE
 
 /mob/living/proc/getToxLoss()
 	return toxloss

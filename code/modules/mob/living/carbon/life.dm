@@ -31,6 +31,7 @@
 		if(life_wounds_settled())
 			life_work &= ~LIFEWORK_WOUNDS
 	handle_roguebreath()
+	handle_choke_recovery()
 	var/bprv = handle_bodyparts()
 	if(bprv & BODYPART_LIFE_UPDATE_HEALTH)
 		update_stamina() //needs to go before updatehealth to remove stamcrit
@@ -140,13 +141,13 @@
 	if(HAS_TRAIT(src, TRAIT_NOBREATH))
 		return TRUE
 	if(HAS_TRAIT(src, TRAIT_HOLDBREATH))
-		adjustOxyLoss(10)
+		adjustChokeOxyLoss(10)
 	if(istype(loc, /obj/structure/closet/dirthole))
-		adjustOxyLoss(5)
+		adjustChokeOxyLoss(5)
 	if(istype(loc, /obj/structure/closet/burial_shroud))
 		var/obj/O = loc
 		if(istype(O.loc, /obj/structure/closet/dirthole))
-			adjustOxyLoss(10)
+			adjustChokeOxyLoss(10)
 	if(isopenturf(loc))
 		var/turf/open/T = loc
 		if(reagents && T.pollution)
@@ -174,7 +175,7 @@
 		if(stat == DEAD && client)
 			record_round_statistic(STATS_PEOPLE_DROWNED)
 		var/drown_damage = has_world_trait(/datum/world_trait/abyssor_rage) ? 10 : 5
-		adjustOxyLoss(drown_damage)
+		adjustChokeOxyLoss(drown_damage)
 		emote("drown")
 
 /mob/living/carbon/human/handle_inwater(turf/onturf, extinguish = TRUE, force_drown = FALSE)

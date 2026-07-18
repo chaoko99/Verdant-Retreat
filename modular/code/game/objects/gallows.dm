@@ -90,7 +90,7 @@
 					if(locate(/obj/structure/chair) in get_turf(src)) // So you can kick down the chair and make them hang, and stuff.
 						return
 					if(!HAS_TRAIT(buckled_mob, TRAIT_NOBREATH))
-						buckled_mob.adjustOxyLoss(10)
+						buckled_mob.adjustChokeOxyLoss(10)
 						if(prob(20))
 							buckled_mob.emote("gasp")
 					if(prob(25))

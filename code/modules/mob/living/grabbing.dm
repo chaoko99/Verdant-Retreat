@@ -241,7 +241,7 @@
 							C.stamina_add(choke_damage*1.5)
 						if(prob(25))
 							C.emote("choke")
-					C.adjustOxyLoss(choke_damage)
+					C.adjustChokeOxyLoss(choke_damage)
 					C.visible_message(span_danger("[user] [pick("chokes", "strangles")] [C][chokehold ? " with a chokehold" : ""]!"), \
 							span_userdanger("[user] [pick("chokes", "strangles")] me[chokehold ? " with a chokehold" : ""]!"), span_hear("I hear a sickening sound of pugilism!"), COMBAT_MESSAGE_RANGE, user)
 					to_chat(user, span_danger("I [pick("choke", "strangle")] [C][chokehold ? " with a chokehold" : ""]!"))

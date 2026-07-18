@@ -105,6 +105,7 @@ GLOBAL_DATUM_INIT(openspace_backdrop_one_for_all, /atom/movable/openspace_backdr
 		add_filter("vn_swim_mask", 1, alpha_mask_filter(icon = waterline_mask))
 	else
 		remove_filter("vn_swim_mask")
+	update_vision_cone()
 
 // Swimming through openspace when water is below
 /turf/open/transparent/openspace/Entered(atom/movable/AM, atom/oldLoc)
