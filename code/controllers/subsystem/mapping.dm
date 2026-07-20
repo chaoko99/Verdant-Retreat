@@ -55,6 +55,9 @@ SUBSYSTEM_DEF(mapping)
 	///antag retainer
 	var/datum/antag_retainer/retainer
 
+	///river/lake bed turfs generated during init, awaiting a containment check
+	var/list/water_bed_turfs = list()
+
 //dlete dis once #39770 is resolved
 /datum/controller/subsystem/mapping/proc/HACK_LoadMapConfig()
 	if(!config)
@@ -101,6 +104,63 @@ SUBSYSTEM_DEF(mapping)
 	generate_z_level_linkages()
 	calculate_default_z_level_gravities()
 	return ..()
+
+/datum/controller/subsystem/mapping/proc/register_water_bed(turf/bed)
+	if(bed)
+		water_bed_turfs |= bed
+
+/datum/controller/subsystem/mapping/proc/water_bed_gap(turf/T)
+	if(istype(T, /turf/closed))
+		return FALSE
+	if(istype(T, /turf/open/water))
+		return FALSE
+	if(istype(T, /turf/open/floor/rogue/riverbot) || istype(T, /turf/open/floor/rogue/lakebed))
+		return FALSE
+	if(T.cell?.contain_max)
+		return FALSE
+	return TRUE
+
+/datum/controller/subsystem/mapping/proc/water_bed_plug_type(turf/gap)
+	var/list/wall_counts = list()
+	for(var/dir in GLOB.alldirs)
+		var/turf/neighbor = get_step(gap, dir)
+		if(!neighbor || !istype(neighbor, /turf/closed))
+			continue
+		wall_counts[neighbor.type] += 1
+	var/best_type
+	for(var/wall_type in wall_counts)
+		if(!best_type || wall_counts[wall_type] > wall_counts[best_type])
+			best_type = wall_type
+	return best_type || /turf/closed/mineral
+
+/datum/controller/subsystem/mapping/proc/check_water_bed_seals()
+	if(!length(water_bed_turfs))
+		return
+	var/list/plugged = list()
+	for(var/turf/bed as anything in water_bed_turfs)
+		for(var/dir in GLOB.cardinals)
+			var/turf/neighbor = get_step(bed, dir)
+			if(!neighbor || !water_bed_gap(neighbor))
+				continue
+			var/old_type = neighbor.type
+			var/plug_type = water_bed_plug_type(neighbor)
+			var/turf/plug = neighbor.ChangeTurf(plug_type, null, CHANGETURF_IGNORE_AIR)
+			if(!plug)
+				continue
+			if(!plug.cell)
+				plug.cell = new /cell(plug)
+				plug.cell.InitLiquids()
+			var/turf/above = GetAbove(plug)
+			if(above && isopenspace(above))
+				above.update_mimic()
+			plugged += "([plug.x], [plug.y], [plug.z]) [old_type] replaced with [plug_type]"
+	water_bed_turfs.Cut()
+	if(!length(plugged))
+		return
+	log_water_gen("Water generation found [length(plugged)] unsealed turf\s bordering generated river/lake beds:")
+	for(var/entry in plugged)
+		log_water_gen(entry)
+	log_world("WATER GENERATION DETECTED A MAPPING ERROR. SEE LOGS AT [GLOB.world_water_gen_log] FOR DETAILS.")
 
 /datum/controller/subsystem/mapping/proc/calculate_default_z_level_gravities()
 	for(var/z_level in 1 to length(z_list))

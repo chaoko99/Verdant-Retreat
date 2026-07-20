@@ -4,7 +4,7 @@
 	icon_state = "bottom"
 	density = FALSE
 	mouse_opacity = FALSE
-	layer = MID_TURF_LAYER
+	layer = BELOW_MOB_LAYER
 	anchored = TRUE
 
 /obj/effect/overlay/water/top
@@ -59,22 +59,24 @@
 
 /turf/open/water/Exited(atom/movable/AM, atom/newloc)
 	. = ..()
-	if(isliving(AM) && !AM.throwing)
-		var/mob/living/user = AM
-		if(isliving(user) && !user.is_floor_hazard_immune())
-			for(var/obj/structure/S in src)
-				if(S.obj_flags & BLOCK_Z_OUT_DOWN)
-					return
-			if(!istype(newloc, /turf/open/water))
-				user.underwater_float_stop()
-			if(water_overlay)
-				spawn(6)
-					if(!locate(/mob/living) in src)
-						water_overlay.layer = BELOW_MOB_LAYER
-						water_overlay.plane = GAME_PLANE
-			var/drained = get_stamina_drain(user, get_dir(src, newloc))
-			if(drained && !user.stamina_add(drained))
-				handle_swim_exhaustion(user)
+	if(!isliving(AM))
+		return
+	if(water_overlay)
+		spawn(6)
+			if(!locate(/mob/living) in src)
+				water_overlay.layer = BELOW_MOB_LAYER
+				water_overlay.plane = GAME_PLANE
+	if(AM.throwing)
+		return
+	var/mob/living/user = AM
+	if(user.is_floor_hazard_immune())
+		return
+	for(var/obj/structure/S in src)
+		if(S.obj_flags & BLOCK_Z_OUT_DOWN)
+			return
+	var/drained = get_stamina_drain(user, get_dir(src, newloc))
+	if(drained && !user.stamina_add(drained))
+		handle_swim_exhaustion(user)
 
 /turf/open/water/proc/handle_swim_exhaustion(mob/living/user)
 	user.Immobilize(30)
@@ -172,11 +174,11 @@
 				if(water_level == 2)
 					L.SoakMob(BELOW_CHEST)
 			if(water_overlay)
-				if(water_level > 1 && !istype(oldLoc, type))
+				if(water_level > 1 && !istype(oldLoc, /turf/open/water))
 					playsound(AM, 'sound/foley/waterenter.ogg', 100, FALSE)
 				else
 					playsound(AM, pick('sound/foley/watermove (1).ogg','sound/foley/watermove (2).ogg'), 100, FALSE)
-				if(istype(oldLoc, type))
+				if(istype(oldLoc, /turf/open/water))
 					water_overlay.layer = ABOVE_MOB_LAYER
 					water_overlay.plane = GAME_PLANE
 				else
@@ -476,6 +478,7 @@
 		SSliquid.update_fluidsum(river_bottom)
 		SSliquid.cell_index[river_bottom] = TRUE
 		new_top.refresh_river_overlay()
+		SSmapping.register_water_bed(river_bottom)
 
 /turf/open/floor/rogue/riverbot
 	name = "river bottom"
@@ -726,14 +729,29 @@
 	slowdown = 5
 	wash_in = TRUE
 	swim_skill = TRUE
+	water_level = 3
+	baseturfs = /turf/open/transparent/openspace
 
 /turf/open/water/lake/Initialize()
 	. = ..()
 
-	var/turf/below = GetBelow(src)
-	if(below && istype(below, /turf/open/floor))
-		var/datum/liquid/below_water = below.cell.get_fluid_datum(WATER)
+	if(!GetBelow(src))
+		return
+
+	var/turf/new_top = ChangeTurf(/turf/open/transparent/openspace, null, CHANGETURF_IGNORE_AIR)
+
+	var/turf/below = GetBelow(new_top)
+	if(below)
+		var/turf/lake_bottom = below.ChangeTurf(/turf/open/floor/rogue/lakebed, null, CHANGETURF_IGNORE_AIR)
+		if(!lake_bottom.cell)
+			lake_bottom.cell = new /cell(lake_bottom)
+			lake_bottom.cell.InitLiquids()
+
+		var/datum/liquid/below_water = lake_bottom.cell.get_fluid_datum(WATER)
 		if(below_water)
-			below.cell.fluid_volume[below_water] = 100
-		SSliquid.update_fluidsum(below)
-		SSliquid.cell_index[below] = TRUE
+			lake_bottom.cell.fluid_volume[below_water] = 100
+
+		SSliquid.update_fluidsum(lake_bottom)
+		SSliquid.cell_index[lake_bottom] = TRUE
+		new_top.refresh_river_overlay()
+		SSmapping.register_water_bed(lake_bottom)

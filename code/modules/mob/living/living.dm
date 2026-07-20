@@ -1548,7 +1548,10 @@
 	if(movement_type & (FLOATING|FLYING))
 		return
 	underwater_bobbing = TRUE
-	animate(src, pixel_z = 2, time = 1.5 SECONDS, loop = -1, flags = ANIMATION_RELATIVE)
+	underwater_float_animate()
+
+/mob/living/proc/underwater_float_animate()
+	animate(src, pixel_z = 2, time = 1.5 SECONDS, loop = -1, flags = ANIMATION_RELATIVE|ANIMATION_PARALLEL)
 	animate(pixel_z = -2, time = 1.5 SECONDS, flags = ANIMATION_RELATIVE)
 
 /mob/living/proc/underwater_float_stop()
@@ -1556,6 +1559,15 @@
 		return
 	underwater_bobbing = FALSE
 	animate(src, pixel_z = 0, time = 0.5 SECONDS)
+
+/mob/living/proc/can_underwater_float(atom/newloc)
+	var/turf/open/water/W = newloc
+	if(!istype(W) || W.water_level < 2)
+		return FALSE
+	for(var/obj/structure/S in W)
+		if(S.obj_flags & BLOCK_Z_OUT_DOWN)
+			return FALSE
+	return TRUE
 
 /mob/living/proc/extinguish_mob()
 	if(HAS_TRAIT(src, TRAIT_NO_EXTINGUISH)) //The everlasting flames will not be extinguished
