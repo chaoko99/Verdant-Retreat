@@ -81,6 +81,8 @@ SUBSYSTEM_DEF(procgen)
 	for(var/turf/T as anything in mimic_turfs)
 		T.update_mimic()
 
+	SSmapping.check_water_bed_seals()
+
 	SSliquid.can_fire = 1
 	fluid_cells.Cut()
 	mimic_turfs.Cut()
@@ -1157,7 +1159,8 @@ The 4-5 rule creates natural forest patterns with connected clearings and realis
 	// Bottom turf: lakebed
 	var/turf/below = GetBelow(lake_surface)
 	if(below)
-		below.ChangeTurf(/turf/open/floor/rogue/lakebed, null, CHANGETURF_IGNORE_AIR)
+		var/turf/lake_bottom = below.ChangeTurf(/turf/open/floor/rogue/lakebed, null, CHANGETURF_IGNORE_AIR)
+		SSmapping.register_water_bed(lake_bottom)
 
 /area/procedural_generation/forest/proc/place_river_tile(x, y, flow_dir = SOUTH)
 	var/turf/current_turf = locate(x, y, src.z)
@@ -1174,6 +1177,7 @@ The 4-5 rule creates natural forest patterns with connected clearings and realis
 		riverbot.cell.flow_dir = flow_dir
 		riverbot.setDir(flow_dir)
 		SSliquid.update_cell_image(river_surface)
+		SSmapping.register_water_bed(riverbot)
 
 // Lake Generation - "Droplet Method" (Iterative Expansion)
 /area/procedural_generation/forest/proc/generate_lakes()
