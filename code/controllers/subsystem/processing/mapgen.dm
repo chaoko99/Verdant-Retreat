@@ -83,7 +83,7 @@ SUBSYSTEM_DEF(procgen)
 	for(var/turf/T as anything in mimic_turfs)
 		T.update_mimic()
 
-	SSmapping.check_water_bed_seals()
+//	SSmapping.check_water_bed_seals()
 
 	if(SSnative?.grid_inited)
 		var/flush_guard = 0
