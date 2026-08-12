@@ -276,3 +276,23 @@
 	. = ..()
 	icon_state = "center-leaf[rand(1,2)]"
 	update_icon()
+
+/*
+Pseudo todo:.
+Root object: Keeps weak reference to a circle of turfs to make adjustments to the fertility of. 
+Also keeps weak reference to the logs of the tree itself so it knows where everything is..
+
+On creation, consume a total of 100 fertility from the surrounding radius of ~~3 to 5 turfs in a circle, 
+generate a log. Bottom log can have no branches, so we're good for now. If there is not enough fertility, use a sprite tree rather than a turf tree.
+
+Generate a second log, consuming another 100 fertility.
+Depending on the tree type, this can go straight up or at a random direction, splitting, etc. trees like to fucking DEVOUR the soil fertility in their area so just grow as big as we can. Roll a 20% chance to split on each level.
+
+At this stage, generate branches. Each step of branches consumes 10 fertility per branch, so 40 for the first iteration, and then anywhere from 10-god knows on the next depending on how many branches are made.
+Once branches are terminated, build leaves, each consuming 2 fert, chosen arbitrarily. Do not run this during fall and winter.
+
+if we have fruit, consume 1 fertility per fruit on the branch. Consume 1 fertility for each regrown fruit as well. During this step we will also randomly drop from 1-3 fruit on the ground, which lowers its quality.
+Mark a branch that lacks fruit as needing fruit unless it is unable to find fertility to create it. 
+
+leave leaf piles in autumn under where they would spawn.
+*/

@@ -21,3 +21,16 @@
 		starting_turf = check
 
 	return starting_turf
+
+
+/proc/TurfCircle(turf/center, radius=1)
+	var/x=center.x, y=center.y, z=center.z
+	// tolerance is roughly (radius+0.5)**2 - radius**2
+	var/xo=radius, yo=0, tolerance=radius, d
+	. = list()
+	for(yo=d=0, yo<=radius, ++yo)
+		. += block(x-xo,y-yo,z, x+xo,y-yo)
+		if(yo) . += block(x-xo,y+yo,z, x+xo,y+yo)
+		d = (yo++)*2+1; tolerance -= d
+		while(tolerance < 0)
+			d = (--xo)*2+1; tolerance += d
