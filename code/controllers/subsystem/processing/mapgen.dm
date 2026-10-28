@@ -362,7 +362,7 @@ SUBSYSTEM_DEF(procgen)
 
 				if(MUD)
 					if(iswall(destination_turf))
-						destination_turf.ChangeTurf(/turf/open/floor/rogue/dirt)
+						destination_turf.ChangeTurf(/turf/open/floor/rogue/dirt/mud)
 
 				if(AQUA)
 					destination_turf.ChangeTurf(/turf/open/floor/rogue/dirt)
@@ -1162,7 +1162,7 @@ Forests are generated using cellular automata with the Moore neighborhood:
 	var/list/river_flow_map = list() // Stores flow_dir per river tile, keyed by "x-y"
 	var/river_primary = SOUTH
 	var/river_cross = EAST
-
+	var/undergrowth_list 
 /area/procedural_generation/forest/setup_procgen()
 	..()
 	clear_walls()

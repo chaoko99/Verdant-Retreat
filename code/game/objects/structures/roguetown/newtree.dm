@@ -296,3 +296,17 @@ Mark a branch that lacks fruit as needing fruit unless it is unable to find fert
 
 leave leaf piles in autumn under where they would spawn.
 */
+/obj/structure/flora/treeroot
+	name = "tree root"
+	desc = "Internal type, you shouldn't be seeing this."
+	invisibility = INVISIBILITY_MAXIMUM
+	var/list/rootturfs
+	var/list/trunks = list()
+
+/*Leech()
+	step 2: attempt to draw nutrients to build a new trunk. 
+	step 1: Build roots, attempt leech. If not enough, draw a small amount, let's say 10 ffert, from all surrounding root turfs to  build another root turf in a random distance. 
+
+*/
+/obj/structure/flora/trunk
+	name = "trunk"
